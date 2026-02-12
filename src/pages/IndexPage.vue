@@ -54,7 +54,7 @@ export default defineComponent({
 
     onMounted(async () => {
       await addressState.loadData();
-      awair addressState.fetchUserRole();
+      await addressState.fetchUserRole();
       const data = addressState.getData;
       addressList.value = data;
     });
