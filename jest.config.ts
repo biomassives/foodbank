@@ -6,11 +6,11 @@
     transform: {
       '^.+\\.jsx?$': 'babel-jest',
       '^.+\\.vue$': '@vue/vue3-jest',
-      "^.+\\.tsx?$": "ts-jest",
+      '^.+\\.tsx?$': 'ts-jest',
     },
-    testEnvironment: "jsdom",
+    testEnvironment: 'jsdom',
     testEnvironmentOptions: {
-      customExportConditions: ["node", "node-addons"],
+      customExportConditions: ['node', 'node-addons'],
     },
     moduleFileExtensions: ['vue', 'js', 'json', 'jsx', 'ts', 'tsx', 'node'],
   };

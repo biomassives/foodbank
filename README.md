@@ -1,4 +1,17 @@
-# Contact Management System
+# Food Bank Activity Organizer / Notifier Contact Management System
+
+
+ adding supabase for sessions and notifications via push
+ trilio / sendgrid for notifications
+ vercel deployment
+ localDB for useability :)
+
+
+
+
+
+
+
 
 Welcome to the Contact Management System, a user-friendly interface allowing you to manage your contacts efficiently. Below you will find the necessary information on how to get started with this project.
 

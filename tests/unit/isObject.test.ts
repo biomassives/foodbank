@@ -1,4 +1,4 @@
-import { isObject } from "../../src/utils/functions";
+import { isObject } from '../../src/utils/functions';
 
 describe('Testing isObject function', ()=> {
     it('Identify correctly that a string argument is not an Object', ()=>{

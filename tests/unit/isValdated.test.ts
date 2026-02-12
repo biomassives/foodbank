@@ -1,4 +1,4 @@
-import { isValidated } from "../../src/utils/functions";
+import { isValidated } from '../../src/utils/functions';
 
 describe('isValidated', () => {
     // Valid params that should pass all validation checks

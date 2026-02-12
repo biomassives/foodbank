@@ -17,7 +17,7 @@ export async function syncToCloud(data: Address) {
     .from('address_book')
     .upsert({ ...data, user_id: user.id });
     
-  if (error) console.error("RBAC Denied: ", error.message);
+  if (error) console.error('RBAC Denied: ', error.message);
 }
 
 
