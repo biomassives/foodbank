@@ -5,7 +5,7 @@
     style="padding: 10px; color: white"
   >
     <q-toolbar>
-      <q-toolbar-title> Address Book </q-toolbar-title>
+      <q-toolbar-title> Ward Food Pantry </q-toolbar-title>
       <q-input
         color="white"
         input-style="color: white"

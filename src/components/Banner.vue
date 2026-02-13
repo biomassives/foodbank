@@ -1,6 +1,6 @@
 <template>
   <q-banner inline-actions rounded class="bg-secondary text-white">
-    Nothing Adress
+    Nothing Address
     <template v-slot:action>
       <q-btn @click="putData" label="Put Example" />
     </template>
@@ -20,8 +20,8 @@ export default defineComponent({
       const data = {
         id: uniqueId('address-'),
         name: { first: 'Dan', last: 'Freeman' },
-        email: 'sunlighter2218@gmail.com',
-        phone: '484 602 2716',
+        email: '4drfreeman@gmail.com',
+        phone: '720 371 1757',
       };
       await addressStore.addData(data);
     };

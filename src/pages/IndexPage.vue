@@ -1,7 +1,7 @@
 <template>
   <q-page
     padding
-    class="row items-center justify-evenly bg-grey-3 scroll-wrapper"
+    class="row items-center justify-evenly bg-green-3 scroll-wrapper"
   >
     <q-scroll-area
       :thumb-style="style.thumbStyle"
