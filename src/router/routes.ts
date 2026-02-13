@@ -16,6 +16,21 @@ const routes: RouteRecordRaw[] = [
       title: 'Contact Management System - Vue',
     },
   },
+  {
+    path: '/admin',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { 
+        path: '', 
+        component: () => import('pages/AdminPage.vue'),
+        beforeEnter: (to, from, next) => {
+          const store = useAddressStore();
+          if (store.canEdit) next();
+          else next('/login'); // Redirect unauthorized users
+        }
+      }
+    ]
+  },
 
   // Always leave this as last one,
   // but you can also remove it
