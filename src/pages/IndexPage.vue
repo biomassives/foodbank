@@ -37,7 +37,7 @@ export default defineComponent({
       thumbStyle: {
         right: '4px',
         borderRadius: '5px',
-        backgroundColor: '#027be3',
+        backgroundColor: '#9c6a0b',
         width: '5px',
         opacity: '0.75',
       },
@@ -45,7 +45,7 @@ export default defineComponent({
       barStyle: {
         right: '2px',
         borderRadius: '9px',
-        backgroundColor: '#027be3',
+        backgroundColor: '#b22f0a',
         width: '9px',
         opacity: '0.2',
       },
