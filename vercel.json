@@ -1,7 +1,7 @@
 {
   "outputDirectory": "dist/spa",
   "cleanUrls": true,
-  "framework": "Other",
+  "framework": "vue",
   "builds": [
     {
       "src": "package.json",
