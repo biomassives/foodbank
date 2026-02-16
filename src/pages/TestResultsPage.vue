@@ -216,7 +216,7 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .tr-page {
   padding: 20px 16px 40px;
   max-width: 720px;
@@ -521,4 +521,86 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
+.tr-page {
+  background: #000;
+  color: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 2rem;
+}
+
+.tr-header {
+  border-bottom: 2px solid #fff;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.tr-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tr-chip {
+  border: 1px solid #333;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  flex: 1;
+  &--pass { border-color: #2e7d32; color: #4caf50; }
+  &--fail { border-color: #c62828; color: #f44336; }
+}
+
+.tr-bar-wrap {
+  margin-bottom: 3rem;
+  .tr-bar {
+    height: 4px;
+    background: #222;
+    .tr-bar-fill { height: 100%; background: #ff8f00; transition: width 1s ease; }
+  }
+  .tr-bar-label { font-size: 10px; color: #666; text-transform: uppercase; }
+}
+
+.tr-group-label {
+  color: #ff8f00;
+  font-size: 12px;
+  margin: 2rem 0 1rem 0;
+  letter-spacing: 2px;
+}
+
+.tr-suite {
+  border: 1px solid #222;
+  margin-bottom: 4px;
+  &-header {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    background: #0a0a0a;
+    &:hover { background: #111; }
+  }
+}
+
+.tr-dot--pass { width: 8px; height: 8px; background: #4caf50; border-radius: 0; display: inline-block; margin-right: 10px; }
+.tr-dot--fail { width: 8px; height: 8px; background: #f44336; border-radius: 0; display: inline-block; margin-right: 10px; }
+
+.tr-describe {
+  padding: 5px 30px;
+  font-size: 11px;
+  color: #888;
+  background: #050505;
+}
+
+.tr-test {
+  padding: 5px 40px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid #111;
+  margin-left: 15px;
+}
+
+.tr-suite-name { flex-grow: 1; font-weight: bold; }
+.tr-suite-time { font-size: 10px; color: #444; margin-left: 10px; }
 </style>
