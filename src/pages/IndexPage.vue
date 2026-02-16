@@ -39,7 +39,7 @@
           :class="{ 'loc-card--open': expandedLoc === loc.id }"
         >
           <div class="loc-row loc-row--user" @click="toggleLocExpand(loc.id)">
-            <q-icon name="location_on" size="18px" style="color: #69f0ae" />
+            <q-icon name="location_on" size="18px" class="loc-icon-user" />
             <div class="loc-text">
               <div class="loc-name">{{ loc.name }}</div>
               <div class="loc-type">
@@ -192,10 +192,10 @@ const expandedLoc = ref<string | null>(null);
 
 // Seed locations (always visible, not editable)
 const seedLocations = [
-  { id: 'loc-a', name: 'Pickup Point A', type: 'Pickup', icon: 'location_on', color: '#69f0ae' },
-  { id: 'loc-b', name: 'Pickup Point B', type: 'Pickup', icon: 'location_on', color: '#82b1ff' },
+  { id: 'loc-a', name: 'Pickup Point A', type: 'Pickup', icon: 'location_on', color: 'var(--wb-positive)' },
+  { id: 'loc-b', name: 'Pickup Point B', type: 'Pickup', icon: 'location_on', color: 'var(--wb-info)' },
   { id: 'loc-c', name: 'Pickup Point C', type: 'Pickup', icon: 'location_on', color: '#ce93d8' },
-  { id: 'loc-pantry', name: 'Pantry', type: 'Storage', icon: 'store', color: '#fdd835' },
+  { id: 'loc-pantry', name: 'Pantry', type: 'Storage', icon: 'store', color: 'var(--wb-accent)' },
 ];
 
 // Seed contacts
@@ -208,7 +208,7 @@ const seedContacts = [
     seed: true,
     badge: 'MANAGER',
     badgeColor: 'amber',
-    dotColor: '#fdd835',
+    dotColor: 'var(--wb-accent)',
   },
   {
     id: 'seed-dev',
@@ -218,7 +218,7 @@ const seedContacts = [
     seed: true,
     badge: 'SUPPORT',
     badgeColor: 'blue-4',
-    dotColor: '#82b1ff',
+    dotColor: 'var(--wb-info)',
   },
 ];
 
@@ -231,7 +231,7 @@ const allContacts = computed(() => {
     seed: false,
     badge: null as string | null,
     badgeColor: '',
-    dotColor: '#69f0ae',
+    dotColor: 'var(--wb-positive)',
   }));
   return [...seedContacts, ...users];
 });
@@ -313,8 +313,8 @@ onMounted(async () => {
 
 <style scoped>
 .index-page {
-  background: #000;
-  color: #fff;
+  background: var(--wb-bg);
+  color: var(--wb-text);
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -325,41 +325,41 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   padding: 12px 0 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--wb-border-subtle);
 }
 
 .view-toggle {
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
 }
 
 .view-toggle :deep(.q-btn) {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.6rem;
   letter-spacing: 3px;
-  color: rgba(255,255,255,0.5);
+  color: var(--wb-text-mid);
 }
 
 .view-toggle :deep(.q-btn--active) {
-  background: #fdd835 !important;
-  color: #000 !important;
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
 }
 
 .index-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px 90px; /* bottom padding so FAB doesn't cover last item */
+  padding: 0 12px 90px;
 }
 
 .section-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 4px;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-faint);
   padding: 14px 4px 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--wb-border-subtle);
 }
 
 /* ---- Locations ---- */
@@ -368,16 +368,20 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
   transition: background 0.15s;
 }
 
 .loc-row:hover {
-  background: rgba(255,255,255,0.04);
+  background: var(--wb-surface-hover);
 }
 
 .loc-row--user {
   cursor: pointer;
+}
+
+.loc-icon-user {
+  color: var(--wb-positive);
 }
 
 .loc-text {
@@ -385,18 +389,18 @@ onMounted(async () => {
 }
 
 .loc-name {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.85rem;
-  color: #fff;
+  color: var(--wb-text);
   letter-spacing: 0.3px;
 }
 
 .loc-type {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.6rem;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-faint);
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-top: 1px;
@@ -408,31 +412,31 @@ onMounted(async () => {
 .loc-size-badge {
   display: inline-block;
   padding: 1px 5px;
-  border: 1px solid rgba(105, 240, 174, 0.3);
+  border: 1px solid var(--wb-fab-loc-border);
   border-radius: 2px;
-  color: #69f0ae;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-positive);
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.5rem;
   letter-spacing: 1px;
 }
 
 .loc-expand-icon {
-  color: rgba(255,255,255,0.25);
+  color: var(--wb-text-faint);
   transition: color 0.15s;
 }
 
 .loc-card--open .loc-expand-icon {
-  color: #fdd835;
+  color: var(--wb-accent);
 }
 
 /* ---- Location expanded detail ---- */
 .loc-card {
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
 }
 
 .loc-card--open {
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-bottom: 1px solid var(--wb-border-mid);
 }
 
 .loc-detail {
@@ -444,15 +448,15 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 3px 0;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.55);
+  color: var(--wb-text-mid);
   letter-spacing: 0.3px;
 }
 
 .loc-detail-row :deep(.q-icon) {
-  color: rgba(255,255,255,0.25);
+  color: var(--wb-text-faint);
   flex-shrink: 0;
 }
 
@@ -472,8 +476,8 @@ onMounted(async () => {
   background: rgba(253, 216, 53, 0.08);
   border: 1px solid rgba(253, 216, 53, 0.25);
   border-radius: 2px;
-  color: #fdd835;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-accent);
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.6rem;
   letter-spacing: 0.5px;
@@ -481,7 +485,7 @@ onMounted(async () => {
 
 .loc-detail-notes {
   font-style: italic;
-  color: rgba(255,255,255,0.35);
+  color: var(--wb-text-muted);
 }
 
 .loc-detail-actions {
@@ -489,27 +493,29 @@ onMounted(async () => {
   gap: 8px;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--wb-border-subtle);
 }
 
 .loc-act-btn {
-  color: rgba(255,255,255,0.4) !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.65rem;
   letter-spacing: 1px;
 }
 
 .loc-act-btn:hover {
-  color: #fff !important;
+  color: var(--wb-text) !important;
 }
 
 .loc-act-btn--del {
-  color: rgba(239, 83, 80, 0.6) !important;
+  color: var(--wb-negative) !important;
+  opacity: 0.6;
 }
 
 .loc-act-btn--del:hover {
-  color: #ef5350 !important;
+  color: var(--wb-negative) !important;
+  opacity: 1;
 }
 
 /* ---- Contacts ---- */
@@ -518,12 +524,12 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
   transition: background 0.15s;
 }
 
 .contact-row:hover {
-  background: rgba(255,255,255,0.04);
+  background: var(--wb-surface-hover);
 }
 
 .contact-dot {
@@ -539,23 +545,23 @@ onMounted(async () => {
 }
 
 .contact-name {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.85rem;
-  color: #fff;
+  color: var(--wb-text);
   letter-spacing: 0.3px;
 }
 
 .contact-meta {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.68rem;
-  color: rgba(255,255,255,0.35);
+  color: var(--wb-text-muted);
   letter-spacing: 0.3px;
 }
 
 .contact-badge :deep(.q-badge) {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.5rem;
   letter-spacing: 2px;
@@ -574,8 +580,8 @@ onMounted(async () => {
   justify-content: center;
   gap: 6px;
   padding: 24px 12px;
-  color: rgba(255,255,255,0.2);
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.72rem;
   letter-spacing: 0.5px;
@@ -588,8 +594,8 @@ onMounted(async () => {
 }
 
 .nudge-btn {
-  color: rgba(255,255,255,0.4) !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.72rem;
   letter-spacing: 1px;
@@ -603,69 +609,68 @@ onMounted(async () => {
 }
 
 .fab-loc-btn {
-  background: #111 !important;
-  color: #69f0ae !important;
-  border: 2px solid #69f0ae !important;
+  background: var(--wb-fab-loc-bg) !important;
+  color: var(--wb-fab-loc-text) !important;
+  border: 2px solid var(--wb-fab-loc-border) !important;
   font-weight: 900;
-  box-shadow: 0 2px 12px rgba(105, 240, 174, 0.25);
+  box-shadow: 0 2px 12px var(--wb-fab-loc-glow);
   z-index: 100;
 }
 
 .fab-loc-btn:hover {
-  background: rgba(105, 240, 174, 0.1) !important;
-  box-shadow: 0 4px 20px rgba(105, 240, 174, 0.4);
+  box-shadow: 0 4px 20px var(--wb-fab-loc-glow);
 }
 
 .fab-btn {
-  background: #fdd835 !important;
-  color: #000 !important;
+  background: var(--wb-fab-bg) !important;
+  color: var(--wb-fab-text) !important;
   font-weight: 900;
-  box-shadow: 0 4px 20px rgba(253, 216, 53, 0.4);
+  box-shadow: 0 4px 20px var(--wb-fab-glow);
   z-index: 100;
 }
 
 .fab-btn:hover {
-  box-shadow: 0 6px 28px rgba(253, 216, 53, 0.6);
+  box-shadow: 0 6px 28px var(--wb-fab-glow);
 }
 
 /* ---- Delete dialog ---- */
 .confirm-card {
-  background: #111;
-  color: #fff;
-  border: 2px solid #fff;
+  background: var(--wb-modal-bg);
+  color: var(--wb-text);
+  border: 2px solid var(--wb-modal-border);
   border-radius: 4px;
   min-width: 280px;
 }
 
 .confirm-header {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.7rem;
   letter-spacing: 3px;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
+  border-bottom: 1px solid var(--wb-border-mid);
 }
 
 .confirm-body {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.9rem;
 }
 
 .confirm-actions {
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid var(--wb-border-subtle);
 }
 
 .confirm-cancel {
-  color: rgba(255,255,255,0.4) !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 1px;
 }
 
 .confirm-delete {
-  color: #ef5350 !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-negative) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 2px;

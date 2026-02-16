@@ -136,7 +136,6 @@ function timeAgo(iso: string): string {
 }
 
 async function claim(task: Entry) {
-  // In demo/local mode, use a default name
   const name = store.demoMode ? 'You' : 'You';
   await store.claimEntry(task.id, name);
   $q.notify({
@@ -188,11 +187,11 @@ async function complete(task: Entry) {
   align-items: center;
   justify-content: center;
   padding: 48px 16px;
-  color: rgba(255,255,255,0.2);
+  color: var(--wb-text-faint);
 }
 
 .queue-empty-text {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.8rem;
   letter-spacing: 4px;
@@ -200,22 +199,23 @@ async function complete(task: Entry) {
 }
 
 .queue-empty-sub {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.7rem;
   margin-top: 4px;
-  color: rgba(255,255,255,0.15);
+  color: var(--wb-text-faint);
+  opacity: 0.7;
 }
 
 /* ---- Queue item ---- */
 .queue-item {
   display: flex;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
   transition: background 0.15s;
 }
 
 .queue-item:hover {
-  background: rgba(255,255,255,0.03);
+  background: var(--wb-surface-hover);
 }
 
 .queue-item--delivered {
@@ -228,10 +228,10 @@ async function complete(task: Entry) {
   flex-shrink: 0;
 }
 
-.queue-status-bar--pending { background: #ffab40; }
-.queue-status-bar--claimed { background: #82b1ff; }
-.queue-status-bar--in_transit { background: #ce93d8; }
-.queue-status-bar--delivered { background: #69f0ae; }
+.queue-status-bar--pending { background: var(--wb-queue-pending); }
+.queue-status-bar--claimed { background: var(--wb-queue-claimed); }
+.queue-status-bar--in_transit { background: var(--wb-queue-transit); }
+.queue-status-bar--delivered { background: var(--wb-queue-delivered); }
 
 .queue-item-body {
   flex: 1;
@@ -247,10 +247,10 @@ async function complete(task: Entry) {
 
 .queue-item-desc {
   flex: 1;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.82rem;
-  color: #fff;
+  color: var(--wb-text);
   letter-spacing: 0.2px;
   line-height: 1.3;
 }
@@ -261,17 +261,17 @@ async function complete(task: Entry) {
   padding: 2px 6px;
   border: 1px solid;
   border-radius: 2px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.5rem;
   letter-spacing: 2px;
   white-space: nowrap;
 }
 
-.queue-chip--pending { color: #ffab40; border-color: rgba(255, 171, 64, 0.4); }
-.queue-chip--claimed { color: #82b1ff; border-color: rgba(130, 177, 255, 0.4); }
-.queue-chip--in_transit { color: #ce93d8; border-color: rgba(206, 147, 216, 0.4); }
-.queue-chip--delivered { color: #69f0ae; border-color: rgba(105, 240, 174, 0.4); }
+.queue-chip--pending { color: var(--wb-queue-pending); border-color: var(--wb-queue-pending); opacity: 0.7; }
+.queue-chip--claimed { color: var(--wb-queue-claimed); border-color: var(--wb-queue-claimed); opacity: 0.7; }
+.queue-chip--in_transit { color: var(--wb-queue-transit); border-color: var(--wb-queue-transit); opacity: 0.7; }
+.queue-chip--delivered { color: var(--wb-queue-delivered); border-color: var(--wb-queue-delivered); opacity: 0.7; }
 
 /* Meta row */
 .queue-item-meta {
@@ -279,15 +279,15 @@ async function complete(task: Entry) {
   align-items: center;
   gap: 10px;
   margin-top: 4px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.65rem;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-muted);
   letter-spacing: 0.3px;
 }
 
 .queue-item-meta :deep(.q-icon) {
-  color: rgba(255,255,255,0.2);
+  color: var(--wb-text-faint);
 }
 
 .queue-loc, .queue-claimer, .queue-time {
@@ -304,7 +304,7 @@ async function complete(task: Entry) {
 }
 
 .queue-act-btn {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.6rem;
   letter-spacing: 2px;
@@ -314,36 +314,42 @@ async function complete(task: Entry) {
 }
 
 .queue-act-btn--claim {
-  color: #ffab40 !important;
-  border-color: rgba(255, 171, 64, 0.3);
+  color: var(--wb-queue-pending) !important;
+  border-color: var(--wb-queue-pending);
+  opacity: 0.8;
 }
 .queue-act-btn--claim:hover {
-  background: rgba(255, 171, 64, 0.1) !important;
+  opacity: 1;
+  background: var(--wb-surface-hover) !important;
 }
 
 .queue-act-btn--transit {
-  color: #ce93d8 !important;
-  border-color: rgba(206, 147, 216, 0.3);
+  color: var(--wb-queue-transit) !important;
+  border-color: var(--wb-queue-transit);
+  opacity: 0.8;
 }
 .queue-act-btn--transit:hover {
-  background: rgba(206, 147, 216, 0.1) !important;
+  opacity: 1;
+  background: var(--wb-surface-hover) !important;
 }
 
 .queue-act-btn--unclaim {
-  color: rgba(255,255,255,0.35) !important;
-  border-color: rgba(255,255,255,0.1);
+  color: var(--wb-text-muted) !important;
+  border-color: var(--wb-border-mid);
 }
 .queue-act-btn--unclaim:hover {
-  color: #ffab40 !important;
-  background: rgba(255,255,255,0.05) !important;
+  color: var(--wb-queue-pending) !important;
+  background: var(--wb-surface-hover) !important;
 }
 
 .queue-act-btn--done {
-  color: #69f0ae !important;
-  border-color: rgba(105, 240, 174, 0.3);
+  color: var(--wb-queue-delivered) !important;
+  border-color: var(--wb-queue-delivered);
+  opacity: 0.8;
 }
 .queue-act-btn--done:hover {
-  background: rgba(105, 240, 174, 0.1) !important;
+  opacity: 1;
+  background: var(--wb-surface-hover) !important;
 }
 
 /* Delivered stamp */
@@ -351,8 +357,9 @@ async function complete(task: Entry) {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: rgba(105, 240, 174, 0.5);
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-queue-delivered);
+  opacity: 0.6;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.6rem;
   letter-spacing: 1px;

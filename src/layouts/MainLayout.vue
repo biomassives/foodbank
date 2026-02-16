@@ -73,6 +73,12 @@
             <q-icon name="settings" size="16px" /><span>{{ t.nav.settings }}</span>
           </div>
         </router-link>
+
+        <router-link to="/tests" custom v-slot="{ navigate, isActive }">
+          <div class="drawer-nav" :class="{ 'drawer-nav--active': isActive }" @click="navigate(); drawer = false;">
+            <q-icon name="science" size="16px" /><span>Tests</span>
+          </div>
+        </router-link>
       </div>
 
       <div class="drawer-rule" />

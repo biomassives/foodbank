@@ -13,6 +13,7 @@ const routes: RouteRecordRaw[] = [
       },
       { path: 'login', component: () => import('pages/OnboardPage.vue'), meta: { title: 'Get Started' } },
       { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { title: 'Settings' } },
+      { path: 'tests', component: () => import('pages/TestResultsPage.vue'), meta: { title: 'Tests' } },
       { path: 'setup', redirect: '/login' },
     ],
     meta: {

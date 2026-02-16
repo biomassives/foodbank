@@ -154,15 +154,15 @@ const syncLabel = ref('Saves locally');
 function updateSyncDisplay() {
   if (store.canSync) {
     syncIcon.value = 'cloud_done';
-    syncColor.value = '#69f0ae';
+    syncColor.value = 'var(--wb-positive)';
     syncLabel.value = 'Saves locally + syncs to pantry';
   } else if (store.localMode) {
     syncIcon.value = 'smartphone';
-    syncColor.value = '#82b1ff';
+    syncColor.value = 'var(--wb-info)';
     syncLabel.value = 'Saves to your browser';
   } else {
     syncIcon.value = 'save';
-    syncColor.value = 'rgba(255,255,255,0.4)';
+    syncColor.value = 'var(--wb-text-muted)';
     syncLabel.value = 'Saves locally';
   }
 }
@@ -254,9 +254,9 @@ async function save() {
 
 <style scoped>
 .loc-modal {
-  background: #111;
-  color: #fff;
-  border: 2px solid #fff;
+  background: var(--wb-modal-bg);
+  color: var(--wb-text);
+  border: 2px solid var(--wb-modal-border);
   border-radius: 4px;
   min-width: 360px;
   max-width: 95vw;
@@ -268,17 +268,17 @@ async function save() {
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
-  border-bottom: 2px solid #fff;
-  background: #000;
+  border-bottom: 2px solid var(--wb-modal-border);
+  background: var(--wb-modal-header-bg);
 }
 
 .loc-header-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 4px;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--wb-text);
   flex: 1;
 }
 
@@ -289,25 +289,25 @@ async function save() {
 }
 
 .loc-section-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 4px;
-  color: rgba(255,255,255,0.25);
+  color: var(--wb-text-faint);
   margin-top: 10px;
   margin-bottom: 6px;
 }
 
 /* ---- Inputs ---- */
 .loc-input :deep(.q-field__control) {
-  background: rgba(255,255,255,0.06) !important;
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--wb-card-input-bg) !important;
+  border: 1px solid var(--wb-card-input-border);
   border-radius: 3px;
 }
 
 .loc-input :deep(.q-field__label) {
-  color: rgba(255,255,255,0.5);
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.8rem;
   letter-spacing: 0.5px;
@@ -315,8 +315,8 @@ async function save() {
 
 .loc-input :deep(.q-field__native),
 .loc-input :deep(textarea) {
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text);
+  font-family: var(--wb-font);
 }
 
 /* ---- Day chips ---- */
@@ -329,10 +329,10 @@ async function save() {
 .day-chip {
   padding: 5px 8px;
   background: none;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
-  color: rgba(255,255,255,0.4);
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.6rem;
   letter-spacing: 1px;
@@ -341,14 +341,14 @@ async function save() {
 }
 
 .day-chip:hover {
-  border-color: rgba(255,255,255,0.4);
-  color: #fff;
+  border-color: var(--wb-text-muted);
+  color: var(--wb-text);
 }
 
 .day-chip.active {
-  border-color: #fdd835;
-  color: #000;
-  background: #fdd835;
+  border-color: var(--wb-accent);
+  color: var(--wb-accent-text);
+  background: var(--wb-accent);
 }
 
 /* ---- Resource tags ---- */
@@ -367,8 +367,8 @@ async function save() {
   background: rgba(253, 216, 53, 0.1);
   border: 1px solid rgba(253, 216, 53, 0.3);
   border-radius: 3px;
-  color: #fdd835;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-accent);
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 0.5px;
@@ -377,7 +377,8 @@ async function save() {
 .resource-tag-x {
   background: none;
   border: none;
-  color: rgba(253, 216, 53, 0.6);
+  color: var(--wb-accent);
+  opacity: 0.6;
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -385,7 +386,8 @@ async function save() {
 }
 
 .resource-tag-x:hover {
-  color: #ef5350;
+  color: var(--wb-negative);
+  opacity: 1;
 }
 
 .resource-add {
@@ -407,34 +409,34 @@ async function save() {
   flex: 1;
   padding: 8px 4px;
   background: none;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
-  color: rgba(255,255,255,0.4);
+  color: var(--wb-text-muted);
   cursor: pointer;
   transition: all 0.15s;
   text-align: center;
 }
 
 .size-chip:hover {
-  border-color: rgba(255,255,255,0.35);
-  color: #fff;
+  border-color: var(--wb-text-muted);
+  color: var(--wb-text);
 }
 
 .size-chip.active {
-  border-color: #69f0ae;
+  border-color: var(--wb-positive);
   background: rgba(105, 240, 174, 0.08);
-  color: #69f0ae;
+  color: var(--wb-positive);
 }
 
 .size-chip-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 1px;
 }
 
 .size-chip-sub {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.5rem;
   letter-spacing: 1px;
@@ -448,14 +450,14 @@ async function save() {
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--wb-surface-hover);
+  border: 1px solid var(--wb-border-subtle);
   border-radius: 3px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.72rem;
   letter-spacing: 0.5px;
-  color: rgba(255,255,255,0.5);
+  color: var(--wb-text-mid);
 }
 
 /* ---- Actions ---- */
@@ -464,21 +466,21 @@ async function save() {
   justify-content: flex-end;
   gap: 8px;
   padding: 10px 14px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid var(--wb-border-subtle);
 }
 
 .loc-btn-flat {
-  color: rgba(255,255,255,0.5) !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-mid) !important;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.8rem;
   letter-spacing: 1px;
 }
 
 .loc-btn-save {
-  background: #fdd835 !important;
-  color: #000 !important;
-  font-family: 'Nunito', sans-serif;
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.8rem;
   letter-spacing: 2px;

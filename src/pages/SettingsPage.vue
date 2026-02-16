@@ -2,6 +2,122 @@
   <q-page class="settings-page">
     <div class="settings-wrap">
 
+      <!-- ── SVG GREETING BANNER ── -->
+      <div class="greeting-banner">
+        <svg class="greeting-art" viewBox="0 0 500 140" preserveAspectRatio="none">
+          <!-- Sky gradient layer -->
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" :stop-color="isDark === 'dark' ? '#1a1040' : '#e3f2fd'" />
+              <stop offset="40%" :stop-color="isDark === 'dark' ? '#2d1b69' : '#bbdefb'" />
+              <stop offset="100%" :stop-color="isDark === 'dark' ? '#e65100' : '#fff3e0'" />
+            </linearGradient>
+          </defs>
+          <rect width="500" height="140" fill="url(#sky)" />
+
+          <!-- Sun/Moon -->
+          <circle
+            :cx="isDark === 'dark' ? 400 : 100"
+            cy="36"
+            r="22"
+            :fill="isDark === 'dark' ? '#fdd835' : '#ff9800'"
+            :opacity="isDark === 'dark' ? 0.7 : 0.85"
+          />
+          <circle
+            :cx="isDark === 'dark' ? 400 : 100"
+            cy="36"
+            r="28"
+            fill="none"
+            :stroke="isDark === 'dark' ? 'rgba(253,216,53,0.2)' : 'rgba(255,152,0,0.2)'"
+            stroke-width="1.5"
+            stroke-dasharray="4 3"
+          />
+
+          <!-- Rolling hills (back) -->
+          <path d="M0,105 Q60,72 130,90 Q200,108 260,80 Q330,55 400,78 Q460,95 500,85 L500,140 L0,140Z"
+            :fill="isDark === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(46,125,50,0.12)'" />
+
+          <!-- Hills (front) -->
+          <path d="M0,118 Q80,92 160,108 Q240,124 320,100 Q390,82 460,98 Q480,102 500,96 L500,140 L0,140Z"
+            :fill="isDark === 'dark' ? 'rgba(0,0,0,0.35)' : 'rgba(46,125,50,0.2)'" />
+
+          <!-- Community buildings -->
+          <rect x="50" y="100" width="28" height="40" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.12)'" />
+          <rect x="82" y="108" width="22" height="32" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'" />
+          <rect x="140" y="96" width="35" height="44" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.14)'" />
+          <!-- Pantry building (center, taller) -->
+          <rect x="220" y="82" width="60" height="58" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.16)'" />
+          <rect x="235" y="78" width="30" height="4" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.3)' : 'rgba(199,119,0,0.3)'" />
+          <!-- More buildings -->
+          <rect x="310" y="102" width="25" height="38" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.42)' : 'rgba(0,0,0,0.11)'" />
+          <rect x="360" y="94" width="30" height="46" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.38)' : 'rgba(0,0,0,0.13)'" />
+          <rect x="400" y="106" width="24" height="34" :fill="isDark === 'dark' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.09)'" />
+
+          <!-- Windows (lit on dark, shadowed on light) -->
+          <rect x="58" y="108" width="4" height="4" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.25)' : 'rgba(0,0,0,0.08)'" />
+          <rect x="66" y="108" width="4" height="4" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.15)' : 'rgba(0,0,0,0.06)'" />
+          <rect x="58" y="118" width="4" height="4" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.2)' : 'rgba(0,0,0,0.07)'" />
+          <rect x="230" y="92" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.3)' : 'rgba(199,119,0,0.15)'" />
+          <rect x="240" y="92" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.2)' : 'rgba(199,119,0,0.12)'" />
+          <rect x="250" y="92" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.25)' : 'rgba(199,119,0,0.1)'" />
+          <rect x="260" y="92" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.15)' : 'rgba(199,119,0,0.13)'" />
+          <rect x="230" y="102" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.18)' : 'rgba(199,119,0,0.1)'" />
+          <rect x="250" y="102" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.22)' : 'rgba(199,119,0,0.11)'" />
+          <rect x="265" y="102" width="5" height="5" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.12)' : 'rgba(199,119,0,0.08)'" />
+          <rect x="370" y="102" width="4" height="4" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.2)' : 'rgba(0,0,0,0.07)'" />
+          <rect x="378" y="110" width="4" height="4" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.15)' : 'rgba(0,0,0,0.06)'" />
+
+          <!-- Stars (dark only) -->
+          <template v-if="isDark === 'dark'">
+            <circle cx="40" cy="18" r="1" fill="rgba(255,255,255,0.4)" />
+            <circle cx="120" cy="12" r="1.2" fill="rgba(255,255,255,0.3)" />
+            <circle cx="200" cy="22" r="0.8" fill="rgba(255,255,255,0.35)" />
+            <circle cx="310" cy="15" r="1" fill="rgba(255,255,255,0.25)" />
+            <circle cx="450" cy="20" r="1.1" fill="rgba(255,255,255,0.3)" />
+            <circle cx="80" cy="30" r="0.7" fill="rgba(255,255,255,0.2)" />
+            <circle cx="350" cy="28" r="0.9" fill="rgba(255,255,255,0.25)" />
+          </template>
+
+          <!-- Scan lines overlay -->
+          <rect width="500" height="140" fill="url(#scanlines)" opacity="0.5" />
+          <defs>
+            <pattern id="scanlines" width="4" height="4" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="3" x2="4" y2="3" stroke="rgba(0,0,0,0.05)" stroke-width="1" />
+            </pattern>
+          </defs>
+
+          <!-- Ground line -->
+          <line x1="0" y1="139" x2="500" y2="139" :stroke="isDark === 'dark' ? 'rgba(253,216,53,0.3)' : 'rgba(199,119,0,0.25)'" stroke-width="2" />
+        </svg>
+
+        <div class="greeting-content">
+          <div class="greeting-text">{{ greetingText }}</div>
+          <div class="greeting-sub">WORLDBRIDGER PANTRY</div>
+        </div>
+      </div>
+
+      <!-- ── APPEARANCE ── -->
+      <div class="settings-section">
+        <div class="settings-section-label">APPEARANCE</div>
+        <div class="appearance-block">
+          <div class="appearance-row" @click="themeToggle">
+            <div class="appearance-info">
+              <q-icon :name="isDark === 'dark' ? 'dark_mode' : 'light_mode'" size="18px" class="appearance-icon" />
+              <div>
+                <div class="appearance-title">{{ isDark === 'dark' ? 'Dark Mode' : 'Light Mode' }}</div>
+                <div class="appearance-hint">{{ isDark === 'dark' ? 'Warhol Factory — stark & bold' : 'Earth tones — warm & readable' }}</div>
+              </div>
+            </div>
+            <q-toggle
+              :model-value="isDark === 'dark'"
+              @update:model-value="themeToggle"
+              color="amber"
+              keep-color
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- ── ABOUT ── -->
       <div class="settings-section">
         <div class="settings-section-label">ABOUT</div>
@@ -110,16 +226,16 @@
       <div class="settings-section">
         <div class="settings-section-label">CONNECTION</div>
         <div class="connection-block">
-          <div v-if="store.canSync" class="conn-row">
-            <q-icon name="cloud_done" size="16px" style="color: #69f0ae" />
+          <div v-if="store.canSync" class="conn-row conn-row--synced">
+            <q-icon name="cloud_done" size="16px" />
             <span>Synced to cloud</span>
           </div>
-          <div v-else-if="store.localMode" class="conn-row">
-            <q-icon name="smartphone" size="16px" style="color: #82b1ff" />
+          <div v-else-if="store.localMode" class="conn-row conn-row--local">
+            <q-icon name="smartphone" size="16px" />
             <span>Local mode — data stored in your browser</span>
           </div>
-          <div v-else class="conn-row">
-            <q-icon name="visibility" size="16px" style="color: rgba(255,255,255,0.3)" />
+          <div v-else class="conn-row conn-row--visitor">
+            <q-icon name="visibility" size="16px" />
             <span>Visitor — sign in to save data</span>
           </div>
 
@@ -175,9 +291,11 @@
 import { ref, computed } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
+import { useTheme } from 'src/composables/useTheme';
 
 const store = useAddressStore();
 const $q = useQuasar();
+const { isDark, toggle: themeToggle } = useTheme();
 
 const confirmClear = ref(false);
 const loadingDemo = ref(false);
@@ -187,6 +305,15 @@ const entryCount = computed(() => store.getEntries.length);
 const locationCount = computed(() => store.getLocations.length);
 const queueCount = computed(() => store.getQueueEntries.length);
 
+const greetingText = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 6) return 'QUIET HOURS';
+  if (hour < 12) return 'GOOD MORNING';
+  if (hour < 17) return 'GOOD AFTERNOON';
+  if (hour < 21) return 'GOOD EVENING';
+  return 'GOOD NIGHT';
+});
+
 const statusIcon = computed(() => {
   if (store.canSync) return 'cloud_done';
   if (store.localMode) return 'smartphone';
@@ -195,10 +322,10 @@ const statusIcon = computed(() => {
 });
 
 const statusColor = computed(() => {
-  if (store.canSync) return '#69f0ae';
-  if (store.localMode) return '#82b1ff';
-  if (store.isLoggedIn) return '#ffab40';
-  return 'rgba(255,255,255,0.3)';
+  if (store.canSync) return 'var(--wb-positive)';
+  if (store.localMode) return 'var(--wb-info)';
+  if (store.isLoggedIn) return 'var(--wb-warning)';
+  return 'var(--wb-text-muted)';
 });
 
 const statusLabel = computed(() => {
@@ -250,8 +377,8 @@ async function clearLocalData() {
 
 <style scoped>
 .settings-page {
-  background: #000;
-  color: #fff;
+  background: var(--wb-bg);
+  color: var(--wb-text);
   min-height: 100vh;
   padding: 0;
 }
@@ -262,19 +389,107 @@ async function clearLocalData() {
   padding: 0 12px 48px;
 }
 
+/* ---- Greeting banner ---- */
+.greeting-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  border: 2px solid var(--wb-border-mid);
+  margin-top: 12px;
+}
+
+.greeting-art {
+  display: block;
+  width: 100%;
+  height: 140px;
+}
+
+.greeting-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.greeting-text {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 6px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5), 0 0 40px rgba(0,0,0,0.3);
+}
+
+.greeting-sub {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.7);
+  margin-top: 4px;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+}
+
+/* ---- Appearance / theme toggle ---- */
+.appearance-block {
+  padding: 8px 4px;
+}
+
+.appearance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.appearance-row:hover {
+  background: var(--wb-surface-hover);
+}
+
+.appearance-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.appearance-icon {
+  color: var(--wb-accent);
+}
+
+.appearance-title {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--wb-text);
+}
+
+.appearance-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  color: var(--wb-text-muted);
+  letter-spacing: 0.3px;
+}
+
 /* ---- Sections ---- */
 .settings-section {
   margin-top: 0;
 }
 
 .settings-section-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 4px;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-faint);
   padding: 14px 4px 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--wb-border-subtle);
 }
 
 /* ---- About ---- */
@@ -283,27 +498,27 @@ async function clearLocalData() {
 }
 
 .about-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.9rem;
   letter-spacing: 3px;
-  color: #fdd835;
+  color: var(--wb-accent);
 }
 
 .about-sub {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.72rem;
-  color: rgba(255,255,255,0.4);
+  color: var(--wb-text-muted);
   letter-spacing: 0.5px;
   margin-top: 2px;
 }
 
 .about-body {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.55);
+  color: var(--wb-text-mid);
   line-height: 1.5;
   margin-top: 10px;
 }
@@ -313,18 +528,18 @@ async function clearLocalData() {
   align-items: center;
   gap: 6px;
   margin-top: 10px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.68rem;
-  color: rgba(255,255,255,0.35);
+  color: var(--wb-text-faint);
   letter-spacing: 0.5px;
 }
 
 .about-license {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.6rem;
-  color: #69f0ae;
+  color: var(--wb-positive);
   letter-spacing: 1px;
   margin-top: 6px;
 }
@@ -334,16 +549,16 @@ async function clearLocalData() {
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.68rem;
-  color: #82b1ff;
+  color: var(--wb-info);
   text-decoration: none;
   letter-spacing: 0.5px;
 }
 
 .about-link:hover {
-  color: #fff;
+  color: var(--wb-text);
 }
 
 /* ---- Status ---- */
@@ -358,17 +573,17 @@ async function clearLocalData() {
 }
 
 .status-main {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.85rem;
-  color: #fff;
+  color: var(--wb-text);
 }
 
 .status-detail {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.65rem;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-faint);
   margin-top: 4px;
   margin-left: 24px;
 }
@@ -382,27 +597,27 @@ async function clearLocalData() {
 .count-chip {
   flex: 1;
   padding: 8px 4px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--wb-count-border);
   border-radius: 3px;
   text-align: center;
 }
 
 .count-num {
   display: block;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 1.1rem;
-  color: #fdd835;
+  color: var(--wb-count-num);
   letter-spacing: 1px;
 }
 
 .count-label {
   display: block;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.45rem;
   letter-spacing: 2px;
-  color: rgba(255,255,255,0.25);
+  color: var(--wb-text-faint);
   margin-top: 2px;
 }
 
@@ -412,10 +627,10 @@ async function clearLocalData() {
 }
 
 .demo-desc {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.5);
+  color: var(--wb-text-mid);
   line-height: 1.5;
 }
 
@@ -429,7 +644,7 @@ async function clearLocalData() {
   border: 1px solid rgba(206, 147, 216, 0.3);
   border-radius: 3px;
   color: #ce93d8;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.6rem;
   letter-spacing: 3px;
@@ -442,7 +657,7 @@ async function clearLocalData() {
 }
 
 .demo-btn {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 2px;
@@ -451,21 +666,21 @@ async function clearLocalData() {
 }
 
 .demo-btn--load {
-  background: #fdd835 !important;
-  color: #000 !important;
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
 }
 
 .demo-btn--clear {
-  background: rgba(255,255,255,0.1) !important;
-  color: #fff !important;
-  border: 1px solid rgba(255,255,255,0.2);
+  background: var(--wb-surface-hover) !important;
+  color: var(--wb-text) !important;
+  border: 1px solid var(--wb-border-mid);
 }
 
 .demo-hint {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.65rem;
-  color: rgba(255,255,255,0.25);
+  color: var(--wb-text-faint);
   margin-top: 8px;
   letter-spacing: 0.3px;
 }
@@ -479,20 +694,24 @@ async function clearLocalData() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.6);
+  color: var(--wb-text-mid);
 }
+
+.conn-row--synced { color: var(--wb-positive); }
+.conn-row--local { color: var(--wb-info); }
+.conn-row--visitor { color: var(--wb-text-muted); }
 
 .conn-btn {
   margin-top: 10px;
-  color: #82b1ff !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-info) !important;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 1px;
-  border: 1px solid rgba(130, 177, 255, 0.25);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
 }
 
@@ -502,64 +721,64 @@ async function clearLocalData() {
 }
 
 .data-warn {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.72rem;
-  color: rgba(255,255,255,0.35);
+  color: var(--wb-text-muted);
   line-height: 1.5;
 }
 
 .data-clear-btn {
   margin-top: 10px;
-  color: #ef5350 !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-negative) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.7rem;
   letter-spacing: 1px;
-  border: 1px solid rgba(239, 83, 80, 0.25);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
 }
 
 /* ---- Confirm dialog ---- */
 .confirm-card {
-  background: #111;
-  color: #fff;
-  border: 2px solid #fff;
+  background: var(--wb-modal-bg);
+  color: var(--wb-text);
+  border: 2px solid var(--wb-modal-border);
   border-radius: 4px;
   min-width: 300px;
 }
 
 .confirm-header {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.7rem;
   letter-spacing: 3px;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
+  border-bottom: 1px solid var(--wb-border-mid);
 }
 
 .confirm-body {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.6);
+  color: var(--wb-text-mid);
   line-height: 1.5;
 }
 
 .confirm-actions {
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid var(--wb-border-subtle);
 }
 
 .confirm-cancel {
-  color: rgba(255,255,255,0.4) !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 1px;
 }
 
 .confirm-delete {
-  color: #ef5350 !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-negative) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 2px;

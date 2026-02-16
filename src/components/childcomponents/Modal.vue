@@ -168,4 +168,11 @@ export default defineComponent({
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.my-card {
+  background: var(--wb-modal-bg);
+  color: var(--wb-text);
+  border: 2px solid var(--wb-modal-border);
+  border-radius: 4px;
+}
+</style>

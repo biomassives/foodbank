@@ -27,7 +27,7 @@
         </button>
       </div>
 
-      <!-- ═══ MEMBERS ═══ -->
+      <!-- MEMBERS -->
       <div v-if="tab === 'members'" class="admin-panel">
         <div class="panel-head">
           <span class="panel-title">MEMBERS</span>
@@ -57,7 +57,7 @@
         </div>
       </div>
 
-      <!-- ═══ LOCATIONS ═══ -->
+      <!-- LOCATIONS -->
       <div v-if="tab === 'locations'" class="admin-panel">
         <div class="panel-head">
           <span class="panel-title">LOCATIONS</span>
@@ -67,7 +67,7 @@
         <div class="loc-add-row">
           <q-input
             v-model="newLocName"
-            dense filled dark
+            dense filled
             placeholder="New location name"
             class="loc-add-input"
             @keyup.enter="addNewLocation"
@@ -88,7 +88,7 @@
         </div>
 
         <div v-for="loc in allLocations" :key="loc.id" class="loc-admin-row">
-          <q-icon name="location_on" size="16px" style="color: #69f0ae" />
+          <q-icon name="location_on" size="16px" class="loc-admin-icon" />
           <div class="loc-admin-info">
             <div class="loc-admin-name">{{ loc.name }}</div>
             <div class="loc-admin-meta">
@@ -101,7 +101,7 @@
         </div>
       </div>
 
-      <!-- ═══ INVITES ═══ -->
+      <!-- INVITES -->
       <div v-if="tab === 'invites'" class="admin-panel">
         <div class="panel-head">
           <span class="panel-title">INVITE CODES</span>
@@ -138,7 +138,7 @@
         </div>
       </div>
 
-      <!-- ═══ LAUNCH ═══ -->
+      <!-- LAUNCH -->
       <div v-if="tab === 'launch'" class="admin-panel">
         <div class="panel-head">
           <span class="panel-title">SOVEREIGN LAUNCH</span>
@@ -151,7 +151,7 @@
           </div>
 
           <div class="launch-card">
-            <q-icon name="rocket_launch" size="20px" style="color: #82b1ff" />
+            <q-icon name="rocket_launch" size="20px" class="launch-icon-deploy" />
             <div>
               <div class="launch-card-title">Deploy to Vercel</div>
               <div class="launch-card-sub">One-click deploy with your own Supabase keys</div>
@@ -166,7 +166,7 @@
           />
 
           <div class="launch-card q-mt-md">
-            <q-icon name="code" size="20px" style="color: #ce93d8" />
+            <q-icon name="code" size="20px" class="launch-icon-fork" />
             <div>
               <div class="launch-card-title">Fork on GitHub</div>
               <div class="launch-card-sub">GPL v3 — customize everything</div>
@@ -188,7 +188,7 @@
         <q-card class="help-card">
           <div class="help-header">
             <span>ADMIN GUIDE</span>
-            <q-btn flat dense round icon="close" size="sm" color="white" v-close-popup />
+            <q-btn flat dense round icon="close" size="sm" v-close-popup />
           </div>
           <div class="help-body">
             <div class="help-item"><strong>Members:</strong> Assign roles — viewers see data, editors can add/edit, admins manage everything.</div>
@@ -258,9 +258,9 @@ const members = computed<Member[]>(() => {
 });
 
 function roleColor(role: string): string {
-  if (role === 'admin') return '#fdd835';
-  if (role === 'editor') return '#69f0ae';
-  return 'rgba(255,255,255,0.25)';
+  if (role === 'admin') return 'var(--wb-accent)';
+  if (role === 'editor') return 'var(--wb-positive)';
+  return 'var(--wb-text-faint)';
 }
 
 function getLocalRole(id: string): string {
@@ -454,8 +454,8 @@ onMounted(async () => {
 
 <style scoped>
 .admin-page {
-  background: #000;
-  color: #fff;
+  background: var(--wb-bg);
+  color: var(--wb-text);
   min-height: 100vh;
   padding: 0;
 }
@@ -469,15 +469,15 @@ onMounted(async () => {
 /* ── Header ── */
 .admin-header {
   padding: 16px 4px 8px;
-  border-bottom: 2px solid #fff;
+  border-bottom: 2px solid var(--wb-border);
 }
 
 .admin-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 1rem;
   letter-spacing: 5px;
-  color: #fff;
+  color: var(--wb-text);
 }
 
 .admin-sub {
@@ -487,13 +487,13 @@ onMounted(async () => {
 .admin-mode {
   display: inline-block;
   padding: 2px 8px;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 2px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 3px;
-  color: rgba(255,255,255,0.4);
+  color: var(--wb-text-muted);
 }
 
 .admin-mode--demo {
@@ -502,19 +502,21 @@ onMounted(async () => {
 }
 
 .admin-mode--local {
-  color: #82b1ff;
-  border-color: rgba(130, 177, 255, 0.4);
+  color: var(--wb-info);
+  border-color: var(--wb-info);
+  opacity: 0.7;
 }
 
 .admin-mode--cloud {
-  color: #69f0ae;
-  border-color: rgba(105, 240, 174, 0.4);
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+  opacity: 0.7;
 }
 
 /* ── Tabs ── */
 .admin-tabs {
   display: flex;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid var(--wb-border-subtle);
   overflow-x: auto;
 }
 
@@ -526,8 +528,8 @@ onMounted(async () => {
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: rgba(255,255,255,0.35);
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.6rem;
   letter-spacing: 2px;
@@ -537,12 +539,12 @@ onMounted(async () => {
 }
 
 .admin-tab:hover {
-  color: rgba(255,255,255,0.7);
+  color: var(--wb-text-mid);
 }
 
 .admin-tab.active {
-  color: #fdd835;
-  border-bottom-color: #fdd835;
+  color: var(--wb-accent);
+  border-bottom-color: var(--wb-accent);
 }
 
 /* ── Panel shared ── */
@@ -558,22 +560,22 @@ onMounted(async () => {
 }
 
 .panel-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 4px;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-faint);
 }
 
 .panel-count {
   display: inline-block;
   padding: 1px 6px;
-  border: 1px solid rgba(253, 216, 53, 0.3);
+  border: 1px solid var(--wb-count-border);
   border-radius: 2px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
-  color: #fdd835;
+  color: var(--wb-count-num);
   letter-spacing: 1px;
 }
 
@@ -583,8 +585,8 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 32px 16px;
-  color: rgba(255,255,255,0.15);
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.72rem;
 }
@@ -595,7 +597,7 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
 }
 
 .member-dot {
@@ -611,28 +613,28 @@ onMounted(async () => {
 }
 
 .member-name {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.82rem;
-  color: #fff;
+  color: var(--wb-text);
 }
 
 .member-detail {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.65rem;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .role-select {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--wb-surface-hover);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text);
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 0.5px;
@@ -642,8 +644,8 @@ onMounted(async () => {
 }
 
 .role-select option {
-  background: #111;
-  color: #fff;
+  background: var(--wb-surface);
+  color: var(--wb-text);
 }
 
 /* ── Locations ── */
@@ -659,25 +661,30 @@ onMounted(async () => {
 }
 
 .loc-add-input :deep(.q-field__control) {
-  background: rgba(255,255,255,0.06) !important;
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--wb-surface-hover) !important;
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
 }
 
 .loc-add-input :deep(.q-field__native) {
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-text);
+  font-family: var(--wb-font);
 }
 
 .loc-add-btn {
-  color: #69f0ae !important;
-  font-family: 'Nunito', sans-serif;
+  color: var(--wb-positive) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.65rem;
   letter-spacing: 2px;
-  border: 1px solid rgba(105, 240, 174, 0.3);
+  border: 1px solid var(--wb-positive);
+  opacity: 0.7;
   border-radius: 3px;
   align-self: center;
+}
+
+.loc-add-btn:hover {
+  opacity: 1;
 }
 
 .loc-admin-row {
@@ -685,7 +692,11 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.loc-admin-icon {
+  color: var(--wb-positive);
 }
 
 .loc-admin-info {
@@ -694,26 +705,27 @@ onMounted(async () => {
 }
 
 .loc-admin-name {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.82rem;
-  color: #fff;
+  color: var(--wb-text);
 }
 
 .loc-admin-meta {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.6rem;
-  color: rgba(255,255,255,0.3);
+  color: var(--wb-text-muted);
   letter-spacing: 0.3px;
 }
 
 .loc-admin-del {
-  color: rgba(239, 83, 80, 0.5) !important;
+  color: var(--wb-negative) !important;
+  opacity: 0.5;
 }
 
 .loc-admin-del:hover {
-  color: #ef5350 !important;
+  opacity: 1;
 }
 
 /* ── Invites ── */
@@ -722,9 +734,9 @@ onMounted(async () => {
 }
 
 .invite-gen-btn {
-  background: #fdd835 !important;
-  color: #000 !important;
-  font-family: 'Nunito', sans-serif;
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 2px;
@@ -736,14 +748,14 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--wb-border-subtle);
 }
 
 .invite-code {
   font-family: 'Courier New', monospace;
   font-weight: 700;
   font-size: 1rem;
-  color: #fff;
+  color: var(--wb-text);
   letter-spacing: 3px;
   flex: 1;
 }
@@ -752,28 +764,29 @@ onMounted(async () => {
   padding: 2px 8px;
   border: 1px solid;
   border-radius: 2px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.5rem;
   letter-spacing: 2px;
 }
 
 .invite-status--open {
-  color: #69f0ae;
-  border-color: rgba(105, 240, 174, 0.3);
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+  opacity: 0.7;
 }
 
 .invite-status--used {
-  color: rgba(255,255,255,0.25);
-  border-color: rgba(255,255,255,0.1);
+  color: var(--wb-text-faint);
+  border-color: var(--wb-border-mid);
 }
 
 .invite-copy {
-  color: rgba(255,255,255,0.3) !important;
+  color: var(--wb-text-muted) !important;
 }
 
 .invite-copy:hover {
-  color: #fdd835 !important;
+  color: var(--wb-accent) !important;
 }
 
 /* ── Launch ── */
@@ -782,10 +795,10 @@ onMounted(async () => {
 }
 
 .launch-desc {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.5);
+  color: var(--wb-text-mid);
   line-height: 1.5;
   margin-bottom: 14px;
 }
@@ -795,29 +808,37 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
   margin-bottom: 8px;
 }
 
+.launch-icon-deploy {
+  color: var(--wb-info);
+}
+
+.launch-icon-fork {
+  color: #ce93d8;
+}
+
 .launch-card-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.85rem;
-  color: #fff;
+  color: var(--wb-text);
 }
 
 .launch-card-sub {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.65rem;
-  color: rgba(255,255,255,0.35);
+  color: var(--wb-text-muted);
 }
 
 .launch-btn {
-  background: #fdd835 !important;
-  color: #000 !important;
-  font-family: 'Nunito', sans-serif;
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 2px;
@@ -827,7 +848,7 @@ onMounted(async () => {
 
 .launch-btn-flat {
   color: #ce93d8 !important;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 1px;
@@ -838,20 +859,20 @@ onMounted(async () => {
 
 /* ── Help ── */
 .help-fab {
-  background: #111 !important;
-  color: rgba(255,255,255,0.5) !important;
-  border: 1px solid rgba(255,255,255,0.2) !important;
+  background: var(--wb-surface) !important;
+  color: var(--wb-text-mid) !important;
+  border: 1px solid var(--wb-border-mid) !important;
 }
 
 .help-fab:hover {
-  color: #fdd835 !important;
-  border-color: #fdd835 !important;
+  color: var(--wb-accent) !important;
+  border-color: var(--wb-accent) !important;
 }
 
 .help-card {
-  background: #111;
-  color: #fff;
-  border: 2px solid #fff;
+  background: var(--wb-modal-bg);
+  color: var(--wb-text);
+  border: 2px solid var(--wb-modal-border);
   border-radius: 4px;
   min-width: 300px;
 }
@@ -861,8 +882,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border-bottom: 2px solid #fff;
-  font-family: 'Nunito', sans-serif;
+  border-bottom: 2px solid var(--wb-modal-border);
+  font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 4px;
@@ -873,16 +894,16 @@ onMounted(async () => {
 }
 
 .help-item {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.78rem;
-  color: rgba(255,255,255,0.65);
+  color: var(--wb-text-mid);
   line-height: 1.5;
   margin-bottom: 10px;
 }
 
 .help-item strong {
-  color: #fdd835;
+  color: var(--wb-accent);
   font-weight: 800;
 }
 </style>
