@@ -1,4 +1,7 @@
 {
+  "outputDirectory": "dist/spa",
+  "cleanUrls": true,
+  "framework": "quasar",
   "builds": [
     {
       "src": "package.json",

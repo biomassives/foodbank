@@ -13,7 +13,7 @@
     "test:unit": "jest tests/unit --verbose",
     "test:report": "jest --json --outputFile=public/addressbook/test-results.json --verbose",
     "dev": "quasar dev",
-    "build": "quasar build --output public"
+    "build": "quasar build"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
