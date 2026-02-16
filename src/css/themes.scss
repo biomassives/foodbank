@@ -1,0 +1,555 @@
+// ====================================================
+//  WORLDBRIDGER PANTRY — Design System
+//  Lou Reed / Warhol Factory aesthetic
+//  Dark-first, light-ready via CSS custom properties
+// ====================================================
+
+
+// ---- 1. Design Tokens ----
+
+:root {
+  // Surfaces
+  --wb-bg: #000;
+  --wb-bg-page: #0a0a0a;
+  --wb-surface: #111;
+  --wb-surface-alt: #0a0a0a;
+  --wb-surface-hover: rgba(255,255,255,0.06);
+
+  // Typography
+  --wb-text: #fff;
+  --wb-text-mid: rgba(255,255,255,0.7);
+  --wb-text-muted: rgba(255,255,255,0.4);
+  --wb-text-faint: rgba(255,255,255,0.2);
+
+  // Borders
+  --wb-border: #fff;
+  --wb-border-mid: rgba(255,255,255,0.15);
+  --wb-border-subtle: rgba(255,255,255,0.08);
+
+  // Accents
+  --wb-accent: #fdd835;
+  --wb-accent-text: #000;
+  --wb-positive: #69f0ae;
+  --wb-negative: #ef5350;
+  --wb-info: #82b1ff;
+  --wb-warning: #ffab40;
+
+  // Typography
+  --wb-font: 'Nunito', sans-serif;
+
+  // Card body (onboarding)
+  --wb-card-body: #111;
+  --wb-card-body-text: rgba(255,255,255,0.7);
+  --wb-card-body-muted: rgba(255,255,255,0.4);
+  --wb-card-input-bg: rgba(255,255,255,0.06);
+  --wb-card-input-border: rgba(255,255,255,0.15);
+}
+
+// Light theme — prepared for toggle
+[data-theme="light"] {
+  --wb-bg: #fafafa;
+  --wb-bg-page: #f0f0f0;
+  --wb-surface: #fff;
+  --wb-surface-alt: #f5f5f5;
+  --wb-surface-hover: rgba(0,0,0,0.04);
+
+  --wb-text: #111;
+  --wb-text-mid: rgba(0,0,0,0.7);
+  --wb-text-muted: rgba(0,0,0,0.45);
+  --wb-text-faint: rgba(0,0,0,0.15);
+
+  --wb-border: #222;
+  --wb-border-mid: rgba(0,0,0,0.15);
+  --wb-border-subtle: rgba(0,0,0,0.06);
+
+  --wb-accent: #e65100;
+  --wb-accent-text: #fff;
+
+  --wb-card-body: #fff;
+  --wb-card-body-text: rgba(0,0,0,0.7);
+  --wb-card-body-muted: rgba(0,0,0,0.4);
+  --wb-card-input-bg: rgba(0,0,0,0.04);
+  --wb-card-input-border: rgba(0,0,0,0.12);
+}
+
+
+// ---- 2. Onboard Page ----
+
+.onboard-page {
+  background: var(--wb-bg-page);
+  min-height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 12px 40px;
+}
+
+.onboard-wrap {
+  width: 460px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.onboard-brand {
+  text-align: center;
+  padding: 24px 12px 20px;
+}
+
+.onboard-brand-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: 8px;
+  color: var(--wb-text);
+  line-height: 1.1;
+}
+
+.onboard-brand-tagline {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-muted);
+  margin-top: 6px;
+}
+
+
+// ---- 3. Onboard Cards — Boxy Warhol ----
+
+.onboard-card {
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid var(--wb-border-mid);
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--wb-text-muted);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  }
+
+  &.expanded {
+    cursor: default;
+    transform: none;
+    border-color: var(--theme-accent);
+    box-shadow: 0 4px 20px var(--theme-glow);
+  }
+}
+
+
+// ---- 4. Hero Section — Vector Art Canvas ----
+
+.onboard-hero {
+  background: var(--theme-bg);
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 28px 16px 24px;
+}
+
+// Screen-print scan lines
+.onboard-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+// Bottom edge (hard cut, no gradient — boxy)
+.onboard-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--theme-accent);
+  z-index: 4;
+}
+
+// SVG vector art layer
+.hero-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+// Content sits above vector art
+.onboard-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.onboard-hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.25);
+  border: 2px solid rgba(255,255,255,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.onboard-hero h2 {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+.onboard-hero p {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.8);
+  margin: 4px 0 0;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+
+// Registration marks (print alignment crosses)
+.hero-reg {
+  position: absolute;
+  z-index: 4;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255,255,255,0.12);
+  pointer-events: none;
+}
+
+
+// ---- 5. Card Body — Dark Warhol Forms ----
+
+.onboard-body {
+  background: var(--wb-card-body);
+  padding: 20px;
+  border-top: 2px solid var(--wb-border-mid);
+}
+
+.onboard-body .q-field__control {
+  background: var(--wb-card-input-bg) !important;
+  border: 1px solid var(--wb-card-input-border);
+  border-radius: 2px;
+}
+
+.onboard-body .q-field__label {
+  color: var(--wb-card-body-muted);
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+}
+
+.onboard-body .q-field__native,
+.onboard-body input,
+.onboard-body .q-field__messages {
+  color: var(--wb-card-body-text);
+  font-family: var(--wb-font);
+}
+
+.onboard-btn {
+  background: var(--theme-accent) !important;
+  color: #fff !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.75rem;
+  padding: 10px 20px;
+  box-shadow: none;
+  border: 2px solid transparent;
+  transition: box-shadow 0.2s, border-color 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 16px var(--theme-btn-shadow);
+  }
+}
+
+.onboard-body-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.5px;
+  color: var(--wb-card-body-muted);
+  text-align: center;
+}
+
+.onboard-body-divider {
+  height: 1px;
+  background: var(--wb-border-mid);
+  margin: 16px 0;
+}
+
+
+// ---- 6. About section ----
+
+.onboard-about {
+  font-family: var(--wb-font);
+  color: var(--wb-text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.6;
+  padding: 12px 20px 0;
+  border-top: 1px solid var(--wb-border-subtle);
+  margin-top: 8px;
+}
+
+
+// ====================================================
+//  THEME: SUNSET — Warm amber/orange
+//  Factory skyline at dusk
+// ====================================================
+
+.theme-sunset {
+  --theme-bg:
+    linear-gradient(178deg,
+      #ffe0b2 0%,
+      #ffb74d 15%,
+      #fb8c00 30%,
+      #e65100 50%,
+      #bf360c 70%,
+      #7f1d00 88%,
+      #4e1500 100%);
+  --theme-accent: #e65100;
+  --theme-glow: rgba(230, 81, 0, 0.35);
+  --theme-btn-shadow: rgba(191, 54, 12, 0.5);
+}
+
+
+// ====================================================
+//  THEME: FOREST — Deep green
+//  Angular tree canopy
+// ====================================================
+
+.theme-forest {
+  --theme-bg:
+    linear-gradient(178deg,
+      #c8e6c9 0%,
+      #81c784 15%,
+      #43a047 30%,
+      #2e7d32 50%,
+      #1b5e20 70%,
+      #0a3d0a 88%,
+      #052005 100%);
+  --theme-accent: #2e7d32;
+  --theme-glow: rgba(46, 125, 50, 0.35);
+  --theme-btn-shadow: rgba(27, 94, 32, 0.5);
+}
+
+
+// ====================================================
+//  THEME: MOUNTAIN — Bold blue
+//  Sharp angular peaks
+// ====================================================
+
+.theme-mountain {
+  --theme-bg:
+    linear-gradient(178deg,
+      #bbdefb 0%,
+      #64b5f6 15%,
+      #1e88e5 30%,
+      #1565c0 50%,
+      #0d47a1 70%,
+      #062460 88%,
+      #031440 100%);
+  --theme-accent: #1565c0;
+  --theme-glow: rgba(21, 101, 192, 0.35);
+  --theme-btn-shadow: rgba(13, 71, 161, 0.5);
+}
+
+
+// ====================================================
+//  DRAWER — Lou Reed / Warhol Factory
+//  Stark black, high contrast, blocky type, bold lines
+// ====================================================
+
+.nav-drawer {
+  background: var(--wb-bg) !important;
+  display: flex;
+  flex-direction: column;
+  border-right: 3px solid var(--wb-border) !important;
+}
+
+.drawer-brand {
+  padding: 20px 16px 12px;
+  border-bottom: 2px solid var(--wb-border);
+}
+
+.drawer-brand-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: 6px;
+  color: var(--wb-text);
+  line-height: 1;
+}
+
+.drawer-brand-sub {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  letter-spacing: 12px;
+  color: var(--wb-text-muted);
+  margin-top: 2px;
+}
+
+.drawer-pantry-name {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--wb-accent);
+  margin-top: 6px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.status-pill--synced {
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+}
+
+.status-pill--local {
+  color: var(--wb-info);
+  border-color: var(--wb-info);
+}
+
+.status-pill--auth {
+  color: var(--wb-warning);
+  border-color: var(--wb-warning);
+}
+
+.status-pill--visitor {
+  color: var(--wb-text-muted);
+  border-color: var(--wb-border-mid);
+}
+
+.drawer-rule {
+  height: 1px;
+  background: var(--wb-border-mid);
+  margin: 8px 12px;
+}
+
+.drawer-section-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: var(--wb-text-faint);
+  padding: 10px 16px 4px;
+}
+
+.drawer-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 1px 0;
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--wb-text);
+    background: var(--wb-surface-hover);
+    border-left-color: var(--wb-border);
+  }
+}
+
+.drawer-action--accent {
+  color: var(--wb-warning);
+  &:hover {
+    border-left-color: var(--wb-warning);
+  }
+}
+
+.drawer-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 1px 0;
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--wb-text);
+    background: var(--wb-surface-hover);
+    border-left-color: var(--wb-border);
+  }
+}
+
+.drawer-nav--active {
+  color: var(--wb-accent);
+  border-left-color: var(--wb-accent);
+  background: rgba(253, 216, 53, 0.06);
+}
+
+.drawer-nav--danger {
+  color: var(--wb-negative);
+  &:hover {
+    border-left-color: var(--wb-negative);
+  }
+}
+
+.drawer-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--wb-border-subtle);
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--wb-text-faint);
+  line-height: 1.8;
+}

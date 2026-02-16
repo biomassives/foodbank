@@ -1,5 +1,5 @@
 <template>
-  <!-- <q-btn flat dense round icon="group_add" @click="card = true" /> -->
+
   <q-dialog v-model="internalCard">
     <q-card class="my-card">
       <q-card-section

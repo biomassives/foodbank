@@ -1,90 +1,178 @@
 <template>
-  <q-header
-    elevated
-    class="glossy border-top-sm"
-    style="padding: 10px; color: white"
-  >
-    <q-toolbar>
-      <q-toolbar-title> Ward Food Pantry </q-toolbar-title>
+  <q-header class="app-header">
+    <div class="header-bar">
+      <!-- Hamburger -->
+      <button class="header-hamburger" @click="$emit('toggleDrawer')">
+        <q-icon name="menu" size="20px" />
+      </button>
 
-      <q-input
-        color="white"
-        input-style="color: white"
-        label-color="white"
-        label="search"
-        v-model.lazy.trim="search"
-        class="q-mr-md"
-      >
-        <template v-slot:prepend>
-          <q-icon color="white" name="search" />
-        </template>
-      </q-input>
+      <!-- Title -->
+      <div class="header-title">{{ t.app.name }}</div>
 
-      <q-btn 
-        v-if="addressStore.canEdit" 
-        flat 
-        round 
-        icon="admin_panel_settings" 
-        to="/admin" 
-        class="q-mr-sm"
-      >
-        <q-tooltip>Manager Dashboard</q-tooltip>
-      </q-btn>
+      <div class="header-spacer" />
 
-      <q-btn 
-        v-if="addressStore.canEdit" 
-        flat 
-        dense 
-        round 
-        icon="group_add" 
-        @click="card = true" 
-      />
-
-      <q-separator dark vertical inset class="q-mx-sm" />
-
-      <q-btn 
-        v-if="!isLoggedIn" 
-        flat 
-        round 
-        icon="login" 
-        to="/login" 
-      />
-      <q-btn 
-        v-else 
-        flat 
-        round 
-        icon="logout" 
-        @click="handleLogout" 
-      />
-
-      <address-modal v-model:card-state="card" />
-    </q-toolbar>
+      <!-- Search -->
+      <div class="header-search" :class="{ 'header-search--open': searchOpen }">
+        <button class="header-search-btn" @click="toggleSearch">
+          <q-icon name="search" size="16px" />
+        </button>
+        <input
+          v-show="searchOpen"
+          ref="searchInput"
+          v-model="search"
+          type="text"
+          class="header-search-field"
+          :placeholder="t.actions.search"
+          @blur="onSearchBlur"
+          @keyup.escape="closeSearch"
+        />
+      </div>
+    </div>
   </q-header>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import AddressModal from './childcomponents/Modal.vue';
+import { ref, watch, nextTick } from 'vue';
 import { useAddressStore } from '../store/store';
-import { supabase } from 'src/dbManagement';
-import { useRouter } from 'vue-router';
+import { useI18n } from 'src/i18n';
 
+defineEmits(['toggleDrawer']);
+
+const store = useAddressStore();
+const { t } = useI18n();
 const search = ref('');
-const card = ref(false);
-const addressStore = useAddressStore();
-const router = useRouter();
+const searchOpen = ref(false);
+const searchInput = ref<HTMLInputElement | null>(null);
 
-// Simple check for login status
-const isLoggedIn = computed(() => !!supabase.auth.getSession());
+function toggleSearch() {
+  searchOpen.value = !searchOpen.value;
+  if (searchOpen.value) {
+    nextTick(() => searchInput.value?.focus());
+  } else {
+    search.value = '';
+  }
+}
+
+function closeSearch() {
+  searchOpen.value = false;
+  search.value = '';
+}
+
+function onSearchBlur() {
+  if (!search.value) {
+    searchOpen.value = false;
+  }
+}
 
 watch(search, (value) => {
-  addressStore.search(value);
+  store.search(value);
 });
-
-async function handleLogout() {
-  await supabase.auth.signOut();
-  // Clear local state
-  addressStore.$patch({ role: 'viewer' });
-  router.push('/login');
-}
 </script>
+
+<style scoped>
+.app-header {
+  background: var(--wb-bg) !important;
+  box-shadow: none !important;
+  border-bottom: 3px solid var(--wb-border);
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  height: 52px;
+}
+
+.header-hamburger {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-right: 2px solid var(--wb-border-mid);
+  color: var(--wb-text);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.header-hamburger:hover {
+  background: var(--wb-surface-hover);
+}
+
+.header-hamburger:active {
+  background: var(--wb-border-mid);
+}
+
+.header-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 5px;
+  color: var(--wb-text);
+  padding: 0 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.header-search {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-left: 2px solid var(--wb-border-mid);
+  transition: width 0.25s ease;
+}
+
+.header-search-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.header-search-btn:hover {
+  color: var(--wb-text);
+  background: var(--wb-surface-hover);
+}
+
+.header-search--open .header-search-btn {
+  color: var(--wb-accent);
+}
+
+.header-search-field {
+  width: 120px;
+  height: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 0 12px 0 0;
+  caret-color: var(--wb-accent);
+}
+
+.header-search-field::placeholder {
+  color: var(--wb-text-faint);
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+</style>

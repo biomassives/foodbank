@@ -1,26 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
+@import './themes.scss';
+
 // app global css in SCSS form
 :root {
   body {
     display: grid;
-    background: $dark-page;
+    background: var(--wb-bg);
     #q-app {
       display: flex;
       justify-self: center;
       max-width: $mobile-width;
-      border-radius: 10px;
+      border-radius: 0;
       overflow: hidden;
-      background-color: white;
+      background-color: var(--wb-bg);
+      border-left: 2px solid var(--wb-border-subtle);
+      border-right: 2px solid var(--wb-border-subtle);
       & header.fixed-top {
         max-width: $mobile-width;
         margin: auto;
       }
-      & header.border-top-sm {
-        border-top-right-radius: 10px;
-        border-top-left-radius: 10px;
-      }
       & main {
         max-width: $mobile-width;
-        height: calc(100vh - 76px);
+        min-height: calc(100vh - 55px);
+        overflow-y: auto;
       }
     }
   }

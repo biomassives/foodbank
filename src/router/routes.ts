@@ -1,4 +1,5 @@
 import { RouteRecordRaw } from 'vue-router';
+import { useAddressStore } from 'src/store/store';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -10,7 +11,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/IndexPage.vue'),
         meta: { title: 'Address Book' },
       },
-      { path: 'login', component: () => import('pages/LoginPage.vue') }, 
+      { path: 'login', component: () => import('pages/OnboardPage.vue'), meta: { title: 'Get Started' } },
+      { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { title: 'Settings' } },
+      { path: 'setup', redirect: '/login' },
     ],
     meta: {
       title: 'Contact Management System - Vue',
@@ -20,13 +23,13 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { 
-        path: '', 
+      {
+        path: '',
         component: () => import('pages/AdminPage.vue'),
         beforeEnter: (to, from, next) => {
           const store = useAddressStore();
           if (store.canEdit) next();
-          else next('/login'); // Redirect unauthorized users
+          else next('/login');
         }
       }
     ]

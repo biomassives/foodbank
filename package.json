@@ -8,8 +8,9 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts,.vue ./",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
-    "test": "echo \"No test specified\" && exit 0",
-    "test:jest": "jest",
+    "test": "jest --verbose",
+    "test:sprint1": "jest tests/sprint1 --verbose",
+    "test:unit": "jest tests/unit --verbose",
     "dev": "quasar dev",
     "build": "quasar build"
   },

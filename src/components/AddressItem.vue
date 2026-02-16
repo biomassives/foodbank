@@ -19,7 +19,7 @@
         {{ address ? address.phone : 'Unknown' }}
       </q-item-label>
     </q-item-section>
-    <q-item-section side>
+    <q-item-section v-if="addressStore.canEdit" side>
       <div class="text-blue-8 q-gutter-xs">
         <q-btn
           size="12px"
@@ -63,30 +63,21 @@
   </q-item>
   <q-separator color="blue-4" />
 </template>
-<script lang="ts">
-import { defineComponent, ref } from 'vue';
+<script setup lang="ts">
+import { ref } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import AddressModal from './childcomponents/Modal.vue';
 import type { Address } from '../models';
-export default defineComponent({
-  name: 'AddressItem',
-  components: { AddressModal },
-  props: {
-    address: {
-      required: true,
-      type: Object as () => Address,
-    },
-  },
-  setup(props) {
-    const addressStore = useAddressStore();
-    const modal = ref(false);
-    const confirm = ref(false);
-    const deleteAddress = async () => {
-      await addressStore.deleteData(props.address.id);
-      confirm.value = false;
-    };
-    return { modal, confirm, deleteAddress };
-  },
-});
+
+const props = defineProps<{ address: Address }>();
+
+const addressStore = useAddressStore();
+const modal = ref(false);
+const confirm = ref(false);
+
+const deleteAddress = async () => {
+  await addressStore.deleteData(props.address.id);
+  confirm.value = false;
+};
 </script>
 <style></style>

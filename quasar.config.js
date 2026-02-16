@@ -55,14 +55,14 @@ module.exports = configure(function (/* ctx */) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#build
     build: {
-      distDir: 'public/addressbook', // Build directly into Astro's public folder
-      publicPath: '/addressbook/',     // Ensure assets are referenced correctly
+      distDir: 'dist', // Build directly into Astro's public folder
+      vueRouterBase: '/', // This ensures the router knows its home
+      publicPath: '/',     // Ensure assets are referenced correctly
       vueRouterMode: 'hash',
       target: {
-        browser: [ 'es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1' ],
+        browser: [ 'es2022', 'edge100', 'firefox100', 'chrome100', 'safari15.4' ],
         node: 'node20'
       },
-
       vueRouterMode: 'hash', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,

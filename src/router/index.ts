@@ -31,7 +31,7 @@ export default route(function (/* { store, ssrContext } */) {
     // Leave this as is and make changes in quasar.conf.js instead!
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
-    history: createHistory(process.env.VUE_ROUTER_BASE),
+    history: createWebHistory(process.env.VUE_ROUTER_BASE),
   });
   Router.beforeEach((to, from, next) => {
     if (to.meta && typeof to.meta.title === 'string')
