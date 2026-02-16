@@ -8,7 +8,7 @@ Worldbridger Pantry is a GPL-licensed, local-first food bank coordination app. I
 
 ---
 
-## How It Works
+## How It Works!
 
 ```
 You (browser)
