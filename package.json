@@ -11,9 +11,9 @@
     "test": "jest --verbose",
     "test:sprint1": "jest tests/sprint1 --verbose",
     "test:unit": "jest tests/unit --verbose",
-    "test:report": "jest --json --outputFile=public/addressbook/test-results.json --verbose",
+    "test:report": "jest --json --outputFile=public/test-results.json --verbose",
     "dev": "quasar dev",
-    "build": "quasar build"
+    "build": "npm run test:report && quasar build"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
