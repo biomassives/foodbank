@@ -17,14 +17,14 @@
 
   // Typography
   --wb-text: #fff;
-  --wb-text-mid: rgba(255,255,255,0.7);
-  --wb-text-muted: rgba(255,255,255,0.4);
-  --wb-text-faint: rgba(255,255,255,0.2);
+  --wb-text-mid: rgba(255,255,255,0.82);
+  --wb-text-muted: rgba(255,255,255,0.6);
+  --wb-text-faint: rgba(255,255,255,0.45);
 
   // Borders
   --wb-border: #fff;
-  --wb-border-mid: rgba(255,255,255,0.15);
-  --wb-border-subtle: rgba(255,255,255,0.08);
+  --wb-border-mid: rgba(255,255,255,0.2);
+  --wb-border-subtle: rgba(255,255,255,0.12);
 
   // Accents
   --wb-accent: #fdd835;
@@ -39,8 +39,8 @@
 
   // Card body (onboarding)
   --wb-card-body: #111;
-  --wb-card-body-text: rgba(255,255,255,0.7);
-  --wb-card-body-muted: rgba(255,255,255,0.4);
+  --wb-card-body-text: rgba(255,255,255,0.82);
+  --wb-card-body-muted: rgba(255,255,255,0.6);
   --wb-card-input-bg: rgba(255,255,255,0.06);
   --wb-card-input-border: rgba(255,255,255,0.15);
 
@@ -57,7 +57,7 @@
 
   // Count chips
   --wb-count-num: #fdd835;
-  --wb-count-border: rgba(255,255,255,0.1);
+  --wb-count-border: rgba(255,255,255,0.2);
 
   // FAB
   --wb-fab-bg: #fdd835;
@@ -376,6 +376,85 @@
   padding: 12px 20px 0;
   border-top: 1px solid var(--wb-border-subtle);
   margin-top: 8px;
+}
+
+
+// ---- 7. Wizard (Setup Stepper) ----
+
+.wizard-page {
+  background: var(--wb-bg-page);
+  min-height: 100vh;
+  padding: 0 12px 40px;
+}
+
+.wizard-wrap {
+  width: 560px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.wizard-stepper {
+  background: var(--wb-surface) !important;
+  border: 2px solid var(--wb-border-mid);
+  border-radius: 3px;
+  color: var(--wb-text);
+}
+
+.wizard-stepper :deep(.q-stepper__tab) {
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.wizard-stepper :deep(.q-stepper__tab--active) {
+  color: var(--wb-accent) !important;
+}
+
+.wizard-stepper :deep(.q-stepper__dot) {
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+}
+
+.wizard-stepper :deep(.q-stepper__step-content) {
+  border-left: 1px solid var(--wb-border-mid);
+}
+
+.wizard-stepper :deep(.q-stepper__title) {
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+
+.wizard-step-body {
+  padding: 12px 4px 16px;
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.wizard-btn-next {
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-size: 0.72rem;
+  border-radius: 3px;
+  padding: 8px 20px;
+}
+
+.wizard-btn-skip {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
 }
 
 

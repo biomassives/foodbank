@@ -247,6 +247,75 @@ export async function clearDemoData() {
   await txLoc.done;
 }
 
+/**
+ * Provision a new silo on a user-supplied Supabase instance.
+ * Creates a temporary client with the provided credentials,
+ * inserts the organization, and sets the user as admin.
+ */
+export async function provisionUserDatabase(userId: string, config: {
+  supabaseUrl: string;
+  supabaseKey: string;
+  pantryName: string;
+}): Promise<{ orgId: string }> {
+  const { supabaseUrl, supabaseKey, pantryName } = config;
+
+  // Build an ephemeral client pointing at the user's Supabase instance
+  const targetClient = createClient(supabaseUrl, supabaseKey);
+
+  // 1. Create the organization
+  const { data: org, error: orgErr } = await targetClient
+    .from('organizations')
+    .insert({ name: pantryName, owner_id: userId })
+    .select()
+    .single();
+
+  if (orgErr) throw new Error(`Failed to create organization: ${orgErr.message}`);
+
+  // 2. Upsert the user's profile as admin on that instance
+  const { error: profileErr } = await targetClient
+    .from('profiles')
+    .upsert({
+      id: userId,
+      org_id: org.id,
+      role: 'admin',
+    });
+
+  if (profileErr) throw new Error(`Failed to set admin profile: ${profileErr.message}`);
+
+  return { orgId: org.id };
+}
+
+/**
+ * Provision a new pantry on the shared (default) Supabase instance.
+ * Uses the already-authenticated session — no custom credentials needed.
+ * Inserts an organization, upserts the user profile as admin.
+ */
+export async function provisionSharedPantry(
+  pantryName: string
+): Promise<{ orgId: string }> {
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (!user || authErr) throw new Error('You must sign in before creating a pantry.');
+
+  const name = pantryName.trim();
+  if (!name) throw new Error('Please enter a pantry name.');
+
+  const { data: org, error: orgErr } = await supabase
+    .from('organizations')
+    .insert({ name, owner_id: user.id })
+    .select()
+    .single();
+
+  if (orgErr || !org) throw new Error(`Failed to create organization: ${orgErr?.message || 'Unknown error'}`);
+
+  const { error: profileErr } = await supabase
+    .from('profiles')
+    .upsert({ id: user.id, org_id: org.id, role: 'admin' });
+
+  if (profileErr) throw new Error(`Failed to set admin profile: ${profileErr.message}`);
+
+  return { orgId: org.id };
+}
+
 export async function syncEntryToCloud(entry: Entry, orgId: string | null = null) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !orgId) return;
@@ -272,5 +341,87 @@ export async function syncEntryToCloud(entry: Entry, orgId: string | null = null
     });
     if (error) console.error('Entry sync failed:', error.message);
   }
+}
+
+// ---- Export / Sync / Clear utilities ----
+
+export async function exportAllData() {
+  const db = await openIndexedDB();
+  const addresses = await db.transaction('addressStore', 'readonly')
+    .objectStore('addressStore').getAll();
+  const entries = await db.transaction('entryStore', 'readonly')
+    .objectStore('entryStore').getAll();
+  const locations = await db.transaction('locationStore', 'readonly')
+    .objectStore('locationStore').getAll();
+  return { addresses, entries, locations };
+}
+
+export async function clearStore(storeName: 'addressStore' | 'entryStore' | 'locationStore') {
+  const db = await openIndexedDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  await tx.objectStore(storeName).clear();
+  await tx.done;
+}
+
+export function getCustomSupabaseClient() {
+  const customUrl = localStorage.getItem('customSupabaseUrl');
+  const customKey = localStorage.getItem('customSupabaseKey');
+  if (customUrl && customKey) {
+    return createClient(customUrl, customKey);
+  }
+  return supabase;
+}
+
+export async function syncAllToCloud(orgId: string, client?: ReturnType<typeof createClient>) {
+  const db = client || supabase;
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) throw new Error('Not authenticated — sign in first.');
+
+  const allData = await exportAllData();
+  let synced = 0;
+  let errors = 0;
+
+  // Filter out demo records
+  const addresses = allData.addresses.filter(a => !String(a.id).startsWith('demo-'));
+  const entries = allData.entries.filter(e => !String(e.id).startsWith('demo-'));
+  const locations = allData.locations.filter(l => !String(l.id).startsWith('demo-'));
+
+  for (const addr of addresses) {
+    const { error } = await db.from('address_book').upsert({
+      id: addr.id, user_id: user.id, org_id: orgId,
+      first_name: addr.name.first, last_name: addr.name.last,
+      phone: addr.phone, data: addr,
+    });
+    if (error) { errors++; console.error('Address sync:', error.message); } else { synced++; }
+  }
+
+  for (const entry of entries) {
+    if (entry.type === 'pickup_queue') {
+      const { error } = await db.from('boulder_pickups').upsert({
+        id: entry.id, description: entry.description,
+        location: entry.location || '', status: 'pending',
+        created_by: user.id, org_id: orgId,
+      });
+      if (error) { errors++; } else { synced++; }
+    } else {
+      const { error } = await db.from('community_entries').upsert({
+        id: entry.id, user_id: user.id, org_id: orgId,
+        type: entry.type, description: entry.description,
+        status: entry.status,
+      });
+      if (error) { errors++; } else { synced++; }
+    }
+  }
+
+  for (const loc of locations) {
+    const { error } = await db.from('community_entries').upsert({
+      id: loc.id, user_id: user.id, org_id: orgId,
+      type: 'location', description: loc.name,
+      status: 'active',
+    });
+    if (error) { errors++; } else { synced++; }
+  }
+
+  return { synced, errors };
 }
 

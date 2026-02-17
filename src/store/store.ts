@@ -19,6 +19,11 @@ import {
   bulkAddEntries,
   bulkAddLocations,
   clearDemoData,
+  exportAllData,
+  syncAllToCloud,
+  clearStore,
+  getCustomSupabaseClient,
+  provisionSharedPantry,
 } from 'src/dbManagement';
 import type { Address, Entry, Location, AddressState } from 'src/models';
 import { isObject } from 'src/utils/functions';
@@ -135,6 +140,10 @@ export const useAddressStore = defineStore('address', () => {
   }
   const getEntries = computed(() => state.entryList);
 
+  const getActiveEntries = computed(() =>
+    state.entryList.filter(e => e.type !== 'pickup_queue' && e.status === 'active')
+  );
+
   // ---- Location actions ----
   async function addLocation(loc: Location) {
     await addLocationToDatabase(loc);
@@ -178,6 +187,37 @@ export const useAddressStore = defineStore('address', () => {
     await loadData();
     await loadEntries();
     await loadLocations();
+  }
+
+  // ---- Export / Sync / Clear ----
+  const hasCustomConnection = computed(() =>
+    !!localStorage.getItem('customSupabaseUrl') && !!localStorage.getItem('customSupabaseKey')
+  );
+
+  async function exportData() {
+    return await exportAllData();
+  }
+
+  async function syncAllData() {
+    if (!state.userOrgId) throw new Error('No org connected — join or create a pantry first.');
+    const client = getCustomSupabaseClient();
+    return await syncAllToCloud(state.userOrgId, client);
+  }
+
+  async function createSharedPantry(pantryName: string) {
+    const { orgId } = await provisionSharedPantry(pantryName);
+    state.userOrgId = orgId;
+    state.role = 'admin';
+    localStorage.setItem('pantryName', pantryName.trim());
+    localStorage.removeItem('localMode');
+    return orgId;
+  }
+
+  async function clearSingleStore(storeName: 'addressStore' | 'entryStore' | 'locationStore') {
+    await clearStore(storeName);
+    if (storeName === 'addressStore') await loadData();
+    if (storeName === 'entryStore') await loadEntries();
+    if (storeName === 'locationStore') await loadLocations();
   }
 
   // ---- Queue claim actions ----
@@ -235,6 +275,17 @@ export const useAddressStore = defineStore('address', () => {
     await loadEntries();
   }
 
+  async function stockEntry(id: string) {
+    const entry = state.entryList.find(e => e.id === id);
+    if (!entry) return;
+    const updated: Entry = {
+      ...entry,
+      queueStatus: 'stocked',
+    };
+    await updateEntryInDatabase(id, updated);
+    await loadEntries();
+  }
+
   return {
     openDB,
     addData,
@@ -263,11 +314,18 @@ export const useAddressStore = defineStore('address', () => {
     demoMode,
     loadDemo,
     clearDemoMode,
+    getActiveEntries,
     getQueueEntries,
     claimEntry,
     unclaimEntry,
     transitEntry,
     completeEntry,
+    stockEntry,
+    hasCustomConnection,
+    exportData,
+    syncAllData,
+    clearSingleStore,
+    createSharedPantry,
   };
 });
 

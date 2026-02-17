@@ -106,6 +106,21 @@
           <span>Tap + to add contacts, needs, offerings and more</span>
         </div>
 
+        <!-- COMMUNITY ENTRIES -->
+        <div v-if="activeEntries.length > 0" class="section-label q-mt-sm">COMMUNITY</div>
+        <div v-for="entry in activeEntries" :key="entry.id" class="entry-row">
+          <q-icon :name="entryIcon(entry.type)" size="18px" :style="{ color: entryColor(entry.type) }" />
+          <div class="entry-text">
+            <div class="entry-type-chip">{{ entryTypeLabel(entry.type) }}</div>
+            <div class="entry-desc">{{ entry.description }}</div>
+            <div class="entry-meta">{{ timeAgo(entry.createdAt) }}</div>
+          </div>
+          <div v-if="store.canEdit" class="entry-actions">
+            <q-btn flat dense round icon="edit" size="xs" class="loc-act-btn" @click="editEntryItem(entry)" />
+            <q-btn flat dense round icon="delete" size="xs" class="loc-act-btn loc-act-btn--del" @click="confirmDelEntry(entry)" />
+          </div>
+        </div>
+
         <!-- Not logged in nudge -->
         <div v-if="!store.userOrgId && !store.localMode && !store.demoMode" class="nudge-row">
           <q-btn
@@ -132,7 +147,7 @@
       </div>
     </q-page-sticky>
 
-    <entry-modal v-model:card-state="fabOpen" />
+    <entry-modal v-model:card-state="fabOpen" :edit-entry="editEntryTarget" @saved="handleEntrySaved" />
     <location-modal v-model:card-state="locModalOpen" :location-data="locEditTarget" />
 
     <!-- Edit modal for user contacts -->
@@ -165,6 +180,21 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <!-- Delete entry confirmation -->
+    <q-dialog v-model="deleteEntryDialogOpen">
+      <q-card class="confirm-card">
+        <q-card-section class="confirm-header">DELETE ENTRY</q-card-section>
+        <q-card-section class="confirm-body">
+          {{ deleteEntryTarget?.description?.slice(0, 60) }}
+        </q-card-section>
+        <q-card-actions align="right" class="confirm-actions">
+          <q-btn flat no-caps label="Cancel" class="confirm-cancel" v-close-popup />
+          <q-btn flat no-caps label="Delete" class="confirm-delete" @click="doDeleteEntry" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <welcome-dialog v-model="showWelcome" />
   </q-page>
 </template>
 
@@ -175,7 +205,8 @@ import QueueList from '../components/QueueList.vue';
 import EntryModal from '../components/childcomponents/EntryModal.vue';
 import LocationModal from '../components/childcomponents/LocationModal.vue';
 import AddressModal from '../components/childcomponents/Modal.vue';
-import type { Address, Location, TransportSize } from '../models';
+import WelcomeDialog from '../components/WelcomeDialog.vue';
+import type { Address, Entry, Location, TransportSize } from '../models';
 
 const store = useAddressStore();
 const viewMode = ref('directory');
@@ -189,12 +220,16 @@ const deleteTarget = ref<Address | null>(null);
 const deleteLocDialogOpen = ref(false);
 const deleteLocTarget = ref<Location | null>(null);
 const expandedLoc = ref<string | null>(null);
+const showWelcome = ref(false);
+const editEntryTarget = ref<Entry | null>(null);
+const deleteEntryDialogOpen = ref(false);
+const deleteEntryTarget = ref<Entry | null>(null);
 
 // Seed locations (always visible, not editable)
 const seedLocations = [
   { id: 'loc-a', name: 'Pickup Point A', type: 'Pickup', icon: 'location_on', color: 'var(--wb-positive)' },
   { id: 'loc-b', name: 'Pickup Point B', type: 'Pickup', icon: 'location_on', color: 'var(--wb-info)' },
-  { id: 'loc-c', name: 'Pickup Point C', type: 'Pickup', icon: 'location_on', color: '#ce93d8' },
+  { id: 'loc-c', name: 'Pickup Point C', type: 'Pickup', icon: 'location_on', color: 'var(--wb-queue-transit)' },
   { id: 'loc-pantry', name: 'Pantry', type: 'Storage', icon: 'store', color: 'var(--wb-accent)' },
 ];
 
@@ -296,6 +331,68 @@ async function doDelete() {
   }
 }
 
+// ---- Community entries ----
+const activeEntries = computed(() => store.getActiveEntries);
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function entryIcon(type: string) {
+  const map: Record<string, string> = {
+    need: 'volunteer_activism', offering: 'card_giftcard',
+    looking_for: 'search', upcoming_need: 'event',
+  };
+  return map[type] || 'article';
+}
+
+function entryColor(type: string) {
+  const map: Record<string, string> = {
+    need: 'var(--wb-negative)', offering: 'var(--wb-positive)',
+    looking_for: 'var(--wb-queue-transit)', upcoming_need: 'var(--wb-info)',
+  };
+  return map[type] || 'var(--wb-text-muted)';
+}
+
+function entryTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    need: 'NEED', offering: 'OFFERING',
+    looking_for: 'LOOKING FOR', upcoming_need: 'UPCOMING',
+  };
+  return map[type] || type;
+}
+
+function handleEntrySaved(payload: { type: string }) {
+  if (payload.type === 'pickup_queue') {
+    viewMode.value = 'queue';
+  }
+  editEntryTarget.value = null;
+}
+
+function editEntryItem(entry: Entry) {
+  editEntryTarget.value = entry;
+  fabOpen.value = true;
+}
+
+function confirmDelEntry(entry: Entry) {
+  deleteEntryTarget.value = entry;
+  deleteEntryDialogOpen.value = true;
+}
+
+async function doDeleteEntry() {
+  if (deleteEntryTarget.value) {
+    await store.deleteEntry(deleteEntryTarget.value.id);
+    deleteEntryTarget.value = null;
+    deleteEntryDialogOpen.value = false;
+  }
+}
+
 // Clear edit target when location modal closes
 watch(locModalOpen, (v) => {
   if (!v) locEditTarget.value = null;
@@ -307,6 +404,10 @@ onMounted(async () => {
   await store.loadLocations();
   if (!store.localMode) {
     await store.fetchUserRole();
+  }
+  // Show welcome dialog for first-time visitors
+  if (!localStorage.getItem('wb-welcomed')) {
+    showWelcome.value = true;
   }
 });
 </script>
@@ -674,5 +775,52 @@ onMounted(async () => {
   font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 2px;
+}
+
+/* ---- Community entries ---- */
+.entry-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  transition: background 0.15s;
+}
+.entry-row:hover { background: var(--wb-surface-hover); }
+
+.entry-text { flex: 1; min-width: 0; }
+
+.entry-type-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.45rem;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+}
+
+.entry-desc {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--wb-text);
+  line-height: 1.3;
+}
+
+.entry-meta {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--wb-text-faint);
+  margin-top: 2px;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
 }
 </style>

@@ -247,6 +247,177 @@
             class="conn-btn"
             to="/login"
           />
+
+          <q-btn
+            v-if="store.canSync"
+            flat no-caps dense
+            icon="cloud_upload"
+            label="Sync All Local Data to Cloud"
+            class="conn-btn conn-btn--sync"
+            :loading="syncing"
+            @click="confirmSync = true"
+          />
+
+          <div v-if="store.localMode && store.hasCustomConnection && !store.canSync" class="conn-hint">
+            You have saved connection credentials. Sign in to sync your data.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EMAIL & DIGEST ── -->
+      <div class="settings-section">
+        <div class="settings-section-label">EMAIL &amp; DIGEST</div>
+        <div class="email-block">
+          <div class="email-desc">
+            Add your email to receive a daily digest of pantry activity.
+          </div>
+          <q-input
+            v-model="userEmail"
+            filled dense
+            label="Email Address"
+            type="email"
+            class="email-input q-mb-sm"
+            :rules="[v => !v || /.+@.+\..+/.test(v) || 'Enter a valid email']"
+          />
+          <div class="email-toggle-row">
+            <span class="email-toggle-label">Daily Digest</span>
+            <q-toggle v-model="digestOptIn" color="amber" keep-color />
+          </div>
+          <q-btn
+            flat no-caps dense
+            icon="save"
+            label="Save Email Preferences"
+            class="conn-btn q-mt-sm"
+            :loading="savingEmail"
+            :disable="!store.isLoggedIn"
+            @click="saveEmailPrefs"
+          />
+          <div v-if="!store.isLoggedIn" class="conn-hint q-mt-xs">
+            Sign in to save email preferences.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INTEGRATIONS (admin only) ── -->
+      <div v-if="store.canEdit" class="settings-section">
+        <div class="settings-section-label">INTEGRATIONS</div>
+        <div class="integrations-block">
+
+          <!-- Mailgun -->
+          <div class="integ-sub-label">MAILGUN</div>
+          <q-input
+            v-model="mailgunKey"
+            filled dense
+            label="API Key"
+            :type="showMailgunKey ? 'text' : 'password'"
+            class="integ-input q-mb-xs"
+          >
+            <template #append>
+              <q-icon
+                :name="showMailgunKey ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer integ-eye"
+                @click="showMailgunKey = !showMailgunKey"
+              />
+            </template>
+          </q-input>
+          <q-input
+            v-model="mailgunDomain"
+            filled dense
+            label="Domain"
+            class="integ-input q-mb-xs"
+          />
+          <div class="integ-actions">
+            <q-btn flat no-caps dense icon="save" label="Save"
+              class="conn-btn" @click="saveMailgun" />
+            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
+              class="conn-btn conn-btn--clear" @click="clearMailgun" />
+          </div>
+
+          <div class="integ-divider" />
+
+          <!-- Supabase -->
+          <div class="integ-sub-label">SUPABASE</div>
+          <q-input
+            v-model="customSupaUrl"
+            filled dense
+            label="Supabase URL"
+            class="integ-input q-mb-xs"
+          />
+          <q-input
+            v-model="customSupaKey"
+            filled dense
+            label="Anon Key"
+            :type="showSupaKey ? 'text' : 'password'"
+            class="integ-input q-mb-xs"
+          >
+            <template #append>
+              <q-icon
+                :name="showSupaKey ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer integ-eye"
+                @click="showSupaKey = !showSupaKey"
+              />
+            </template>
+          </q-input>
+          <div class="integ-actions">
+            <q-btn flat no-caps dense icon="save" label="Save"
+              class="conn-btn" @click="saveSupabase" />
+            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
+              class="conn-btn conn-btn--clear" @click="clearSupabase" />
+          </div>
+
+          <div class="integ-divider" />
+
+          <!-- Deployment -->
+          <div class="integ-sub-label">DEPLOYMENT</div>
+          <q-input
+            v-model="deployUrl"
+            filled dense
+            label="Vercel / Netlify URL"
+            class="integ-input q-mb-xs"
+          />
+          <div class="integ-actions">
+            <q-btn flat no-caps dense icon="save" label="Save"
+              class="conn-btn" @click="saveDeployUrl" />
+            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
+              class="conn-btn conn-btn--clear" @click="clearDeployUrl" />
+          </div>
+
+          <div class="integ-divider" />
+
+          <!-- Repository -->
+          <div class="integ-sub-label">REPOSITORY</div>
+          <q-input
+            v-model="repoUrl"
+            filled dense
+            label="GitHub / GitLab URL"
+            class="integ-input q-mb-xs"
+          />
+          <div class="integ-actions">
+            <q-btn flat no-caps dense icon="save" label="Save"
+              class="conn-btn" @click="saveRepoUrl" />
+            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
+              class="conn-btn conn-btn--clear" @click="clearRepoUrl" />
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── EXPORT ── -->
+      <div class="settings-section">
+        <div class="settings-section-label">EXPORT</div>
+        <div class="export-block">
+          <div class="export-desc">
+            Download all your local data (contacts, entries, locations)
+            as a JSON file. Useful for backup or migration.
+          </div>
+          <q-btn
+            flat no-caps dense
+            icon="download"
+            label="Export as JSON"
+            class="export-btn"
+            :loading="exporting"
+            @click="handleExport"
+          />
         </div>
       </div>
 
@@ -255,13 +426,24 @@
         <div class="settings-section-label">DATA</div>
         <div class="data-block">
           <div class="data-warn">
-            Clear all local data from your browser. Cloud data (if any)
-            is not affected.
+            Clear specific data stores or everything at once.
+            Cloud data (if any) is not affected.
+          </div>
+          <div class="data-actions">
+            <q-btn flat no-caps dense icon="person_off" label="Clear Contacts"
+              class="data-clear-btn data-clear-btn--granular"
+              @click="handleClearStore('addressStore')" />
+            <q-btn flat no-caps dense icon="playlist_remove" label="Clear Entries"
+              class="data-clear-btn data-clear-btn--granular"
+              @click="handleClearStore('entryStore')" />
+            <q-btn flat no-caps dense icon="location_off" label="Clear Locations"
+              class="data-clear-btn data-clear-btn--granular"
+              @click="handleClearStore('locationStore')" />
           </div>
           <q-btn
             flat no-caps dense
             icon="delete_sweep"
-            label="Clear Local Data"
+            label="Clear All Local Data"
             class="data-clear-btn"
             @click="confirmClear = true"
           />
@@ -284,12 +466,29 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Sync confirm dialog -->
+    <q-dialog v-model="confirmSync">
+      <q-card class="confirm-card">
+        <q-card-section class="confirm-header">SYNC TO CLOUD</q-card-section>
+        <q-card-section class="confirm-body">
+          This will push all local contacts, entries, and locations
+          to your connected Supabase instance. Existing cloud records
+          with matching IDs will be updated.
+        </q-card-section>
+        <q-card-actions align="right" class="confirm-actions">
+          <q-btn flat no-caps label="Cancel" class="confirm-cancel" v-close-popup />
+          <q-btn flat no-caps label="Sync Now" class="confirm-sync" @click="handleSyncAll" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAddressStore } from 'src/store/store';
+import { supabase } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
 import { useTheme } from 'src/composables/useTheme';
 
@@ -298,7 +497,69 @@ const $q = useQuasar();
 const { isDark, toggle: themeToggle } = useTheme();
 
 const confirmClear = ref(false);
+const confirmSync = ref(false);
 const loadingDemo = ref(false);
+const exporting = ref(false);
+const syncing = ref(false);
+const userEmail = ref('');
+const digestOptIn = ref(true);
+const savingEmail = ref(false);
+
+// ── Integrations ──────────────────────────────────────────────
+const mailgunKey = ref(localStorage.getItem('wb-mailgun-key') || '');
+const mailgunDomain = ref(localStorage.getItem('wb-mailgun-domain') || '');
+const showMailgunKey = ref(false);
+const customSupaUrl = ref(localStorage.getItem('customSupabaseUrl') || '');
+const customSupaKey = ref(localStorage.getItem('customSupabaseKey') || '');
+const showSupaKey = ref(false);
+const deployUrl = ref(localStorage.getItem('wb-deploy-url') || '');
+const repoUrl = ref(localStorage.getItem('wb-repo-url') || '');
+
+function saveMailgun() {
+  localStorage.setItem('wb-mailgun-key', mailgunKey.value);
+  localStorage.setItem('wb-mailgun-domain', mailgunDomain.value);
+  $q.notify({ color: 'positive', message: 'Mailgun credentials saved.' });
+}
+function clearMailgun() {
+  localStorage.removeItem('wb-mailgun-key');
+  localStorage.removeItem('wb-mailgun-domain');
+  mailgunKey.value = '';
+  mailgunDomain.value = '';
+  $q.notify({ color: 'positive', message: 'Mailgun credentials cleared.' });
+}
+
+function saveSupabase() {
+  localStorage.setItem('customSupabaseUrl', customSupaUrl.value);
+  localStorage.setItem('customSupabaseKey', customSupaKey.value);
+  $q.notify({ color: 'positive', message: 'Supabase credentials saved.' });
+}
+function clearSupabase() {
+  localStorage.removeItem('customSupabaseUrl');
+  localStorage.removeItem('customSupabaseKey');
+  customSupaUrl.value = '';
+  customSupaKey.value = '';
+  $q.notify({ color: 'positive', message: 'Supabase credentials cleared.' });
+}
+
+function saveDeployUrl() {
+  localStorage.setItem('wb-deploy-url', deployUrl.value);
+  $q.notify({ color: 'positive', message: 'Deployment URL saved.' });
+}
+function clearDeployUrl() {
+  localStorage.removeItem('wb-deploy-url');
+  deployUrl.value = '';
+  $q.notify({ color: 'positive', message: 'Deployment URL cleared.' });
+}
+
+function saveRepoUrl() {
+  localStorage.setItem('wb-repo-url', repoUrl.value);
+  $q.notify({ color: 'positive', message: 'Repository URL saved.' });
+}
+function clearRepoUrl() {
+  localStorage.removeItem('wb-repo-url');
+  repoUrl.value = '';
+  $q.notify({ color: 'positive', message: 'Repository URL cleared.' });
+}
 
 const contactCount = computed(() => store.getData.length);
 const entryCount = computed(() => store.getEntries.length);
@@ -359,6 +620,52 @@ async function handleClearDemo() {
   }
 }
 
+async function handleExport() {
+  exporting.value = true;
+  try {
+    const data = await store.exportData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pantry-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    $q.notify({ color: 'positive', icon: 'download', message: 'Data exported successfully.' });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Export failed.' });
+  } finally {
+    exporting.value = false;
+  }
+}
+
+async function handleSyncAll() {
+  syncing.value = true;
+  confirmSync.value = false;
+  try {
+    const result = await store.syncAllData();
+    $q.notify({
+      color: 'positive',
+      icon: 'cloud_done',
+      message: `Synced ${result.synced} items.${result.errors ? ` ${result.errors} errors.` : ''}`,
+    });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Sync failed.' });
+  } finally {
+    syncing.value = false;
+  }
+}
+
+async function handleClearStore(storeName: 'addressStore' | 'entryStore' | 'locationStore') {
+  try {
+    await store.clearSingleStore(storeName);
+    const labels = { addressStore: 'Contacts', entryStore: 'Entries', locationStore: 'Locations' };
+    $q.notify({ color: 'positive', message: `${labels[storeName]} cleared.` });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Failed to clear.' });
+  }
+}
+
 async function clearLocalData() {
   const dbReq = indexedDB.deleteDatabase('myAddressDB');
   dbReq.onsuccess = () => {
@@ -373,6 +680,48 @@ async function clearLocalData() {
     $q.notify({ color: 'negative', message: 'Failed to clear data.' });
   };
 }
+
+// ── Email & Digest ──────────────────────────────────────────────
+
+async function saveEmailPrefs() {
+  savingEmail.value = true;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Sign in to save email preferences.');
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        email: userEmail.value.trim() || null,
+        digest_opt_in: digestOptIn.value,
+      })
+      .eq('id', user.id);
+    if (error) throw error;
+    $q.notify({ color: 'positive', message: 'Email preferences saved.' });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Failed to save.' });
+  } finally {
+    savingEmail.value = false;
+  }
+}
+
+onMounted(async () => {
+  if (store.isLoggedIn) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('email, digest_opt_in')
+          .eq('id', user.id)
+          .single();
+        if (data) {
+          userEmail.value = data.email || '';
+          digestOptIn.value = data.digest_opt_in ?? true;
+        }
+      }
+    } catch { /* offline or not synced */ }
+  }
+});
 </script>
 
 <style scoped>
@@ -715,6 +1064,145 @@ async function clearLocalData() {
   border-radius: 3px;
 }
 
+.conn-btn--sync {
+  color: var(--wb-positive) !important;
+  border-color: var(--wb-positive);
+  opacity: 0.8;
+}
+
+.conn-btn--sync:hover {
+  opacity: 1;
+}
+
+.conn-hint {
+  margin-top: 10px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--wb-text-faint);
+  line-height: 1.4;
+}
+
+/* ---- Email & Digest ---- */
+.email-block {
+  padding: 12px 4px;
+}
+
+.email-desc {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.email-input :deep(.q-field__control) {
+  background: var(--wb-card-input-bg) !important;
+  border: 1px solid var(--wb-card-input-border);
+}
+
+.email-input :deep(.q-field__label),
+.email-input :deep(.q-field__native),
+.email-input :deep(input) {
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+}
+
+.email-input :deep(.q-field__messages) {
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+}
+
+.email-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.email-toggle-label {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--wb-text);
+}
+
+/* ---- Integrations ---- */
+.integrations-block {
+  padding: 12px 4px;
+}
+
+.integ-sub-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 3px;
+  color: var(--wb-accent);
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.integ-input :deep(.q-field__control) {
+  background: var(--wb-card-input-bg) !important;
+  border: 1px solid var(--wb-card-input-border);
+}
+
+.integ-input :deep(.q-field__label),
+.integ-input :deep(.q-field__native),
+.integ-input :deep(input) {
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+}
+
+.integ-eye {
+  color: var(--wb-text-faint);
+}
+
+.integ-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.conn-btn--clear {
+  color: var(--wb-text-muted) !important;
+}
+
+.conn-btn--clear:hover {
+  color: var(--wb-negative) !important;
+}
+
+.integ-divider {
+  height: 1px;
+  background: var(--wb-border-subtle);
+  margin: 12px 0;
+}
+
+/* ---- Export ---- */
+.export-block {
+  padding: 12px 4px;
+}
+
+.export-desc {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  line-height: 1.5;
+}
+
+.export-btn {
+  margin-top: 10px;
+  color: var(--wb-info) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+}
+
 /* ---- Data ---- */
 .data-block {
   padding: 12px 4px;
@@ -728,6 +1216,13 @@ async function clearLocalData() {
   line-height: 1.5;
 }
 
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .data-clear-btn {
   margin-top: 10px;
   color: var(--wb-negative) !important;
@@ -737,6 +1232,17 @@ async function clearLocalData() {
   letter-spacing: 1px;
   border: 1px solid var(--wb-border-mid);
   border-radius: 3px;
+}
+
+.data-clear-btn--granular {
+  margin-top: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--wb-text-muted) !important;
+}
+
+.data-clear-btn--granular:hover {
+  color: var(--wb-negative) !important;
 }
 
 /* ---- Confirm dialog ---- */
@@ -778,6 +1284,14 @@ async function clearLocalData() {
 
 .confirm-delete {
   color: var(--wb-negative) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+}
+
+.confirm-sync {
+  color: var(--wb-positive) !important;
   font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.75rem;

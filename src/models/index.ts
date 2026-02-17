@@ -16,7 +16,7 @@ export type EntryType =
   | 'looking_for'
   | 'upcoming_need';
 
-export type QueueStatus = 'pending' | 'claimed' | 'in_transit' | 'delivered';
+export type QueueStatus = 'pending' | 'claimed' | 'in_transit' | 'delivered' | 'stocked';
 
 export interface Entry {
   id: string;

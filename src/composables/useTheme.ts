@@ -4,8 +4,13 @@ type Theme = 'dark' | 'light';
 
 const STORAGE_KEY = 'wb-theme';
 
+function getDefaultTheme(): Theme {
+  const hour = new Date().getHours();
+  return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+}
+
 const current = ref<Theme>(
-  (localStorage.getItem(STORAGE_KEY) as Theme) || 'dark'
+  (localStorage.getItem(STORAGE_KEY) as Theme) || getDefaultTheme()
 );
 
 function applyTheme(theme: Theme) {

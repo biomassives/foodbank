@@ -223,6 +223,46 @@
 
         <q-slide-transition>
           <div v-show="activeCard === 'create'" class="onboard-body" @click.stop>
+
+            <!-- Shared cloud pantry (recommended) -->
+            <q-input
+              v-model="bankName"
+              filled dense dark
+              :label="t.onboard.pantryName"
+              :placeholder="t.onboard.pantryPlaceholder"
+              color="amber-4"
+              class="q-mb-sm"
+            />
+            <q-btn
+              :label="t.onboard.createShared"
+              icon="cloud"
+              class="onboard-btn full-width q-mb-xs"
+              @click="createSharedPantry"
+              :disable="!bankName.trim() || !store.isLoggedIn"
+              :loading="provisionLoading"
+              no-caps
+            />
+            <p v-if="!store.isLoggedIn" class="onboard-body-hint q-mb-sm">
+              {{ t.onboard.signInFirst }}
+            </p>
+
+            <div class="onboard-body-divider" />
+
+            <!-- Full Setup Wizard -->
+            <q-btn
+              :label="t.onboard.wizardLink"
+              icon="auto_fix_high"
+              class="onboard-btn full-width q-mb-xs"
+              @click="router.push('/wizard')"
+              no-caps
+            />
+            <p class="onboard-body-hint q-mb-sm">
+              {{ t.onboard.wizardLinkHint }}
+            </p>
+
+            <div class="onboard-body-divider" />
+
+            <!-- Local-only -->
             <q-btn
               :label="t.onboard.startLocal"
               icon="play_arrow"
@@ -230,62 +270,59 @@
               @click="startLocal"
               no-caps
             />
-            <p class="onboard-body-hint q-mt-xs q-mb-none">
+            <p class="onboard-body-hint q-mt-xs q-mb-sm">
               {{ t.onboard.startLocalHint }}
             </p>
 
             <div class="onboard-body-divider" />
 
-            <p class="onboard-body-hint q-mb-sm" style="line-height: 1.5">
-              {{ t.onboard.cloudPrompt }}<br>
-              {{ t.onboard.cloudPromptSub }}
-            </p>
-
-            <q-input
-              v-model="bankName"
-              filled dense dark
-              :label="t.onboard.pantryName"
-              :placeholder="t.onboard.pantryPlaceholder"
-              color="blue-4"
-              class="q-mb-sm"
-            />
-            <q-input
-              v-model="supabaseUrl"
-              filled dense dark
-              :label="t.onboard.supabaseUrl"
-              :placeholder="t.onboard.supabaseUrlPlaceholder"
-              color="blue-4"
-              class="q-mb-sm"
-            />
-            <q-input
-              v-model="supabaseKey"
-              filled dense dark
-              :label="t.onboard.supabaseKey"
-              :placeholder="t.onboard.supabaseKeyPlaceholder"
-              color="blue-4"
-              class="q-mb-sm"
-            />
-
-            <div class="row q-gutter-sm q-mt-xs">
-              <q-btn
-                :label="t.onboard.deployVercel"
-                icon="rocket_launch"
-                class="onboard-btn col"
-                @click="deployToVercel"
-                no-caps dense
-              />
-              <q-btn
-                :label="t.onboard.saveConnect"
-                icon="link"
-                class="onboard-btn col"
-                @click="saveCustomConnection"
-                :disable="!supabaseUrl || !supabaseKey"
-                no-caps dense
-              />
-            </div>
-            <p class="onboard-body-hint q-mt-xs q-mb-none">
-              {{ t.onboard.deployHint }}
-            </p>
+            <!-- Advanced: Bring your own Supabase -->
+            <q-expansion-item
+              :label="t.onboard.advancedLabel"
+              icon="settings"
+              dense
+              header-class="onboard-body-hint"
+            >
+              <div class="q-pa-sm">
+                <q-input
+                  v-model="supabaseUrl"
+                  filled dense dark
+                  :label="t.onboard.supabaseUrl"
+                  :placeholder="t.onboard.supabaseUrlPlaceholder"
+                  color="blue-4"
+                  class="q-mb-sm"
+                />
+                <q-input
+                  v-model="supabaseKey"
+                  filled dense dark
+                  :label="t.onboard.supabaseKey"
+                  :placeholder="t.onboard.supabaseKeyPlaceholder"
+                  color="blue-4"
+                  class="q-mb-sm"
+                />
+                <div class="row q-gutter-sm q-mt-xs">
+                  <q-btn
+                    :label="t.onboard.deployVercel"
+                    icon="rocket_launch"
+                    class="onboard-btn col"
+                    @click="deployToVercel"
+                    no-caps dense
+                  />
+                  <q-btn
+                    :label="t.onboard.saveConnect"
+                    icon="link"
+                    class="onboard-btn col"
+                    @click="saveCustomConnection"
+                    :disable="!supabaseUrl || !supabaseKey || !bankName"
+                    :loading="provisionLoading"
+                    no-caps dense
+                  />
+                </div>
+                <p class="onboard-body-hint q-mt-xs q-mb-none">
+                  {{ t.onboard.deployHint }}
+                </p>
+              </div>
+            </q-expansion-item>
           </div>
         </q-slide-transition>
       </div>
@@ -300,14 +337,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { supabase } from 'src/dbManagement';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { supabase, provisionUserDatabase } from 'src/dbManagement';
+import { useRouter, useRoute } from 'vue-router';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'src/i18n';
 
 const router = useRouter();
+const route = useRoute();
 const store = useAddressStore();
 const $q = useQuasar();
 const { t } = useI18n();
@@ -320,6 +358,13 @@ function toggle(card: CardName) {
   if (activeCard.value === card) return;
   activeCard.value = card;
 }
+
+onMounted(() => {
+  const cardParam = route.query.card as CardName | undefined;
+  if (cardParam && ['login', 'invite', 'create'].includes(cardParam)) {
+    activeCard.value = cardParam;
+  }
+});
 
 // ---- Sign In (OTP) ----
 const phone = ref('');
@@ -399,6 +444,23 @@ const bankName = ref('');
 const supabaseUrl = ref('');
 const supabaseKey = ref('');
 
+async function createSharedPantry() {
+  if (!bankName.value.trim()) {
+    $q.notify({ color: 'warning', message: 'Please enter a pantry name.' });
+    return;
+  }
+  provisionLoading.value = true;
+  try {
+    await store.createSharedPantry(bankName.value.trim());
+    $q.notify({ color: 'positive', message: 'Your pantry is ready!' });
+    router.push('/');
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message });
+  } finally {
+    provisionLoading.value = false;
+  }
+}
+
 function startLocal() {
   localStorage.setItem('localMode', 'true');
   localStorage.setItem('siloInitiator', 'true');
@@ -414,17 +476,47 @@ function deployToVercel() {
   window.open(url, '_blank');
 }
 
-function saveCustomConnection() {
+const provisionLoading = ref(false);
+
+async function saveCustomConnection() {
   if (!supabaseUrl.value.trim() || !supabaseKey.value.trim()) return;
-  localStorage.setItem('customSupabaseUrl', supabaseUrl.value.trim());
-  localStorage.setItem('customSupabaseKey', supabaseKey.value.trim());
-  if (bankName.value.trim()) {
-    localStorage.setItem('pantryName', bankName.value.trim());
+  if (!bankName.value.trim()) {
+    $q.notify({ color: 'warning', message: 'Please enter a pantry name.' });
+    return;
   }
-  localStorage.setItem('localMode', 'true');
-  localStorage.setItem('siloInitiator', 'true');
-  store.$patch({ role: 'admin' });
-  $q.notify({ color: 'positive', message: 'Connected! Your pantry is ready.' });
-  router.push('/');
+
+  provisionLoading.value = true;
+  try {
+    // Always persist connection details locally first
+    localStorage.setItem('customSupabaseUrl', supabaseUrl.value.trim());
+    localStorage.setItem('customSupabaseKey', supabaseKey.value.trim());
+    localStorage.setItem('pantryName', bankName.value.trim());
+    localStorage.setItem('siloInitiator', 'true');
+    localStorage.setItem('localMode', 'true');
+
+    // Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      // Signed in: provision the silo on the target Supabase instance
+      const { orgId } = await provisionUserDatabase(user.id, {
+        supabaseUrl: supabaseUrl.value.trim(),
+        supabaseKey: supabaseKey.value.trim(),
+        pantryName: bankName.value.trim(),
+      });
+      store.$patch({ role: 'admin', userOrgId: orgId });
+      $q.notify({ color: 'positive', message: 'Silo provisioned! Your pantry is ready.' });
+    } else {
+      // Not signed in: save credentials for later, start in local mode
+      store.$patch({ role: 'admin' });
+      $q.notify({ color: 'positive', message: 'Connection saved! Sign in later to sync your data to the cloud.' });
+    }
+
+    router.push('/');
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message });
+  } finally {
+    provisionLoading.value = false;
+  }
 }
 </script>

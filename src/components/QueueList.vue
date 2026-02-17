@@ -1,6 +1,18 @@
 <template>
   <div class="queue-wrap">
 
+    <div class="queue-filter-bar">
+      <q-btn-toggle
+        v-model="filterMode"
+        flat no-caps
+        class="queue-filter-toggle"
+        :options="[
+          { label: 'ALL', value: 'all' },
+          { label: 'MY TASKS', value: 'mine' },
+        ]"
+      />
+    </div>
+
     <div v-if="queue.length === 0" class="queue-empty">
       <q-icon name="check_circle_outline" size="28px" />
       <div class="queue-empty-text">QUEUE CLEAR</div>
@@ -84,9 +96,24 @@
             </template>
 
             <template v-else-if="task.queueStatus === 'delivered'">
+              <q-btn
+                v-if="store.canEdit"
+                flat no-caps dense
+                label="STOCKED"
+                icon="shelves"
+                class="queue-act-btn queue-act-btn--stock"
+                @click="stock(task)"
+              />
               <div class="queue-delivered-stamp">
                 <q-icon name="verified" size="14px" />
                 <span>DELIVERED {{ task.completedAt ? timeAgo(task.completedAt) : '' }}</span>
+              </div>
+            </template>
+
+            <template v-else-if="task.queueStatus === 'stocked'">
+              <div class="queue-stocked-stamp">
+                <q-icon name="shelves" size="14px" />
+                <span>STOCKED</span>
               </div>
             </template>
           </div>
@@ -97,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import type { Entry, QueueStatus } from 'src/models';
@@ -105,10 +132,14 @@ import type { Entry, QueueStatus } from 'src/models';
 const store = useAddressStore();
 const $q = useQuasar();
 
+const filterMode = ref('all');
+
 const queue = computed(() => {
-  const items = store.getQueueEntries;
-  // Sort: pending first, then claimed, in_transit, delivered last
-  const order: Record<string, number> = { pending: 0, claimed: 1, in_transit: 2, delivered: 3 };
+  let items = store.getQueueEntries;
+  if (filterMode.value === 'mine') {
+    items = items.filter(e => e.claimedBy === 'You' && e.queueStatus !== 'delivered' && e.queueStatus !== 'stocked');
+  }
+  const order: Record<string, number> = { pending: 0, claimed: 1, in_transit: 2, delivered: 3, stocked: 4 };
   return [...items].sort((a, b) =>
     (order[a.queueStatus || 'pending'] ?? 0) - (order[b.queueStatus || 'pending'] ?? 0)
   );
@@ -120,6 +151,7 @@ function statusLabel(s: QueueStatus | string): string {
     claimed: 'CLAIMED',
     in_transit: 'IN TRANSIT',
     delivered: 'DELIVERED',
+    stocked: 'STOCKED',
   };
   return map[s] || s;
 }
@@ -141,8 +173,9 @@ async function claim(task: Entry) {
   $q.notify({
     color: 'info',
     icon: 'pan_tool',
-    message: `Claimed: ${task.description.slice(0, 40)}...`,
-    caption: task.location || '',
+    message: `Claimed: ${task.description.slice(0, 40)}`,
+    caption: `Head to ${task.location || 'pickup point'} to collect`,
+    timeout: 4000,
   });
 }
 
@@ -151,17 +184,20 @@ async function unclaim(task: Entry) {
   $q.notify({
     color: 'warning',
     icon: 'undo',
-    message: `Released: ${task.description.slice(0, 40)}...`,
+    message: 'Released back to queue',
+    caption: 'Someone else can pick this up now',
+    timeout: 3000,
   });
 }
 
 async function transit(task: Entry) {
   await store.transitEntry(task.id);
   $q.notify({
-    color: 'info',
+    color: 'purple-4',
     icon: 'local_shipping',
-    message: `In transit to ${task.location || 'destination'}`,
-    caption: `Driver: ${task.claimedBy || 'You'}`,
+    message: `En route to ${task.location || 'destination'}`,
+    caption: 'Tap DELIVERED when you arrive and hand off',
+    timeout: 4000,
   });
 }
 
@@ -170,8 +206,19 @@ async function complete(task: Entry) {
   $q.notify({
     color: 'positive',
     icon: 'verified',
-    message: `Delivered! ${task.description.slice(0, 40)}...`,
-    caption: task.location || '',
+    message: `Delivered! ${task.description.slice(0, 40)}`,
+    caption: 'Pantry manager can mark STOCKED once shelved',
+    timeout: 4000,
+  });
+}
+
+async function stock(task: Entry) {
+  await store.stockEntry(task.id);
+  $q.notify({
+    color: 'positive',
+    icon: 'shelves',
+    message: 'Stocked and ready for the community!',
+    timeout: 3000,
   });
 }
 </script>
@@ -204,7 +251,6 @@ async function complete(task: Entry) {
   font-size: 0.7rem;
   margin-top: 4px;
   color: var(--wb-text-faint);
-  opacity: 0.7;
 }
 
 /* ---- Queue item ---- */
@@ -219,7 +265,7 @@ async function complete(task: Entry) {
 }
 
 .queue-item--delivered {
-  opacity: 0.5;
+  opacity: 0.65;
 }
 
 /* Status bar left edge */
@@ -268,10 +314,10 @@ async function complete(task: Entry) {
   white-space: nowrap;
 }
 
-.queue-chip--pending { color: var(--wb-queue-pending); border-color: var(--wb-queue-pending); opacity: 0.7; }
-.queue-chip--claimed { color: var(--wb-queue-claimed); border-color: var(--wb-queue-claimed); opacity: 0.7; }
-.queue-chip--in_transit { color: var(--wb-queue-transit); border-color: var(--wb-queue-transit); opacity: 0.7; }
-.queue-chip--delivered { color: var(--wb-queue-delivered); border-color: var(--wb-queue-delivered); opacity: 0.7; }
+.queue-chip--pending { color: var(--wb-queue-pending); border-color: var(--wb-queue-pending); }
+.queue-chip--claimed { color: var(--wb-queue-claimed); border-color: var(--wb-queue-claimed); }
+.queue-chip--in_transit { color: var(--wb-queue-transit); border-color: var(--wb-queue-transit); }
+.queue-chip--delivered { color: var(--wb-queue-delivered); border-color: var(--wb-queue-delivered); }
 
 /* Meta row */
 .queue-item-meta {
@@ -358,10 +404,59 @@ async function complete(task: Entry) {
   align-items: center;
   gap: 5px;
   color: var(--wb-queue-delivered);
-  opacity: 0.6;
+  opacity: 0.85;
   font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.6rem;
   letter-spacing: 1px;
+}
+
+/* Filter bar */
+.queue-filter-bar {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.queue-filter-toggle {
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+}
+
+.queue-filter-toggle :deep(.q-btn) {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-mid);
+}
+
+.queue-filter-toggle :deep(.q-btn--active) {
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+}
+
+/* Stocked */
+.queue-act-btn--stock {
+  color: var(--wb-positive) !important;
+  border-color: var(--wb-positive);
+  opacity: 0.8;
+}
+.queue-act-btn--stock:hover { opacity: 1; }
+
+.queue-item--stocked { opacity: 0.5; }
+.queue-status-bar--stocked { background: var(--wb-positive); }
+.queue-chip--stocked { color: var(--wb-positive); border-color: var(--wb-positive); }
+
+.queue-stocked-stamp {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--wb-positive);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  opacity: 0.7;
 }
 </style>

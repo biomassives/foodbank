@@ -5,7 +5,7 @@
       <!-- ===== STEP 1: Type selector ===== -->
       <template v-if="!entryType">
         <div class="modal-header">
-          <span class="modal-header-label">ADD</span>
+          <span class="modal-header-label">{{ props.editEntry ? 'EDIT' : 'ADD' }}</span>
           <q-btn flat dense round icon="close" color="white" size="sm" v-close-popup />
         </div>
 
@@ -177,8 +177,15 @@ import { isValidated } from 'src/utils/functions';
 import SketchPad from 'src/components/SketchPad.vue';
 import type { Address, Entry, EntryType } from 'src/models';
 
-const props = defineProps<{ cardState: boolean; initialType?: string | null }>();
-const emit = defineEmits<{ (e: 'update:cardState', val: boolean): void }>();
+const props = defineProps<{
+  cardState: boolean;
+  initialType?: string | null;
+  editEntry?: Entry | null;
+}>();
+const emit = defineEmits<{
+  (e: 'update:cardState', val: boolean): void;
+  (e: 'saved', payload: { type: string }): void;
+}>();
 
 const $q = useQuasar();
 const store = useAddressStore();
@@ -304,7 +311,13 @@ function readFile(file: File) {
 // Sync dialog open/close state
 watch(card, (v) => {
   internalCard.value = v;
-  if (v && props.initialType) {
+  if (v && props.editEntry) {
+    entryType.value = props.editEntry.type as any;
+    description.value = props.editEntry.description;
+    location.value = props.editEntry.location || '';
+    sketchData.value = props.editEntry.sketch || '';
+    imageData.value = props.editEntry.image || null;
+  } else if (v && props.initialType) {
     entryType.value = props.initialType as any;
   }
 });
@@ -339,6 +352,7 @@ async function saveContact() {
   await store.addData(address, store.canSync);
   const where = store.canSync ? 'Saved locally + synced' : 'Saved locally';
   $q.notify({ color: 'positive', message: `Contact saved. ${where}.` });
+  emit('saved', { type: 'contact' });
   emit('update:cardState', false);
 }
 
@@ -362,9 +376,18 @@ async function saveEntry() {
     sketch: sketchData.value || undefined,
     image: imageData.value || undefined,
   };
-  await store.addEntry(entry, syncToCloud.value);
+  if (entryType.value === 'pickup_queue') {
+    entry.queueStatus = 'pending';
+  }
+  if (props.editEntry) {
+    const updated = { ...props.editEntry, ...entry, id: props.editEntry.id };
+    await store.updateEntry(props.editEntry.id, updated);
+  } else {
+    await store.addEntry(entry, syncToCloud.value);
+  }
   const where = syncToCloud.value && store.canSync ? 'Saved + synced' : 'Saved locally';
   $q.notify({ color: 'positive', message: `${where}.` });
+  emit('saved', { type: entryType.value as string });
   emit('update:cardState', false);
 }
 </script>
