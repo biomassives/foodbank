@@ -1,6 +1,6 @@
 import { ref, watchEffect } from 'vue';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'bauhaus';
 
 const STORAGE_KEY = 'wb-theme';
 
@@ -29,7 +29,9 @@ export function useTheme() {
   });
 
   function toggle() {
-    current.value = current.value === 'dark' ? 'light' : 'dark';
+    const order: Theme[] = ['dark', 'light', 'bauhaus'];
+    const idx = order.indexOf(current.value);
+    current.value = order[(idx + 1) % order.length];
   }
 
   function set(theme: Theme) {

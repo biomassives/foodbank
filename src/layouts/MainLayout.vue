@@ -109,27 +109,70 @@
       </div>
     </q-drawer>
 
+    <notification-drawer />
+
     <q-page-container class="book-container">
       <router-view />
     </q-page-container>
 
-    <entry-modal v-model:card-state="entryModalOpen" :initial-type="entryModalType" />
+    <entry-modal v-model:card-state="entryModalOpen" :initial-type="entryModalType" @saved="handleEntrySaved" />
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import HeaderComponent from 'components/MainHeader.vue';
 import EntryModal from 'components/childcomponents/EntryModal.vue';
+import NotificationDrawer from 'components/NotificationDrawer.vue';
 import { useAddressStore } from 'src/store/store';
-import { supabase } from 'src/dbManagement';
+import { useNotificationStore } from 'src/store/notifications';
+import { supabase, flushMtsOutbox } from 'src/dbManagement';
 import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
 import { useI18n } from 'src/i18n';
 
 const drawer = ref(false);
 const store = useAddressStore();
+const notifStore = useNotificationStore();
 const router = useRouter();
+const $q = useQuasar();
 const { t } = useI18n();
+
+// ── Offline / Online detection ────────────────────────────────────
+function onOffline() {
+  $q.notify({
+    color: 'warning',
+    icon: 'cloud_off',
+    message: 'You\'re offline',
+    caption: 'Changes will be saved locally until you reconnect',
+    timeout: 5000,
+  });
+}
+function onOnline() {
+  $q.notify({
+    color: 'positive',
+    icon: 'cloud_done',
+    message: 'Back online',
+    caption: 'Connection restored',
+    timeout: 3000,
+  });
+  // Flush any queued MTS messages
+  flushMtsOutbox().catch(() => { /* offline flush — ignore */ });
+}
+onMounted(async () => {
+  window.addEventListener('offline', onOffline);
+  window.addEventListener('online', onOnline);
+  // Init notifications if logged in
+  if (store.isLoggedIn) {
+    await notifStore.fetchMessages();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) notifStore.subscribeRealtime(user.id);
+  }
+});
+onUnmounted(() => {
+  window.removeEventListener('offline', onOffline);
+  window.removeEventListener('online', onOnline);
+});
 
 const entryModalOpen = ref(false);
 const entryModalType = ref<string | null>(null);
@@ -162,6 +205,11 @@ const statusLabel = computed(() => {
 });
 
 const pantryName = computed(() => localStorage.getItem('pantryName') || '');
+
+function handleEntrySaved(payload: { type: string }) {
+  const view = payload.type === 'pickup_queue' ? 'queue' : 'directory';
+  router.push({ path: '/', query: { view } });
+}
 
 async function handleLogout() {
   await supabase.auth.signOut();

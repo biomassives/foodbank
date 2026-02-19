@@ -126,10 +126,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAddressStore } from 'src/store/store';
+import { useMts } from 'src/composables/useMts';
 import { useQuasar } from 'quasar';
 import type { Entry, QueueStatus } from 'src/models';
 
 const store = useAddressStore();
+const mts = useMts();
 const $q = useQuasar();
 
 const filterMode = ref('all');
@@ -170,6 +172,12 @@ function timeAgo(iso: string): string {
 async function claim(task: Entry) {
   const name = store.demoMode ? 'You' : 'You';
   await store.claimEntry(task.id, name);
+  mts.send({
+    type: 'pickup-claimed',
+    data: { taskDescription: task.description, taskLocation: task.location, claimedBy: 'You' },
+  }).catch(() => {
+    $q.notify({ color: 'warning', icon: 'email', message: 'Notification could not be sent', timeout: 3000 });
+  });
   $q.notify({
     color: 'info',
     icon: 'pan_tool',
@@ -203,6 +211,12 @@ async function transit(task: Entry) {
 
 async function complete(task: Entry) {
   await store.completeEntry(task.id);
+  mts.send({
+    type: 'pickup-delivered',
+    data: { taskDescription: task.description, taskLocation: task.location },
+  }).catch(() => {
+    $q.notify({ color: 'warning', icon: 'email', message: 'Notification could not be sent', timeout: 3000 });
+  });
   $q.notify({
     color: 'positive',
     icon: 'verified',
@@ -214,6 +228,12 @@ async function complete(task: Entry) {
 
 async function stock(task: Entry) {
   await store.stockEntry(task.id);
+  mts.send({
+    type: 'pickup-stocked',
+    data: { taskDescription: task.description, taskLocation: task.location },
+  }).catch(() => {
+    $q.notify({ color: 'warning', icon: 'email', message: 'Notification could not be sent', timeout: 3000 });
+  });
   $q.notify({
     color: 'positive',
     icon: 'shelves',

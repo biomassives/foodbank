@@ -11,6 +11,14 @@
 
       <div class="header-spacer" />
 
+      <!-- Notification bell -->
+      <button v-if="store.isLoggedIn" class="header-notif-btn" @click="notifStore.toggleDrawer()">
+        <q-icon name="notifications_none" size="16px" />
+        <span v-if="notifStore.unreadCount > 0" class="notif-badge">
+          {{ notifStore.unreadCount > 9 ? '9+' : notifStore.unreadCount }}
+        </span>
+      </button>
+
       <!-- Search -->
       <div class="header-search" :class="{ 'header-search--open': searchOpen }">
         <button class="header-search-btn" @click="toggleSearch">
@@ -34,11 +42,13 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
 import { useAddressStore } from '../store/store';
+import { useNotificationStore } from 'src/store/notifications';
 import { useI18n } from 'src/i18n';
 
 defineEmits(['toggleDrawer']);
 
 const store = useAddressStore();
+const notifStore = useNotificationStore();
 const { t } = useI18n();
 const search = ref('');
 const searchOpen = ref(false);
@@ -174,5 +184,47 @@ watch(search, (value) => {
   color: var(--wb-text-faint);
   font-weight: 800;
   letter-spacing: 3px;
+}
+
+/* ── Notification bell ── */
+.header-notif-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-left: 2px solid var(--wb-border-mid);
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.header-notif-btn:hover {
+  color: var(--wb-text);
+  background: var(--wb-surface-hover);
+}
+
+.notif-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--wb-negative);
+  color: #fff;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
 }
 </style>

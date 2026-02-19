@@ -1,8 +1,8 @@
 <template>
   <q-page class="index-page">
 
-    <!-- View toggle for org/local users -->
-    <div v-if="store.userOrgId || store.localMode || store.demoMode" class="toggle-bar">
+    <!-- View toggle for org/local users (hidden on desktop) -->
+    <div v-if="(store.userOrgId || store.localMode || store.demoMode) && !isDesktop" class="toggle-bar">
       <q-btn-toggle
         v-model="viewMode"
         flat
@@ -16,127 +16,165 @@
     </div>
 
     <!-- Scrollable content -->
-    <div class="index-content">
-      <template v-if="viewMode === 'directory'">
+    <div class="index-content" :class="{ 'mondrian-grid': isDesktop }">
 
-        <!-- LOCATIONS -->
-        <div class="section-label">LOCATIONS</div>
+      <!-- === LOCATIONS cell === -->
+      <div :class="isDesktop ? 'mondrian-cell mondrian-cell--locations' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop">LOCATIONS</div>
+        <template v-if="isDesktop || viewMode === 'directory'">
+          <div v-if="!isDesktop" class="section-label">LOCATIONS</div>
 
-        <!-- Seed locations -->
-        <div v-for="loc in seedLocations" :key="loc.id" class="loc-row">
-          <q-icon :name="loc.icon" size="18px" :style="{ color: loc.color }" />
-          <div class="loc-text">
-            <div class="loc-name">{{ loc.name }}</div>
-            <div class="loc-type">{{ loc.type }}</div>
-          </div>
-        </div>
-
-        <!-- User locations -->
-        <div
-          v-for="loc in userLocations"
-          :key="loc.id"
-          class="loc-card"
-          :class="{ 'loc-card--open': expandedLoc === loc.id }"
-        >
-          <div class="loc-row loc-row--user" @click="toggleLocExpand(loc.id)">
-            <q-icon name="location_on" size="18px" class="loc-icon-user" />
+          <!-- Seed locations -->
+          <div v-for="loc in seedLocations" :key="loc.id" class="loc-row">
+            <q-icon :name="loc.icon" size="18px" :style="{ color: loc.color }" />
             <div class="loc-text">
               <div class="loc-name">{{ loc.name }}</div>
-              <div class="loc-type">
-                <span v-if="loc.schedule.length">{{ loc.schedule.join(' ') }}</span>
-                <span v-else>No schedule set</span>
-                <span class="loc-size-badge">{{ sizeLabel(loc.transportSize) }}</span>
-              </div>
+              <div class="loc-type">{{ loc.type }}</div>
             </div>
-            <q-icon :name="expandedLoc === loc.id ? 'expand_less' : 'expand_more'" size="16px" class="loc-expand-icon" />
           </div>
 
-          <!-- Expanded detail -->
-          <q-slide-transition>
-            <div v-show="expandedLoc === loc.id" class="loc-detail">
-              <div v-if="loc.contact" class="loc-detail-row">
-                <q-icon name="person" size="14px" />
-                <span>{{ loc.contact }}</span>
-              </div>
-              <div v-if="loc.phone" class="loc-detail-row">
-                <q-icon name="phone" size="14px" />
-                <span>{{ loc.phone }}</span>
-              </div>
-              <div v-if="loc.resources.length" class="loc-detail-row loc-detail-row--wrap">
-                <q-icon name="inventory_2" size="14px" />
-                <div class="loc-resource-tags">
-                  <span v-for="(r, i) in loc.resources" :key="i" class="loc-resource-pill">{{ r }}</span>
+          <!-- User locations -->
+          <div
+            v-for="loc in userLocations"
+            :key="loc.id"
+            class="loc-card"
+            :class="{ 'loc-card--open': expandedLoc === loc.id }"
+          >
+            <div class="loc-row loc-row--user" @click="toggleLocExpand(loc.id)">
+              <q-icon name="location_on" size="18px" class="loc-icon-user" />
+              <div class="loc-text">
+                <div class="loc-name">{{ loc.name }}</div>
+                <div class="loc-type">
+                  <span v-if="loc.schedule.length">{{ loc.schedule.join(' ') }}</span>
+                  <span v-else>No schedule set</span>
+                  <span class="loc-size-badge">{{ sizeLabel(loc.transportSize) }}</span>
                 </div>
               </div>
-              <div class="loc-detail-row">
-                <q-icon name="local_shipping" size="14px" />
-                <span>Transport: {{ transportLabel(loc.transportSize) }}</span>
-              </div>
-              <div v-if="loc.notes" class="loc-detail-row loc-detail-notes">
-                <q-icon name="notes" size="14px" />
-                <span>{{ loc.notes }}</span>
-              </div>
-              <div v-if="store.canEdit" class="loc-detail-actions">
-                <q-btn flat dense no-caps icon="edit" label="Edit" size="xs" class="loc-act-btn" @click.stop="editLoc(loc)" />
-                <q-btn flat dense no-caps icon="delete" label="Delete" size="xs" class="loc-act-btn loc-act-btn--del" @click.stop="confirmDelLoc(loc)" />
-              </div>
+              <q-icon :name="expandedLoc === loc.id ? 'expand_less' : 'expand_more'" size="16px" class="loc-expand-icon" />
             </div>
-          </q-slide-transition>
-        </div>
 
-        <!-- DIRECTORY -->
-        <div class="section-label q-mt-sm">DIRECTORY</div>
-        <div v-for="c in allContacts" :key="c.id" class="contact-row">
-          <div class="contact-dot" :style="{ background: c.dotColor }" />
-          <div class="contact-text">
-            <div class="contact-name">{{ c.name.first }} {{ c.name.last }}</div>
-            <div class="contact-meta">{{ c.email }}</div>
-            <div class="contact-meta">{{ c.phone }}</div>
+            <!-- Expanded detail -->
+            <q-slide-transition>
+              <div v-show="expandedLoc === loc.id" class="loc-detail">
+                <div v-if="loc.contact" class="loc-detail-row">
+                  <q-icon name="person" size="14px" />
+                  <span>{{ loc.contact }}</span>
+                </div>
+                <div v-if="loc.phone" class="loc-detail-row">
+                  <q-icon name="phone" size="14px" />
+                  <span>{{ loc.phone }}</span>
+                </div>
+                <div v-if="loc.resources.length" class="loc-detail-row loc-detail-row--wrap">
+                  <q-icon name="inventory_2" size="14px" />
+                  <div class="loc-resource-tags">
+                    <span v-for="(r, i) in loc.resources" :key="i" class="loc-resource-pill">{{ r }}</span>
+                  </div>
+                </div>
+                <div class="loc-detail-row">
+                  <q-icon name="local_shipping" size="14px" />
+                  <span>Transport: {{ transportLabel(loc.transportSize) }}</span>
+                </div>
+                <div v-if="loc.notes" class="loc-detail-row loc-detail-notes">
+                  <q-icon name="notes" size="14px" />
+                  <span>{{ loc.notes }}</span>
+                </div>
+                <div v-if="store.canEdit" class="loc-detail-actions">
+                  <q-btn flat dense no-caps icon="edit" label="Edit" size="xs" class="loc-act-btn" @click.stop="editLoc(loc)" />
+                  <q-btn flat dense no-caps icon="delete" label="Delete" size="xs" class="loc-act-btn loc-act-btn--del" @click.stop="confirmDelLoc(loc)" />
+                </div>
+              </div>
+            </q-slide-transition>
           </div>
-          <q-badge v-if="c.badge" outline :color="c.badgeColor" :label="c.badge" class="contact-badge" />
-          <div v-if="!c.seed && store.canEdit" class="contact-actions">
-            <q-btn flat dense round icon="edit" size="xs" color="grey-5" @click="openEdit(c)" />
-            <q-btn flat dense round icon="delete" size="xs" color="red-4" @click="confirmDel(c)" />
+        </template>
+      </div>
+
+      <!-- === DIRECTORY cell === -->
+      <div :class="isDesktop ? 'mondrian-cell mondrian-cell--directory' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop">DIRECTORY</div>
+        <template v-if="isDesktop || viewMode === 'directory'">
+          <div v-if="!isDesktop" class="section-label q-mt-sm">DIRECTORY</div>
+          <div v-for="c in allContacts" :key="c.id" class="contact-row">
+            <div class="contact-dot" :style="{ background: c.dotColor }" />
+            <div class="contact-text">
+              <div class="contact-name">{{ c.name.first }} {{ c.name.last }}</div>
+              <div class="contact-meta">{{ c.email }}</div>
+              <div class="contact-meta">{{ c.phone }}</div>
+            </div>
+            <q-badge v-if="c.badge" outline :color="c.badgeColor" :label="c.badge" class="contact-badge" />
+            <div v-if="!c.seed && store.canEdit" class="contact-actions">
+              <q-btn flat dense round icon="edit" size="xs" color="grey-5" @click="openEdit(c)" />
+              <q-btn flat dense round icon="delete" size="xs" color="red-4" @click="confirmDel(c)" />
+            </div>
           </div>
-        </div>
 
-        <!-- Hint when no user contacts yet -->
-        <div v-if="userContacts.length === 0" class="hint-row">
-          <q-icon name="add_circle_outline" size="14px" />
-          <span>Tap + to add contacts, needs, offerings and more</span>
-        </div>
-
-        <!-- COMMUNITY ENTRIES -->
-        <div v-if="activeEntries.length > 0" class="section-label q-mt-sm">COMMUNITY</div>
-        <div v-for="entry in activeEntries" :key="entry.id" class="entry-row">
-          <q-icon :name="entryIcon(entry.type)" size="18px" :style="{ color: entryColor(entry.type) }" />
-          <div class="entry-text">
-            <div class="entry-type-chip">{{ entryTypeLabel(entry.type) }}</div>
-            <div class="entry-desc">{{ entry.description }}</div>
-            <div class="entry-meta">{{ timeAgo(entry.createdAt) }}</div>
+          <!-- Hint when no user contacts yet -->
+          <div v-if="userContacts.length === 0" class="hint-row">
+            <q-icon name="add_circle_outline" size="14px" />
+            <span>Tap + to add contacts, needs, offerings and more</span>
           </div>
-          <div v-if="store.canEdit" class="entry-actions">
-            <q-btn flat dense round icon="edit" size="xs" class="loc-act-btn" @click="editEntryItem(entry)" />
-            <q-btn flat dense round icon="delete" size="xs" class="loc-act-btn loc-act-btn--del" @click="confirmDelEntry(entry)" />
+        </template>
+      </div>
+
+      <!-- === COMMUNITY cell === -->
+      <div :class="isDesktop ? 'mondrian-cell mondrian-cell--community' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop">COMMUNITY</div>
+        <template v-if="isDesktop || viewMode === 'directory'">
+          <div v-if="!isDesktop && activeEntries.length > 0" class="section-label q-mt-sm">COMMUNITY</div>
+          <div v-for="entry in activeEntries" :key="entry.id" class="entry-row">
+            <q-icon :name="entryIcon(entry.type)" size="18px" :style="{ color: entryColor(entry.type) }" />
+            <div class="entry-text">
+              <div class="entry-type-chip">{{ entryTypeLabel(entry.type) }}</div>
+              <div class="entry-desc">{{ entry.description }}</div>
+              <div class="entry-meta">{{ timeAgo(entry.createdAt) }}</div>
+            </div>
+            <div v-if="store.canEdit" class="entry-actions">
+              <q-btn flat dense round icon="edit" size="xs" class="loc-act-btn" @click="editEntryItem(entry)" />
+              <q-btn flat dense round icon="delete" size="xs" class="loc-act-btn loc-act-btn--del" @click="confirmDelEntry(entry)" />
+            </div>
           </div>
-        </div>
 
-        <!-- Not logged in nudge -->
-        <div v-if="!store.userOrgId && !store.localMode && !store.demoMode" class="nudge-row">
-          <q-btn
-            flat no-caps dense
-            label="Sign in or create a pantry"
-            icon="arrow_forward"
-            to="/login"
-            class="nudge-btn"
-          />
-        </div>
+          <!-- Not logged in nudge -->
+          <div v-if="!isDesktop && !store.userOrgId && !store.localMode && !store.demoMode" class="nudge-row">
+            <q-btn
+              flat no-caps dense
+              label="Sign in or create a pantry"
+              icon="arrow_forward"
+              to="/login"
+              class="nudge-btn"
+            />
+          </div>
+        </template>
+      </div>
 
-      </template>
-
-      <template v-else>
+      <!-- === QUEUE cell (always visible on desktop, toggled on mobile) === -->
+      <div v-if="isDesktop || viewMode === 'queue'" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop">QUEUE</div>
         <queue-list />
-      </template>
+      </div>
+
+      <!-- === ACTIVITY cell — summary stats (desktop only) === -->
+      <div v-if="isDesktop" class="mondrian-cell mondrian-cell--activity">
+        <div class="mondrian-cell-header">ACTIVITY</div>
+        <div class="activity-stats">
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.pending }}</span>
+            <span class="activity-stat-label">PENDING</span>
+          </div>
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.claimed }}</span>
+            <span class="activity-stat-label">CLAIMED</span>
+          </div>
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.transit }}</span>
+            <span class="activity-stat-label">IN TRANSIT</span>
+          </div>
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.delivered }}</span>
+            <span class="activity-stat-label">DELIVERED</span>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- FABs: location + add -->
@@ -199,7 +237,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAddressStore } from '../store/store';
 import QueueList from '../components/QueueList.vue';
 import EntryModal from '../components/childcomponents/EntryModal.vue';
@@ -209,7 +248,30 @@ import WelcomeDialog from '../components/WelcomeDialog.vue';
 import type { Address, Entry, Location, TransportSize } from '../models';
 
 const store = useAddressStore();
+const route = useRoute();
 const viewMode = ref('directory');
+
+// Watch route query for view param (set by MainLayout after drawer ADD)
+watch(() => route.query.view, (v) => {
+  if (v === 'queue' || v === 'directory') viewMode.value = v;
+}, { immediate: true });
+
+// Desktop detection for Mondrian grid
+const isDesktop = ref(window.innerWidth >= 960);
+function onResize() { isDesktop.value = window.innerWidth >= 960; }
+window.addEventListener('resize', onResize);
+onUnmounted(() => window.removeEventListener('resize', onResize));
+
+// Queue stats for activity panel
+const queueStats = computed(() => {
+  const q = store.getQueueEntries;
+  return {
+    pending: q.filter((e: Entry) => e.queueStatus === 'pending').length,
+    claimed: q.filter((e: Entry) => e.queueStatus === 'claimed').length,
+    transit: q.filter((e: Entry) => e.queueStatus === 'in_transit').length,
+    delivered: q.filter((e: Entry) => e.queueStatus === 'delivered').length,
+  };
+});
 const fabOpen = ref(false);
 const locModalOpen = ref(false);
 const locEditTarget = ref<Location | null>(null);
@@ -248,7 +310,7 @@ const seedContacts = [
   {
     id: 'seed-dev',
     name: { first: 'Software', last: 'Contact' },
-    email: 'dev@worldbridger.org',
+    email: 'dev@funkypony.online',
     phone: '(555) 100-2001',
     seed: true,
     badge: 'SUPPORT',

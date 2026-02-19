@@ -24,6 +24,13 @@
         min-height: calc(100vh - 55px);
         overflow-y: auto;
       }
+
+      // Desktop: expand to fill
+      @media (min-width: $desktop-break) {
+        max-width: 1200px;
+        & header.fixed-top { max-width: 1200px; }
+        & main { max-width: 1200px; }
+      }
     }
   }
 }

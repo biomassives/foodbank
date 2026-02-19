@@ -92,7 +92,7 @@
 
         <div class="greeting-content">
           <div class="greeting-text">{{ greetingText }}</div>
-          <div class="greeting-sub">WORLDBRIDGER PANTRY</div>
+          <div class="greeting-sub">FUNKY PONY PANTRY</div>
         </div>
       </div>
 
@@ -100,20 +100,21 @@
       <div class="settings-section">
         <div class="settings-section-label">APPEARANCE</div>
         <div class="appearance-block">
-          <div class="appearance-row" @click="themeToggle">
+          <div
+            v-for="opt in themeOptions"
+            :key="opt.value"
+            class="appearance-row"
+            :class="{ 'appearance-row--active': isDark === opt.value }"
+            @click="themeSet(opt.value)"
+          >
             <div class="appearance-info">
-              <q-icon :name="isDark === 'dark' ? 'dark_mode' : 'light_mode'" size="18px" class="appearance-icon" />
+              <q-icon :name="opt.icon" size="18px" class="appearance-icon" />
               <div>
-                <div class="appearance-title">{{ isDark === 'dark' ? 'Dark Mode' : 'Light Mode' }}</div>
-                <div class="appearance-hint">{{ isDark === 'dark' ? 'Warhol Factory — stark & bold' : 'Earth tones — warm & readable' }}</div>
+                <div class="appearance-title">{{ opt.label }}</div>
+                <div class="appearance-hint">{{ opt.hint }}</div>
               </div>
             </div>
-            <q-toggle
-              :model-value="isDark === 'dark'"
-              @update:model-value="themeToggle"
-              color="amber"
-              keep-color
-            />
+            <q-icon v-if="isDark === opt.value" name="check_circle" size="18px" style="color: var(--wb-positive)" />
           </div>
         </div>
       </div>
@@ -122,7 +123,7 @@
       <div class="settings-section">
         <div class="settings-section-label">ABOUT</div>
         <div class="about-block">
-          <div class="about-title">WORLDBRIDGER PANTRY</div>
+          <div class="about-title">FUNKY PONY PANTRY</div>
           <div class="about-sub">Community resource-sharing platform</div>
           <div class="about-body">
             Track needs, coordinate pickups, and connect neighbors — all with
@@ -399,6 +400,40 @@
               class="conn-btn conn-btn--clear" @click="clearRepoUrl" />
           </div>
 
+          <div class="integ-divider" />
+
+          <!-- Webhook -->
+          <div class="integ-sub-label">WEBHOOK</div>
+          <q-input
+            v-model="webhookUrl"
+            filled dense
+            label="Webhook URL"
+            placeholder="https://hooks.slack.com/..."
+            class="integ-input q-mb-xs"
+          />
+          <q-input
+            v-model="webhookSecret"
+            filled dense
+            label="Signing Secret"
+            :type="showWebhookSecret ? 'text' : 'password'"
+            class="integ-input q-mb-xs"
+          >
+            <template #append>
+              <q-icon
+                :name="showWebhookSecret ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer integ-eye"
+                @click="showWebhookSecret = !showWebhookSecret"
+              />
+            </template>
+          </q-input>
+          <div class="integ-hint">JSON payloads for pantry events. Slack, Discord, or custom.</div>
+          <div class="integ-actions">
+            <q-btn flat no-caps dense icon="save" label="Save"
+              class="conn-btn" @click="saveWebhook" />
+            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
+              class="conn-btn conn-btn--clear" @click="clearWebhook" />
+          </div>
+
         </div>
       </div>
 
@@ -494,7 +529,13 @@ import { useTheme } from 'src/composables/useTheme';
 
 const store = useAddressStore();
 const $q = useQuasar();
-const { isDark, toggle: themeToggle } = useTheme();
+const { isDark, set: themeSet } = useTheme();
+
+const themeOptions = [
+  { value: 'dark' as const, icon: 'dark_mode', label: 'Dark Mode', hint: 'Warhol Factory — stark & bold' },
+  { value: 'light' as const, icon: 'light_mode', label: 'Light Mode', hint: 'Earth tones — warm & readable' },
+  { value: 'bauhaus' as const, icon: 'grid_view', label: 'Bauhaus', hint: 'Mondrian — primary colors & bold black lines' },
+];
 
 const confirmClear = ref(false);
 const confirmSync = ref(false);
@@ -514,6 +555,9 @@ const customSupaKey = ref(localStorage.getItem('customSupabaseKey') || '');
 const showSupaKey = ref(false);
 const deployUrl = ref(localStorage.getItem('wb-deploy-url') || '');
 const repoUrl = ref(localStorage.getItem('wb-repo-url') || '');
+const webhookUrl = ref(localStorage.getItem('wb-webhook-url') || '');
+const webhookSecret = ref(localStorage.getItem('wb-webhook-secret') || '');
+const showWebhookSecret = ref(false);
 
 function saveMailgun() {
   localStorage.setItem('wb-mailgun-key', mailgunKey.value);
@@ -559,6 +603,32 @@ function clearRepoUrl() {
   localStorage.removeItem('wb-repo-url');
   repoUrl.value = '';
   $q.notify({ color: 'positive', message: 'Repository URL cleared.' });
+}
+
+async function saveWebhook() {
+  localStorage.setItem('wb-webhook-url', webhookUrl.value);
+  localStorage.setItem('wb-webhook-secret', webhookSecret.value);
+  // Also save to org record if synced
+  if (store.canSync && store.userOrgId) {
+    await supabase.from('organizations').update({
+      webhook_url: webhookUrl.value || null,
+      webhook_secret: webhookSecret.value || null,
+    }).eq('id', store.userOrgId);
+  }
+  $q.notify({ color: 'positive', message: 'Webhook saved.' });
+}
+function clearWebhook() {
+  localStorage.removeItem('wb-webhook-url');
+  localStorage.removeItem('wb-webhook-secret');
+  webhookUrl.value = '';
+  webhookSecret.value = '';
+  if (store.canSync && store.userOrgId) {
+    supabase.from('organizations').update({
+      webhook_url: null,
+      webhook_secret: null,
+    }).eq('id', store.userOrgId);
+  }
+  $q.notify({ color: 'positive', message: 'Webhook cleared.' });
 }
 
 const contactCount = computed(() => store.getData.length);
@@ -1177,6 +1247,15 @@ onMounted(async () => {
   height: 1px;
   background: var(--wb-border-subtle);
   margin: 12px 0;
+}
+
+.integ-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  color: var(--wb-text-faint);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
 }
 
 /* ---- Export ---- */

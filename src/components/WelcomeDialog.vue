@@ -85,6 +85,18 @@
       <q-card-section class="welcome-body">
         <div class="welcome-title">{{ t.welcome.title }}</div>
         <div class="welcome-subtitle">{{ t.welcome.subtitle }}</div>
+        <div class="welcome-blurb">{{ t.welcome.body }}</div>
+
+        <div class="welcome-badges">
+          <div class="welcome-badge welcome-badge--tdd">
+            <q-icon name="verified" size="14px" />
+            <span>{{ t.welcome.tdd }}</span>
+          </div>
+          <div class="welcome-badge welcome-badge--oss">
+            <q-icon name="code" size="14px" />
+            <span>{{ t.welcome.openSource }}</span>
+          </div>
+        </div>
 
         <div class="welcome-paths">
           <!-- Path 1: Enter invite code -->
@@ -97,9 +109,9 @@
             <q-icon name="chevron_right" size="16px" class="welcome-path-arrow" />
           </div>
 
-          <!-- Path 2: Request access -->
-          <div class="welcome-path" @click="goRequest">
-            <q-icon name="mark_email_read" size="20px" class="welcome-path-icon" />
+          <!-- Path 2: Sign in via phone/email -->
+          <div class="welcome-path" @click="goSignIn">
+            <q-icon name="phone_iphone" size="20px" class="welcome-path-icon" />
             <div class="welcome-path-text">
               <div class="welcome-path-label">{{ t.welcome.requestLabel }}</div>
               <div class="welcome-path-desc">{{ t.welcome.requestDesc }}</div>
@@ -107,7 +119,17 @@
             <q-icon name="chevron_right" size="16px" class="welcome-path-arrow" />
           </div>
 
-          <!-- Path 3: Create your own -->
+          <!-- Path 3: Guided setup wizard -->
+          <div class="welcome-path" @click="goWizard">
+            <q-icon name="auto_fix_high" size="20px" class="welcome-path-icon" />
+            <div class="welcome-path-text">
+              <div class="welcome-path-label">{{ t.welcome.wizardLabel }}</div>
+              <div class="welcome-path-desc">{{ t.welcome.wizardDesc }}</div>
+            </div>
+            <q-icon name="chevron_right" size="16px" class="welcome-path-arrow" />
+          </div>
+
+          <!-- Path 4: Create your own -->
           <div class="welcome-path" @click="goCreate">
             <q-icon name="add_business" size="20px" class="welcome-path-icon" />
             <div class="welcome-path-text">
@@ -155,9 +177,14 @@ function goInvite() {
   router.push({ path: '/login', query: { card: 'invite' } });
 }
 
-function goRequest() {
+function goSignIn() {
   dismiss();
-  router.push({ path: '/login', query: { card: 'invite' } });
+  router.push({ path: '/login', query: { card: 'login' } });
+}
+
+function goWizard() {
+  dismiss();
+  router.push('/wizard');
 }
 
 function goCreate() {
@@ -211,6 +238,49 @@ function goCreate() {
   margin-top: 4px;
   letter-spacing: 0.5px;
   line-height: 1.5;
+}
+
+.welcome-blurb {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--wb-text-muted);
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+.welcome-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.welcome-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 3px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
+}
+
+.welcome-badge--tdd {
+  background: rgba(105, 240, 174, 0.06);
+  border: 1px solid rgba(105, 240, 174, 0.2);
+  color: var(--wb-positive);
+}
+
+.welcome-badge--oss {
+  background: rgba(130, 177, 255, 0.06);
+  border: 1px solid rgba(130, 177, 255, 0.2);
+  color: var(--wb-info);
 }
 
 .welcome-paths {

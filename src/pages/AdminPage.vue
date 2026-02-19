@@ -138,6 +138,131 @@
         </div>
       </div>
 
+      <!-- DATA STORES -->
+      <div v-if="tab === 'data'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">DATA STORES</span>
+        </div>
+
+        <!-- IndexedDB -->
+        <div class="db-card">
+          <div class="db-card-header">
+            <div class="db-card-icon db-card-icon--idb">
+              <q-icon name="smartphone" size="18px" />
+            </div>
+            <div class="db-card-title-group">
+              <div class="db-card-name">IndexedDB</div>
+              <div class="db-card-desc">Browser local storage</div>
+            </div>
+            <div class="db-status" :class="'db-status--' + idb.status">
+              {{ idb.statusLabel }}
+            </div>
+          </div>
+          <div class="db-card-body">
+            <div class="db-stat-row">
+              <span class="db-stat-label">Contacts</span>
+              <span class="db-stat-val">{{ idb.contacts }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Entries</span>
+              <span class="db-stat-val">{{ idb.entries }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Locations</span>
+              <span class="db-stat-val">{{ idb.locations }}</span>
+            </div>
+            <div class="db-stat-row db-stat-row--total">
+              <span class="db-stat-label">Total records</span>
+              <span class="db-stat-val">{{ idb.contacts + idb.entries + idb.locations }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supabase -->
+        <div class="db-card">
+          <div class="db-card-header">
+            <div class="db-card-icon db-card-icon--supa">
+              <q-icon name="cloud" size="18px" />
+            </div>
+            <div class="db-card-title-group">
+              <div class="db-card-name">Supabase</div>
+              <div class="db-card-desc">Auth, realtime, cloud sync</div>
+            </div>
+            <div class="db-status" :class="'db-status--' + supa.status">
+              {{ supa.statusLabel }}
+            </div>
+          </div>
+          <div class="db-card-body">
+            <div class="db-stat-row">
+              <span class="db-stat-label">URL</span>
+              <span class="db-stat-val db-stat-val--mono">{{ supa.host || '—' }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Auth</span>
+              <span class="db-stat-val">{{ supa.authLabel }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Org ID</span>
+              <span class="db-stat-val db-stat-val--mono">{{ supa.orgId || '—' }}</span>
+            </div>
+            <div v-if="supa.customUrl" class="db-stat-row">
+              <span class="db-stat-label">Custom instance</span>
+              <span class="db-stat-val db-stat-val--mono">{{ supa.customUrl }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Edge functions</span>
+              <span class="db-stat-val">{{ supa.edgeFns }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nile DB -->
+        <div class="db-card">
+          <div class="db-card-header">
+            <div class="db-card-icon db-card-icon--nile">
+              <q-icon name="hub" size="18px" />
+            </div>
+            <div class="db-card-title-group">
+              <div class="db-card-name">Nile DB</div>
+              <div class="db-card-desc">Multi-tenant Postgres</div>
+            </div>
+            <div class="db-status" :class="'db-status--' + nile.status">
+              {{ nile.statusLabel }}
+            </div>
+          </div>
+          <div class="db-card-body">
+            <div class="db-stat-row">
+              <span class="db-stat-label">API</span>
+              <span class="db-stat-val db-stat-val--mono">{{ nile.apiHost || '—' }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Database</span>
+              <span class="db-stat-val db-stat-val--mono">{{ nile.dbName || '—' }}</span>
+            </div>
+            <div class="db-stat-row">
+              <span class="db-stat-label">Region</span>
+              <span class="db-stat-val">{{ nile.region || '—' }}</span>
+            </div>
+            <div v-if="!nile.configured" class="db-hint">
+              <q-icon name="info_outline" size="13px" />
+              <span>Run <code>./scripts/provision-niledb.sh</code> to connect</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Refresh -->
+        <div class="db-refresh-row">
+          <q-btn
+            flat dense no-caps
+            icon="refresh"
+            label="Refresh Status"
+            class="db-refresh-btn"
+            :loading="dbProbing"
+            @click="probeAllDatabases"
+          />
+        </div>
+      </div>
+
       <!-- LAUNCH -->
       <div v-if="tab === 'launch'" class="admin-panel">
         <div class="panel-head">
@@ -209,9 +334,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useAddressStore } from 'src/store/store';
-import { supabase } from 'src/dbManagement';
+import { supabase, openIndexedDB } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
 import type { Location } from 'src/models';
 import { buildInviteCode } from 'src/utils/inviteCode';
@@ -228,6 +353,7 @@ const tabs = [
   { key: 'members', icon: 'group', label: 'MEMBERS' },
   { key: 'locations', icon: 'map', label: 'LOCATIONS' },
   { key: 'invites', icon: 'vpn_key', label: 'INVITES' },
+  { key: 'data', icon: 'storage', label: 'DATA' },
   { key: 'launch', icon: 'rocket_launch', label: 'LAUNCH' },
 ];
 
@@ -400,6 +526,149 @@ async function fetchCloudInvites() {
   } catch { /* offline */ }
 }
 
+// ── Data Stores ─────────────────────────────────────────────────
+
+const dbProbing = ref(false);
+
+const idb = reactive({
+  status: 'unknown' as 'active' | 'error' | 'unknown',
+  statusLabel: '...',
+  contacts: 0,
+  entries: 0,
+  locations: 0,
+});
+
+const supa = reactive({
+  status: 'unknown' as 'in_use' | 'connected' | 'provisioned' | 'not_configured' | 'unknown',
+  statusLabel: '...',
+  host: '',
+  authLabel: '',
+  orgId: '',
+  customUrl: '',
+  edgeFns: '3 (mts, daily-digest, notify-member)',
+});
+
+const nile = reactive({
+  status: 'unknown' as 'provisioned' | 'connected' | 'not_configured' | 'unknown',
+  statusLabel: '...',
+  configured: false,
+  apiHost: '',
+  dbName: '',
+  region: '',
+});
+
+async function probeIndexedDB() {
+  try {
+    const db = await openIndexedDB();
+    const contacts = await db.transaction('addressStore', 'readonly').objectStore('addressStore').count();
+    const entries = await db.transaction('entryStore', 'readonly').objectStore('entryStore').count();
+    const locations = await db.transaction('locationStore', 'readonly').objectStore('locationStore').count();
+    idb.contacts = contacts;
+    idb.entries = entries;
+    idb.locations = locations;
+    idb.status = 'active';
+    idb.statusLabel = 'ACTIVE';
+  } catch {
+    idb.status = 'error';
+    idb.statusLabel = 'ERROR';
+  }
+}
+
+async function probeSupabase() {
+  const url = import.meta.env.VITE_SUPABASE_URL as string || '';
+  if (!url) {
+    supa.status = 'not_configured';
+    supa.statusLabel = 'NOT CONFIGURED';
+    supa.host = '';
+    supa.authLabel = 'N/A';
+    supa.orgId = '';
+    return;
+  }
+
+  try {
+    supa.host = new URL(url).host;
+  } catch {
+    supa.host = url.slice(0, 30);
+  }
+
+  const customUrl = localStorage.getItem('customSupabaseUrl') || '';
+  if (customUrl) {
+    try { supa.customUrl = new URL(customUrl).host; } catch { supa.customUrl = customUrl.slice(0, 30); }
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && store.userOrgId) {
+      supa.status = 'in_use';
+      supa.statusLabel = 'IN USE';
+      supa.authLabel = session.user.phone || session.user.email || 'Authenticated';
+      supa.orgId = store.userOrgId || '';
+    } else if (session) {
+      supa.status = 'connected';
+      supa.statusLabel = 'CONNECTED';
+      supa.authLabel = session.user.phone || session.user.email || 'Authenticated';
+      supa.orgId = store.userOrgId || '';
+    } else {
+      supa.status = 'provisioned';
+      supa.statusLabel = 'PROVISIONED';
+      supa.authLabel = 'Not signed in';
+      supa.orgId = '';
+    }
+  } catch {
+    supa.status = 'provisioned';
+    supa.statusLabel = 'PROVISIONED';
+    supa.authLabel = 'Unreachable';
+  }
+}
+
+function probeNileDB() {
+  const apiUrl = import.meta.env.VITE_NILEDB_API_URL as string || '';
+  if (!apiUrl) {
+    nile.status = 'not_configured';
+    nile.statusLabel = 'NOT CONFIGURED';
+    nile.configured = false;
+    nile.apiHost = '';
+    nile.dbName = '';
+    nile.region = '';
+    return;
+  }
+
+  nile.configured = true;
+
+  try {
+    const parsed = new URL(apiUrl);
+    nile.apiHost = parsed.host;
+    const regionMatch = parsed.host.match(/^([^.]+)\.api\./);
+    nile.region = regionMatch ? regionMatch[1] : parsed.host;
+    const pathParts = parsed.pathname.split('/');
+    const dbIdx = pathParts.indexOf('databases');
+    if (dbIdx >= 0 && pathParts[dbIdx + 1]) {
+      nile.dbName = pathParts[dbIdx + 1].slice(0, 13) + '...';
+    }
+  } catch {
+    nile.apiHost = apiUrl.slice(0, 30);
+  }
+
+  nile.status = 'provisioned';
+  nile.statusLabel = 'PROVISIONED';
+
+  fetch(apiUrl, { method: 'HEAD', mode: 'no-cors' })
+    .then(() => {
+      nile.status = 'connected';
+      nile.statusLabel = 'CONNECTED';
+    })
+    .catch(() => {
+      // keep provisioned status
+    });
+}
+
+async function probeAllDatabases() {
+  dbProbing.value = true;
+  await Promise.all([probeIndexedDB(), probeSupabase()]);
+  probeNileDB();
+  dbProbing.value = false;
+}
+
 // ── Launch ───────────────────────────────────────────────────────
 
 function openVercelDeploy() {
@@ -418,6 +687,7 @@ onMounted(async () => {
     await fetchCloudProfiles();
     await fetchCloudInvites();
   }
+  probeAllDatabases();
 });
 </script>
 
@@ -874,5 +1144,198 @@ onMounted(async () => {
 .help-item strong {
   color: var(--wb-accent);
   font-weight: 800;
+}
+
+/* ── Data Stores ── */
+.db-card {
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 4px;
+  margin: 0 4px 12px;
+  overflow: hidden;
+}
+
+.db-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  background: var(--wb-surface-alt);
+}
+
+.db-card-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.db-card-icon--idb {
+  background: rgba(var(--wb-info-rgb, 33, 150, 243), 0.12);
+  color: var(--wb-info);
+}
+
+.db-card-icon--supa {
+  background: rgba(var(--wb-positive-rgb, 76, 175, 80), 0.12);
+  color: var(--wb-positive);
+}
+
+.db-card-icon--nile {
+  background: rgba(206, 147, 216, 0.15);
+  color: #ce93d8;
+}
+
+.db-card-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.db-card-name {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: var(--wb-text);
+  letter-spacing: 0.5px;
+}
+
+.db-card-desc {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--wb-text-muted);
+  letter-spacing: 0.3px;
+}
+
+.db-status {
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.db-status--active,
+.db-status--in_use {
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+}
+
+.db-status--connected {
+  color: var(--wb-info);
+  border-color: var(--wb-info);
+}
+
+.db-status--provisioned {
+  color: var(--wb-warning);
+  border-color: var(--wb-warning);
+}
+
+.db-status--not_configured {
+  color: var(--wb-text-faint);
+  border-color: var(--wb-border-mid);
+}
+
+.db-status--unknown,
+.db-status--error {
+  color: var(--wb-negative);
+  border-color: var(--wb-negative);
+  opacity: 0.7;
+}
+
+.db-card-body {
+  padding: 8px 12px;
+}
+
+.db-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.db-stat-row:last-child {
+  border-bottom: none;
+}
+
+.db-stat-row--total {
+  border-top: 1px solid var(--wb-border-mid);
+  margin-top: 2px;
+  padding-top: 7px;
+}
+
+.db-stat-label {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: var(--wb-text-muted);
+  letter-spacing: 0.3px;
+}
+
+.db-stat-val {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: var(--wb-text);
+  letter-spacing: 0.5px;
+}
+
+.db-stat-val--mono {
+  font-family: 'Courier New', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--wb-text-mid);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 4px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--wb-text-faint);
+}
+
+.db-hint code {
+  background: var(--wb-surface-hover);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 0.6rem;
+  color: var(--wb-text-mid);
+}
+
+.db-refresh-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 12px;
+}
+
+.db-refresh-btn {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+}
+
+.db-refresh-btn:hover {
+  color: var(--wb-accent) !important;
+  border-color: var(--wb-accent);
 }
 </style>

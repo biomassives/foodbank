@@ -164,7 +164,7 @@
               v-model="inviteCode"
               filled dense dark
               :label="t.onboard.inviteLabel"
-              mask="AAAAAA"
+              mask="NNNNNN"
               :hint="t.onboard.inviteHint"
               color="green-4"
             />
@@ -175,6 +175,34 @@
               :loading="inviteLoading"
               no-caps
             />
+
+            <!-- Failure fallback: offer wizard path -->
+            <div v-if="inviteFailed" class="invite-fail-box q-mt-md">
+              <div class="invite-fail-msg">
+                <q-icon name="info" size="16px" />
+                <span>{{ inviteFailMessage }}</span>
+              </div>
+              <p class="invite-fail-hint">
+                You can still get started by setting up your own pantry.
+                The wizard will walk you through it — your data can be shared
+                to a local pantry later using the free app or your own instance.
+              </p>
+              <q-btn
+                label="Start Setup Wizard"
+                icon="auto_fix_high"
+                class="onboard-btn full-width"
+                @click="router.push('/wizard')"
+                no-caps
+              />
+              <q-btn
+                flat dense no-caps
+                label="Or start in local mode"
+                icon="smartphone"
+                class="full-width q-mt-xs"
+                style="color: var(--wb-text-muted); font-family: var(--wb-font); font-weight: 700; font-size: 0.72rem; letter-spacing: 1px;"
+                @click="startLocalFallback"
+              />
+            </div>
           </div>
         </q-slide-transition>
       </div>
@@ -341,12 +369,14 @@ import { ref, onMounted } from 'vue';
 import { supabase, provisionUserDatabase } from 'src/dbManagement';
 import { useRouter, useRoute } from 'vue-router';
 import { useAddressStore } from 'src/store/store';
+import { useMts } from 'src/composables/useMts';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'src/i18n';
 
 const router = useRouter();
 const route = useRoute();
 const store = useAddressStore();
+const mts = useMts();
 const $q = useQuasar();
 const { t } = useI18n();
 
@@ -354,9 +384,24 @@ const { t } = useI18n();
 type CardName = 'login' | 'invite' | 'create';
 const activeCard = ref<CardName | null>(null);
 
+const cardHints: Record<CardName, { icon: string; message: string; caption: string }> = {
+  login: { icon: 'phone_iphone', message: 'Step 1: Enter your phone number', caption: 'We\'ll send a one-time code via SMS' },
+  invite: { icon: 'vpn_key', message: 'Got an invite code?', caption: 'Enter it below to join an existing pantry' },
+  create: { icon: 'add_business', message: 'Start your own pantry', caption: 'Choose cloud, local, or bring-your-own database' },
+};
+
 function toggle(card: CardName) {
   if (activeCard.value === card) return;
   activeCard.value = card;
+  // Show guided hint toast
+  const hint = cardHints[card];
+  $q.notify({
+    color: 'info',
+    icon: hint.icon,
+    message: hint.message,
+    caption: hint.caption,
+    timeout: 4000,
+  });
 }
 
 onMounted(() => {
@@ -379,6 +424,7 @@ async function sendOTP() {
     $q.notify({ color: 'negative', message: error.message });
   } else {
     otpSent.value = true;
+    $q.notify({ color: 'positive', icon: 'sms', message: 'Code sent!', caption: 'Check your phone for a 6-digit verification code', timeout: 5000 });
   }
   loginLoading.value = false;
 }
@@ -393,6 +439,7 @@ async function verifyOTP() {
   if (error) {
     $q.notify({ color: 'negative', message: error.message });
   } else {
+    $q.notify({ color: 'positive', icon: 'check_circle', message: 'Signed in!', caption: 'Now join a pantry or create your own', timeout: 4000 });
     await store.fetchUserRole();
     router.push('/');
   }
@@ -402,9 +449,12 @@ async function verifyOTP() {
 // ---- Join with Invite ----
 const inviteCode = ref('');
 const inviteLoading = ref(false);
+const inviteFailed = ref(false);
+const inviteFailMessage = ref('');
 
 async function redeemInvite() {
   inviteLoading.value = true;
+  inviteFailed.value = false;
   try {
     const { data: invite, error } = await supabase
       .from('invites')
@@ -416,7 +466,18 @@ async function redeemInvite() {
     if (error || !invite) throw new Error('Invalid or used invite code.');
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Please sign in first.');
+    if (!user) throw new Error('Please sign in first, then try the invite code again.');
+
+    // Check if user is blocked by this org
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .eq('org_id', invite.org_id)
+      .single();
+    if (profile?.role === 'blocked') {
+      throw new Error('Your access to this community has been restricted by an administrator. Please contact the pantry manager.');
+    }
 
     await supabase.from('profiles').update({
       org_id: invite.org_id,
@@ -430,13 +491,41 @@ async function redeemInvite() {
     }).eq('id', invite.id);
 
     await store.fetchUserRole();
+
+    // Notifications via MTS (email + site messages)
+    mts.send({
+      type: 'welcome',
+      orgId: invite.org_id,
+      recipientEmail: user.email || undefined,
+      data: { memberEmail: user.email },
+    }).catch(() => {
+      $q.notify({ color: 'warning', icon: 'email', message: 'Welcome email could not be sent', timeout: 3000 });
+    });
+    mts.send({
+      type: 'admin-join',
+      orgId: invite.org_id,
+      recipientRole: ['admin'],
+      data: { memberName: user.email || user.phone },
+    }).catch(() => {
+      // Silent — admin notification failure shouldn't concern the joining user
+    });
+
     $q.notify({ color: 'positive', message: 'Welcome to the community!' });
     router.push('/');
   } catch (e: any) {
+    inviteFailed.value = true;
+    inviteFailMessage.value = e.message;
     $q.notify({ color: 'negative', message: e.message });
   } finally {
     inviteLoading.value = false;
   }
+}
+
+function startLocalFallback() {
+  localStorage.setItem('localMode', 'true');
+  store.$patch({ role: 'admin' });
+  $q.notify({ color: 'positive', message: 'You\'re in! Everything saves on your device. You can join a pantry later.' });
+  router.push('/');
 }
 
 // ---- Create Your Own ----

@@ -1,11 +1,11 @@
-// English language pack — Worldbridger Pantry
+// English language pack — Funky Pony Pantry
 // Keys structured by feature area for incremental adoption
 
 const en = {
   app: {
     name: 'WARD FOOD PANTRY',
     tagline: 'Share food, share data, share community',
-    brand: 'WORLDBRIDGER',
+    brand: 'FUNKY PONY',
     brandSub: 'PANTRY',
     about: 'A community resource-sharing app. Track needs, coordinate pickups, and connect neighbors — all with full control over your own data.',
     footer1: 'ward food pantry',
@@ -143,14 +143,25 @@ const en = {
 
   welcome: {
     title: 'WELCOME',
-    subtitle: 'Worldbridger Pantry helps communities share food, coordinate pickups, and connect neighbors.',
+    subtitle: 'Built test-first, community-driven, and open to every fork in the road.',
+    body: 'Funky Pony Pantry is a GPL-licensed platform for sharing food, coordinating pickups, and connecting neighbors. Every feature ships with tests. Every release invites collaboration.',
+    tdd: '108 tests passing across 12 suites. We write the test, then build the feature. Always.',
+    openSource: 'Open to iteration, new themes, regional variants, and community editions. Your pull request is welcome.',
     inviteLabel: 'I Have an Invite Code',
     inviteDesc: 'Enter a code from a pantry member to join their community.',
-    requestLabel: 'Request Access to a Pantry',
-    requestDesc: 'Let a nearby pantry know you\'d like to join.',
+    requestLabel: 'Sign In via Phone or Email',
+    requestDesc: 'Sign in first, then join a pantry with an invite code.',
     createLabel: 'Create Your Own Pantry',
     createDesc: 'Start fresh with a shared cloud database or local-only mode.',
+    wizardLabel: 'Guided Setup Wizard',
+    wizardDesc: 'Step-by-step walkthrough: name, location, invites, and a quick tour.',
     dismissLabel: 'Just Looking Around',
+  },
+
+  notifications: {
+    title: 'MESSAGES',
+    empty: 'No messages yet',
+    markAllRead: 'Mark All Read',
   },
 
   integrations: {

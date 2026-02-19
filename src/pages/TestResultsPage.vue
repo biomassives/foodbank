@@ -19,6 +19,22 @@
     <!-- Results -->
     <template v-else>
 
+      <!-- TDD intro banner -->
+      <div class="tr-intro">
+        <div class="tr-intro-title">TEST-DRIVEN DEVELOPMENT</div>
+        <div class="tr-intro-body">
+          Every feature starts with a test. We write the contract first, then
+          build the implementation. This page is the living proof — a
+          transparent window into the health of every module, every sprint,
+          every commit.
+        </div>
+        <div class="tr-intro-cta">
+          We love this process and we're open to iteration. New themes,
+          regional variants, community editions, and your contributions
+          are all welcome. Fork it, test it, ship it.
+        </div>
+      </div>
+
       <!-- Header -->
       <div class="tr-header">
         <div class="tr-header-row">
@@ -54,6 +70,46 @@
           <div class="tr-bar-fill" :style="{ width: passRate + '%' }" />
         </div>
         <span class="tr-bar-label">{{ passRate }}% pass rate</span>
+      </div>
+
+      <!-- 108 Love Edition — Buddha tribute -->
+      <div v-if="data.numPassedTests === 108" class="tr-108">
+        <svg class="tr-108-art" viewBox="0 0 400 80">
+          <!-- Lotus base -->
+          <ellipse cx="200" cy="68" rx="60" ry="8" fill="none" :stroke="lotusStroke" stroke-width="0.8" />
+          <!-- Petals (left) -->
+          <path d="M148,62 Q160,40 175,55 Q168,62 155,64Z" :fill="petalFill" :stroke="lotusStroke" stroke-width="0.6" />
+          <path d="M158,58 Q172,34 188,50 Q180,58 165,60Z" :fill="petalFill" :stroke="lotusStroke" stroke-width="0.6" />
+          <path d="M170,54 Q185,30 200,48 Q192,56 178,58Z" :fill="petalFill" :stroke="lotusStroke" stroke-width="0.6" />
+          <!-- Petals (right, mirrored) -->
+          <path d="M252,62 Q240,40 225,55 Q232,62 245,64Z" :fill="petalFill" :stroke="lotusStroke" stroke-width="0.6" />
+          <path d="M242,58 Q228,34 212,50 Q220,58 235,60Z" :fill="petalFill" :stroke="lotusStroke" stroke-width="0.6" />
+          <path d="M230,54 Q215,30 200,48 Q208,56 222,58Z" :fill="petalFill" :stroke="lotusStroke" stroke-width="0.6" />
+          <!-- Center jewel -->
+          <circle cx="200" cy="50" r="5" :fill="jewelFill" />
+          <circle cx="200" cy="50" r="8" fill="none" :stroke="lotusStroke" stroke-width="0.5" stroke-dasharray="2 2" />
+          <!-- Ripples on water -->
+          <ellipse cx="200" cy="74" rx="80" ry="4" fill="none" :stroke="rippleStroke" stroke-width="0.4" />
+          <ellipse cx="200" cy="77" rx="100" ry="3" fill="none" :stroke="rippleStroke" stroke-width="0.3" />
+        </svg>
+        <div class="tr-108-num">108</div>
+        <div class="tr-108-title">LOVE EDITION</div>
+        <div class="tr-108-poem">
+          One hundred eight beads upon the thread,<br />
+          each test a breath, a vow, a step.<br />
+          The lotus asks for nothing but the mud,<br />
+          the code asks nothing but our care.<br />
+          <br />
+          Between the keystroke and the merge<br />
+          a quiet moment &mdash; the mountain sits,<br />
+          the river carries what it can,<br />
+          the pantry door stays open.
+        </div>
+        <div class="tr-108-note">
+          108 &mdash; the sacred count. Mala beads, temple bells,
+          sun to earth in solar diameters. Here it is tests passing,
+          food shared, neighbors connected. Same thread.
+        </div>
       </div>
 
       <!-- Suite groups -->
@@ -103,6 +159,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useTheme } from 'src/composables/useTheme';
 
 interface AssertionResult {
   title: string;
@@ -134,9 +191,16 @@ interface TestReport {
   testResults: SuiteResult[];
 }
 
+const { isDark } = useTheme();
 const loading = ref(true);
 const data = ref<TestReport | null>(null);
 const expanded = ref<Record<string, boolean>>({});
+
+// Lotus SVG colors — adapt to theme
+const lotusStroke = computed(() => isDark.value === 'dark' ? 'rgba(253,216,53,0.35)' : 'rgba(46,125,50,0.3)');
+const petalFill = computed(() => isDark.value === 'dark' ? 'rgba(253,216,53,0.08)' : 'rgba(46,125,50,0.06)');
+const jewelFill = computed(() => isDark.value === 'dark' ? 'rgba(253,216,53,0.25)' : isDark.value === 'bauhaus' ? 'rgba(212,0,26,0.2)' : 'rgba(199,119,0,0.2)');
+const rippleStroke = computed(() => isDark.value === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)');
 
 onMounted(async () => {
   try {
@@ -275,6 +339,45 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   color: var(--wb-accent);
 }
 
+/* ---- TDD Intro banner ---- */
+.tr-intro {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 2px solid var(--wb-positive);
+  border-radius: 3px;
+  background: rgba(105, 240, 174, 0.04);
+}
+
+.tr-intro-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 5px;
+  color: var(--wb-positive);
+  margin-bottom: 8px;
+}
+
+.tr-intro-body {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--wb-text-mid);
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+.tr-intro-cta {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  line-height: 1.5;
+  letter-spacing: 0.3px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+
 /* ---- Header ---- */
 .tr-header {
   margin-bottom: 16px;
@@ -386,6 +489,65 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   letter-spacing: 1px;
   color: var(--wb-text-muted);
   white-space: nowrap;
+}
+
+/* ---- 108 Love Edition ---- */
+.tr-108 {
+  margin: 20px 0;
+  padding: 20px 16px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  text-align: center;
+  background: var(--wb-surface);
+}
+
+.tr-108-art {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: 80px;
+  margin: 0 auto 12px;
+}
+
+.tr-108-num {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 2.2rem;
+  letter-spacing: 8px;
+  color: var(--wb-accent);
+  line-height: 1;
+}
+
+.tr-108-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 6px;
+  color: var(--wb-text-faint);
+  margin-top: 2px;
+}
+
+.tr-108-poem {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--wb-text-mid);
+  line-height: 1.8;
+  margin-top: 16px;
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.tr-108-note {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  color: var(--wb-text-faint);
+  line-height: 1.6;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wb-border-subtle);
+  letter-spacing: 0.3px;
 }
 
 /* ---- Group label ---- */

@@ -33,7 +33,7 @@ export async function syncToCloud(data: Address, orgId: string | null = null) {
 
 
 export async function openIndexedDB() {
-  const db = await openDB('myAddressDB', 3, {
+  const db = await openDB('myAddressDB', 4, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('addressStore', {
@@ -52,6 +52,10 @@ export async function openIndexedDB() {
         db.createObjectStore('locationStore', {
           keyPath: 'id',
         });
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore('notificationStore', { keyPath: 'id' });
+        db.createObjectStore('mtsOutbox', { keyPath: 'id', autoIncrement: true });
       }
     },
   });
@@ -423,5 +427,54 @@ export async function syncAllToCloud(orgId: string, client?: ReturnType<typeof c
   }
 
   return { synced, errors };
+}
+
+// ---- Notification cache (IndexedDB) ----
+
+export async function cacheNotifications(messages: { id: string }[]) {
+  const db = await openIndexedDB();
+  const tx = db.transaction('notificationStore', 'readwrite');
+  const store = tx.objectStore('notificationStore');
+  for (const m of messages) await store.put(m);
+  await tx.done;
+}
+
+export async function getCachedNotifications(): Promise<unknown[]> {
+  const db = await openIndexedDB();
+  const tx = db.transaction('notificationStore', 'readonly');
+  const data = await tx.objectStore('notificationStore').getAll();
+  await tx.done;
+  return data;
+}
+
+// ---- MTS outbox (offline queue) ----
+
+export async function queueMtsMessage(payload: Record<string, unknown>) {
+  const db = await openIndexedDB();
+  const tx = db.transaction('mtsOutbox', 'readwrite');
+  await tx.objectStore('mtsOutbox').add(payload);
+  await tx.done;
+}
+
+export async function flushMtsOutbox(): Promise<number> {
+  const db = await openIndexedDB();
+  const tx = db.transaction('mtsOutbox', 'readonly');
+  const items = await tx.objectStore('mtsOutbox').getAll();
+  await tx.done;
+
+  let flushed = 0;
+  for (const item of items) {
+    try {
+      await supabase.functions.invoke('mts', { body: item });
+      // Remove from outbox on success
+      const delTx = db.transaction('mtsOutbox', 'readwrite');
+      await delTx.objectStore('mtsOutbox').delete(item.id);
+      await delTx.done;
+      flushed++;
+    } catch {
+      // Leave in outbox for next attempt
+    }
+  }
+  return flushed;
 }
 

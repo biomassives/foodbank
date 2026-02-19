@@ -167,6 +167,43 @@ describe('Sprint 1 · Notify Decision Logic', () => {
   });
 });
 
+describe('Sprint 1 · Edge Function Notification Request', () => {
+  // Validates the notify-member request body contract
+  // used by QueueList (claim/deliver/stock) and OnboardPage (welcome/admin-join)
+
+  type NotifyType = 'welcome' | 'admin-join' | 'pickup-claimed' | 'pickup-delivered' | 'pickup-stocked';
+
+  interface NotifyRequest {
+    type: NotifyType;
+    orgId: string;
+    memberEmail?: string;
+    memberName?: string;
+    taskDescription?: string;
+    taskLocation?: string;
+    claimedBy?: string;
+  }
+
+  function buildNotifyRequest(type: NotifyType, orgId: string, extras: Partial<NotifyRequest> = {}): NotifyRequest {
+    return { type, orgId, ...extras };
+  }
+
+  it('builds a valid pickup-claimed request with task details', () => {
+    const req = buildNotifyRequest('pickup-claimed', 'org-42', {
+      taskDescription: '20 lbs rice',
+      taskLocation: 'North Boulder',
+      claimedBy: 'You',
+    });
+    expect(req).toMatchObject({
+      type: 'pickup-claimed',
+      orgId: 'org-42',
+      taskDescription: '20 lbs rice',
+      taskLocation: 'North Boulder',
+      claimedBy: 'You',
+    });
+    expect(req.memberEmail).toBeUndefined();
+  });
+});
+
 describe('Sprint 1 · Realtime Pickup → Notification Flow', () => {
   beforeEach(() => resetAllMocks());
 

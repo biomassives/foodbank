@@ -1,5 +1,5 @@
 // ====================================================
-//  WORLDBRIDGER PANTRY — Design System
+//  FUNKY PONY PANTRY — Design System
 //  Lou Reed / Warhol Factory aesthetic
 //  Dark-first, light-ready via CSS custom properties
 // ====================================================
@@ -128,6 +128,86 @@
   --wb-fab-loc-border: #2e7d32;
   --wb-fab-loc-glow: rgba(46, 125, 50, 0.2);
 }
+
+// Bauhaus / Mondrian theme
+[data-theme="bauhaus"] {
+  // Surfaces — clean white with bold blocks
+  --wb-bg: #f8f8f5;
+  --wb-bg-page: #ffffff;
+  --wb-surface: #ffffff;
+  --wb-surface-alt: #f0f0ec;
+  --wb-surface-hover: rgba(0,0,0,0.03);
+
+  // Typography — high contrast black
+  --wb-text: #1a1a1a;
+  --wb-text-mid: #333333;
+  --wb-text-muted: #666666;
+  --wb-text-faint: #999999;
+
+  // Borders — thick black (Mondrian signature)
+  --wb-border: #000000;
+  --wb-border-mid: #000000;
+  --wb-border-subtle: rgba(0,0,0,0.15);
+
+  // Accents — Mondrian primary
+  --wb-accent: #d4001a;      // Mondrian red
+  --wb-accent-text: #fff;
+  --wb-positive: #1a56db;    // Mondrian blue
+  --wb-negative: #d4001a;    // Mondrian red
+  --wb-info: #1a56db;        // Mondrian blue
+  --wb-warning: #f2c800;     // Mondrian yellow
+
+  // Card body
+  --wb-card-body: #ffffff;
+  --wb-card-body-text: #333;
+  --wb-card-body-muted: #888;
+  --wb-card-input-bg: #f5f5f0;
+  --wb-card-input-border: #000;
+
+  // Modal
+  --wb-modal-bg: #fff;
+  --wb-modal-border: #000;
+  --wb-modal-header-bg: #f0f0ec;
+
+  // Queue — bold primary + black
+  --wb-queue-pending: #f2c800;
+  --wb-queue-claimed: #1a56db;
+  --wb-queue-transit: #d4001a;
+  --wb-queue-delivered: #2e7d32;
+
+  // Count
+  --wb-count-num: #d4001a;
+  --wb-count-border: #000;
+
+  // FAB
+  --wb-fab-bg: #d4001a;
+  --wb-fab-text: #fff;
+  --wb-fab-glow: rgba(212, 0, 26, 0.3);
+  --wb-fab-loc-bg: #fff;
+  --wb-fab-loc-text: #1a56db;
+  --wb-fab-loc-border: #000;
+  --wb-fab-loc-glow: rgba(26, 86, 219, 0.2);
+}
+
+// Bauhaus-specific overrides: thicker borders on grid cells
+[data-theme="bauhaus"] .mondrian-cell {
+  border-width: 4px;
+  border-color: #000;
+}
+[data-theme="bauhaus"] .mondrian-cell--locations { background: #f2c800; }
+[data-theme="bauhaus"] .mondrian-cell--community { background: #d4001a; color: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--community .mondrian-cell-header { color: rgba(255,255,255,0.7); }
+[data-theme="bauhaus"] .mondrian-cell--queue { background: #1a56db; color: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--queue .mondrian-cell-header { color: rgba(255,255,255,0.7); }
+[data-theme="bauhaus"] .mondrian-cell--directory { background: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--activity { background: #f8f8f5; }
+
+// Bauhaus queue overrides for colored cell backgrounds
+[data-theme="bauhaus"] .mondrian-cell--queue .queue-act-btn {
+  border-color: rgba(255,255,255,0.5);
+  color: #fff !important;
+}
+[data-theme="bauhaus"] .mondrian-cell--queue .queue-empty { color: rgba(255,255,255,0.6); }
 
 
 // ---- 2. Onboard Page ----
@@ -361,6 +441,33 @@
   height: 1px;
   background: var(--wb-border-mid);
   margin: 16px 0;
+}
+
+.invite-fail-box {
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 4px;
+  padding: 14px;
+  background: rgba(0,0,0,0.12);
+}
+
+.invite-fail-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--wb-negative, #ef5350);
+  margin-bottom: 8px;
+}
+
+.invite-fail-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--wb-card-body-muted);
+  line-height: 1.5;
+  margin-bottom: 12px;
 }
 
 
@@ -688,4 +795,114 @@
   text-transform: uppercase;
   color: var(--wb-text-faint);
   line-height: 1.8;
+}
+
+
+// ---- Mondrian Asymmetric Grid (desktop) ----
+.mondrian-grid {
+  display: flex;
+  flex-direction: column; // mobile: stacked
+
+  @media (min-width: 960px) {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 0.8fr;
+    grid-template-rows: auto auto 1fr;
+    gap: 3px;
+    min-height: calc(100vh - 60px);
+    padding: 3px;
+  }
+}
+
+// Named regions with Mondrian-style colored borders
+.mondrian-cell {
+  border: 2px solid var(--wb-border);
+  padding: 0;
+  overflow-y: auto;
+  background: var(--wb-bg);
+
+  @media (min-width: 960px) {
+    border-width: 3px;
+  }
+}
+
+// Specific cell positioning for the asymmetric layout
+.mondrian-cell--locations {
+  @media (min-width: 960px) {
+    grid-column: 1;
+    grid-row: 1;
+    border-color: var(--wb-accent);
+  }
+}
+.mondrian-cell--directory {
+  @media (min-width: 960px) {
+    grid-column: 2;
+    grid-row: 1 / 3;    // tall center block
+    border-color: var(--wb-info);
+  }
+}
+.mondrian-cell--community {
+  @media (min-width: 960px) {
+    grid-column: 3;
+    grid-row: 1 / 2;
+    border-color: var(--wb-negative);
+  }
+}
+.mondrian-cell--queue {
+  @media (min-width: 960px) {
+    grid-column: 1;
+    grid-row: 2 / 4;    // tall left block
+    border-color: var(--wb-positive);
+  }
+}
+.mondrian-cell--activity {
+  @media (min-width: 960px) {
+    grid-column: 2 / 4;
+    grid-row: 3;
+    border-color: var(--wb-warning);
+  }
+}
+
+// Cell headers
+.mondrian-cell-header {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: var(--wb-text-faint);
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+// Activity stats panel
+.activity-stats {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.activity-stat {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  border: 1px solid var(--wb-count-border);
+  border-radius: 3px;
+}
+
+.activity-stat-num {
+  display: block;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--wb-count-num);
+  letter-spacing: 1px;
+}
+
+.activity-stat-label {
+  display: block;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.45rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+  margin-top: 2px;
 }
