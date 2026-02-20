@@ -27,7 +27,8 @@ type MtsType =
   | 'pickup-delivered'
   | 'pickup-stocked'
   | 'daily-digest'
-  | 'custom';
+  | 'custom'
+  | 'test';
 
 interface MtsRequest {
   type: MtsType;
@@ -67,6 +68,43 @@ serve(async (req: Request) => {
 
     if (!type || !orgId) {
       return jsonResponse({ ok: false, error: 'Missing type or orgId' }, 400);
+    }
+
+    // ── Setup test: skip org lookup, verify Mailgun config ────────
+    if (type === 'test' && orgId === '__setup_test__') {
+      const testOrgName = String(body.data?.orgName || 'Funky Pony Pantry');
+
+      if (!body.recipientEmail) {
+        return jsonResponse({ ok: false, error: 'recipientEmail required for test' }, 400);
+      }
+
+      if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+        return jsonResponse({
+          ok: false,
+          error: 'Mailgun not configured',
+          detail: { hasApiKey: !!MAILGUN_API_KEY, hasDomain: !!MAILGUN_DOMAIN, fromEmail: FROM_EMAIL },
+        }, 422);
+      }
+
+      const message = renderMessage('test', testOrgName, body.data || {});
+      try {
+        await sendMailgun(
+          body.recipientEmail,
+          message.subject,
+          buildEmailHtml(testOrgName, message.heading, message.bodyHtml),
+        );
+        return jsonResponse({
+          ok: true, sent: 1, errors: 0,
+          transports: { email: { sent: 1, errors: 0 } },
+          mailgun: { domain: MAILGUN_DOMAIN, from: FROM_EMAIL },
+        });
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return jsonResponse({
+          ok: false, sent: 0, errors: 1, error: errMsg,
+          mailgun: { domain: MAILGUN_DOMAIN, from: FROM_EMAIL },
+        }, 502);
+      }
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -169,7 +207,8 @@ async function resolveRecipients(
 function defaultRolesForType(type: MtsType): string[] {
   switch (type) {
     case 'welcome':
-      return []; // welcome goes to recipientEmail, not roles
+    case 'test':
+      return []; // welcome/test go to recipientEmail, not roles
     case 'admin-join':
     case 'pickup-claimed':
     case 'pickup-delivered':
@@ -266,6 +305,21 @@ function renderMessage(
         bodyHtml: `<p>Your daily pantry activity summary.</p>`,
         bodyText: `Daily digest for ${orgName}.`,
         bodyJson: { type, orgName, ...data },
+      };
+
+    case 'test':
+      return {
+        type, orgName,
+        subject: `Test email from ${orgName}`,
+        heading: 'Setup Test',
+        bodyHtml: `
+          <p>This is a <strong>test email</strong> from your pantry setup.</p>
+          <p>If you're reading this, your Mailgun integration is working correctly.</p>
+          <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 24px;">
+            Sent at ${new Date().toISOString()}
+          </p>`,
+        bodyText: `Test email from ${orgName}. Mailgun is working. Sent at ${new Date().toISOString()}.`,
+        bodyJson: { type, orgName, sentAt: new Date().toISOString(), ...data },
       };
 
     default:

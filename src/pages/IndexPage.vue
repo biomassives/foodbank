@@ -18,6 +18,44 @@
     <!-- Scrollable content -->
     <div class="index-content" :class="{ 'mondrian-grid': isDesktop }">
 
+
+
+
+    <!-- === QUEUE cell (always visible on desktop, toggled on mobile) === -->
+      <div v-if="isDesktop || viewMode === 'queue'" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop">QUEUE</div>
+        <queue-list />
+      </div>
+
+      <!-- === ACTIVITY cell — summary stats (desktop only) === -->
+      <div v-if="isDesktop" class="mondrian-cell mondrian-cell--activity">
+        <div class="mondrian-cell-header">ACTIVITY</div>
+        <div class="activity-stats">
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.pending }}</span>
+            <span class="activity-stat-label">PENDING</span>
+          </div>
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.claimed }}</span>
+            <span class="activity-stat-label">CLAIMED</span>
+          </div>
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.transit }}</span>
+            <span class="activity-stat-label">IN TRANSIT</span>
+          </div>
+          <div class="activity-stat">
+            <span class="activity-stat-num">{{ queueStats.delivered }}</span>
+            <span class="activity-stat-label">DELIVERED</span>
+          </div>
+        </div>
+      </div>
+
+
+
+
+
+
+
       <!-- === LOCATIONS cell === -->
       <div :class="isDesktop ? 'mondrian-cell mondrian-cell--locations' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop">LOCATIONS</div>
@@ -146,34 +184,8 @@
         </template>
       </div>
 
-      <!-- === QUEUE cell (always visible on desktop, toggled on mobile) === -->
-      <div v-if="isDesktop || viewMode === 'queue'" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
-        <div class="mondrian-cell-header" v-if="isDesktop">QUEUE</div>
-        <queue-list />
-      </div>
 
-      <!-- === ACTIVITY cell — summary stats (desktop only) === -->
-      <div v-if="isDesktop" class="mondrian-cell mondrian-cell--activity">
-        <div class="mondrian-cell-header">ACTIVITY</div>
-        <div class="activity-stats">
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.pending }}</span>
-            <span class="activity-stat-label">PENDING</span>
-          </div>
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.claimed }}</span>
-            <span class="activity-stat-label">CLAIMED</span>
-          </div>
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.transit }}</span>
-            <span class="activity-stat-label">IN TRANSIT</span>
-          </div>
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.delivered }}</span>
-            <span class="activity-stat-label">DELIVERED</span>
-          </div>
-        </div>
-      </div>
+
 
     </div>
 

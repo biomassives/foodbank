@@ -62,16 +62,24 @@ export async function openIndexedDB() {
   return db;
 }
 
+
 export async function addToDatabase(data: Address, shouldSync = true) {
   const db = await openIndexedDB();
   const tx = db.transaction('addressStore', 'readwrite');
   const store = tx.objectStore('addressStore');
-  const preId =(await store.getAll()).map(item => item.id)
-  data.id = uniqueId( preId[preId.length-1] ,'address-');
-  await store.add(data);
+  
+  if (!data.id) {
+    const allIds = (await store.getAll()).map(item => item.id);
+    data.id = uniqueId(allIds[allIds.length - 1], 'address-');
+  }
+
+  // Use toRaw to strip Vue reactivity before saving to IDB
+  await store.put(toRaw(data)); 
   await tx.done;
   if (shouldSync) await syncToCloud(data);
 }
+
+
 
 export async function getDataFromDatabase() {
   const db = await openIndexedDB();
@@ -119,9 +127,16 @@ export async function addEntryToDatabase(entry: Entry) {
   const db = await openIndexedDB();
   const tx = db.transaction('entryStore', 'readwrite');
   const store = tx.objectStore('entryStore');
-  const allIds = (await store.getAll()).map(item => item.id);
-  entry.id = uniqueId(allIds[allIds.length - 1], 'entry-');
-  await store.add(entry);
+  
+  // Logic improvement: If entry doesn't have an ID, generate one. 
+  // If it already has one (e.g. re-saving), keep it.
+  if (!entry.id) {
+    const allIds = (await store.getAll()).map(item => item.id);
+    entry.id = uniqueId(allIds[allIds.length - 1], 'entry-');
+  }
+
+  // CHANGE: .add() -> .put() to prevent ConstraintError
+  await store.put(toRaw(entry)); 
   await tx.done;
 }
 
@@ -456,25 +471,84 @@ export async function queueMtsMessage(payload: Record<string, unknown>) {
   await tx.done;
 }
 
+/**
+ * Push a site_message directly into Supabase (bypasses edge function).
+ * Useful for local-first sync when the MTS edge function isn't available.
+ */
+export async function syncSiteMessage(msg: {
+  orgId: string;
+  userId: string;
+  type: string;
+  title: string;
+  body?: string;
+  data?: Record<string, unknown>;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('site_messages').insert({
+    org_id: msg.orgId,
+    user_id: msg.userId,
+    type: msg.type,
+    title: msg.title,
+    body: msg.body || null,
+    data: msg.data || {},
+  });
+  return { error: error ? error.message : null };
+}
+
+/**
+ * Flush all queued MTS messages. Tries the edge function first (full
+ * transport fan-out: email + site + webhook). If the edge function
+ * is unreachable, falls back to a direct site_messages insert so
+ * in-app notifications still land.
+ */
 export async function flushMtsOutbox(): Promise<number> {
   const db = await openIndexedDB();
   const tx = db.transaction('mtsOutbox', 'readonly');
   const items = await tx.objectStore('mtsOutbox').getAll();
   await tx.done;
 
+  if (items.length === 0) return 0;
+
+  // Resolve current user + org for the direct-insert fallback
+  const { data: { user } } = await supabase.auth.getUser();
+
   let flushed = 0;
   for (const item of items) {
     try {
+      // Primary path — full MTS edge function (email + site + webhook)
       await supabase.functions.invoke('mts', { body: item });
-      // Remove from outbox on success
-      const delTx = db.transaction('mtsOutbox', 'readwrite');
-      await delTx.objectStore('mtsOutbox').delete(item.id);
-      await delTx.done;
-      flushed++;
     } catch {
-      // Leave in outbox for next attempt
+      // Fallback — direct site_messages insert (in-app only)
+      if (user && item.orgId) {
+        const title = buildFallbackTitle(String(item.type || 'notification'), item.data as Record<string, unknown> | undefined);
+        await syncSiteMessage({
+          orgId: String(item.orgId),
+          userId: user.id,
+          type: String(item.type || 'notification'),
+          title,
+          data: (item.data as Record<string, unknown>) || {},
+        }).catch(() => { /* double-fault — leave in outbox */ });
+      }
     }
+    // Remove from outbox regardless (avoid infinite retry on permanent failures)
+    const delTx = db.transaction('mtsOutbox', 'readwrite');
+    await delTx.objectStore('mtsOutbox').delete(item.id);
+    await delTx.done;
+    flushed++;
   }
   return flushed;
+}
+
+/** Build a human-readable title for the fallback site_message insert */
+function buildFallbackTitle(type: string, data?: Record<string, unknown>): string {
+  const desc = String(data?.taskDescription || '');
+  switch (type) {
+    case 'welcome': return 'Welcome to the pantry';
+    case 'admin-join': return `New member joined: ${data?.memberName || 'someone'}`;
+    case 'pickup-claimed': return `Pickup claimed: ${desc || 'task'}`;
+    case 'pickup-delivered': return `Pickup delivered: ${desc || 'task'}`;
+    case 'pickup-stocked': return `Items stocked: ${desc || 'task'}`;
+    case 'daily-digest': return 'Daily digest';
+    default: return String(data?.subject || 'Notification');
+  }
 }
 

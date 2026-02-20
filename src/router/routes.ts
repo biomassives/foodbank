@@ -15,7 +15,16 @@ const routes: RouteRecordRaw[] = [
       { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { title: 'Settings' } },
       { path: 'tests', component: () => import('pages/TestResultsPage.vue'), meta: { title: 'Tests' } },
       { path: 'wizard', component: () => import('pages/WizardPage.vue'), meta: { title: 'Setup Wizard' } },
-      { path: 'setup', redirect: '/login' },
+      {
+        path: 'setup',
+        component: () => import('pages/SetupPage.vue'),
+        meta: { title: 'Pantry Setup' },
+        beforeEnter: (to, from, next) => {
+          const store = useAddressStore();
+          if (store.canEdit || store.localMode) next();
+          else next('/login');
+        },
+      },
     ],
     meta: {
       title: 'Contact Management System - Vue',

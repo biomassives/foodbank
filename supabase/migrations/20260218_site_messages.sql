@@ -28,3 +28,36 @@ CREATE INDEX IF NOT EXISTS idx_site_msgs_created
 -- Webhook configuration on organizations
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS webhook_url TEXT;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS webhook_secret TEXT;
+
+-- 1. Enable the vault and net extensions if not present
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+-- 2. Create the Trigger Function
+CREATE OR REPLACE FUNCTION public.on_site_message_created()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- We call the 'notify-member' Edge Function
+  -- We pass the type and data from the new record
+  PERFORM net.http_post(
+    url := 'https://your-project-ref.functions.supabase.co/notify-member',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+    ),
+    body := jsonb_build_object(
+      'type', NEW.type,
+      'orgId', NEW.org_id,
+      'taskDescription', NEW.title,
+      'memberName', (NEW.data->>'memberName'),
+      'memberEmail', (NEW.data->>'memberEmail')
+      -- Map other fields as needed for your NotifyRequest interface
+    )
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 3. Create the Trigger
+CREATE TRIGGER trigger_site_message_email
+AFTER INSERT ON public.site_messages
+FOR EACH ROW EXECUTE FUNCTION public.on_site_message_created();

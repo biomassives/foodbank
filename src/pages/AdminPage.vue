@@ -144,6 +144,65 @@
           <span class="panel-title">DATA STORES</span>
         </div>
 
+        <!-- Setup Status Checklist -->
+        <div class="db-card setup-card">
+          <div class="db-card-header">
+            <div class="db-card-icon db-card-icon--setup">
+              <q-icon name="checklist" size="18px" />
+            </div>
+            <div class="db-card-title-group">
+              <div class="db-card-name">Setup Status</div>
+              <div class="db-card-desc">First-time configuration checklist</div>
+            </div>
+            <div class="db-status" :class="'db-status--' + setupOverallStatus">
+              {{ setupOverallLabel }}
+            </div>
+          </div>
+          <div class="db-card-body">
+            <div v-for="item in setupChecklist" :key="item.key" class="setup-check-row">
+              <q-icon
+                :name="item.status === 'ok' ? 'check_circle' : item.status === 'warn' ? 'warning' : item.status === 'probing' ? 'hourglass_empty' : 'cancel'"
+                size="16px"
+                :class="'setup-icon--' + item.status"
+              />
+              <div class="setup-check-info">
+                <div class="setup-check-label">{{ item.label }}</div>
+                <div class="setup-check-detail">{{ item.detail }}</div>
+              </div>
+              <div v-if="item.optional" class="setup-optional-badge">OPTIONAL</div>
+            </div>
+
+            <div class="setup-test-row">
+              <q-input
+                v-model="testEmailAddress"
+                dense filled
+                placeholder="admin@example.com"
+                class="setup-test-input"
+                type="email"
+              />
+              <q-btn
+                flat dense no-caps
+                icon="send"
+                label="Test"
+                class="setup-test-btn"
+                :loading="testEmailSending"
+                :disable="!testEmailAddress || !testEmailAddress.includes('@')"
+                @click="sendTestEmail"
+              />
+            </div>
+            <div v-if="testEmailResult" class="setup-test-result" :class="'setup-test-result--' + testEmailResult.status">
+              <q-icon :name="testEmailResult.status === 'ok' ? 'check_circle' : 'error'" size="14px" />
+              <span>{{ testEmailResult.message }}</span>
+              <span v-if="testEmailResult.timestamp" class="setup-test-ts">{{ testEmailResult.timestamp }}</span>
+            </div>
+
+            <div class="db-hint">
+              <q-icon name="terminal" size="13px" />
+              <span>Run <code>./scripts/setup-pantry.sh</code> for CLI setup</span>
+            </div>
+          </div>
+        </div>
+
         <!-- IndexedDB -->
         <div class="db-card">
           <div class="db-card-header">
@@ -557,6 +616,190 @@ const nile = reactive({
   region: '',
 });
 
+// ── Setup Checklist ──────────────────────────────────────────────
+
+interface SetupCheckItem {
+  key: string;
+  label: string;
+  detail: string;
+  status: 'ok' | 'warn' | 'fail' | 'probing';
+  optional?: boolean;
+}
+
+const setupChecklist = ref<SetupCheckItem[]>([
+  { key: 'supabase', label: 'Supabase Connected', detail: 'Checking...', status: 'probing' },
+  { key: 'mts', label: 'MTS Edge Function', detail: 'Checking...', status: 'probing' },
+  { key: 'notify', label: 'Notify-Member Function', detail: 'Checking...', status: 'probing' },
+  { key: 'digest', label: 'Daily-Digest Function', detail: 'Checking...', status: 'probing' },
+  { key: 'mailgun', label: 'Mailgun Configured', detail: 'Checking...', status: 'probing' },
+  { key: 'site_messages', label: 'Site Messages Table', detail: 'Checking...', status: 'probing' },
+  { key: 'webhook', label: 'Webhook Configured', detail: 'Not checked yet', status: 'probing', optional: true },
+]);
+
+const testEmailAddress = ref('');
+const testEmailSending = ref(false);
+const testEmailResult = ref<{ status: 'ok' | 'fail'; message: string; timestamp: string } | null>(null);
+
+function updateCheckItem(key: string, status: SetupCheckItem['status'], detail: string) {
+  const item = setupChecklist.value.find(c => c.key === key);
+  if (item) { item.status = status; item.detail = detail; }
+}
+
+const setupOverallStatus = computed(() => {
+  const items = setupChecklist.value.filter(i => !i.optional);
+  if (items.every(i => i.status === 'ok')) return 'active';
+  if (items.some(i => i.status === 'fail')) return 'error';
+  if (items.some(i => i.status === 'probing')) return 'unknown';
+  return 'provisioned';
+});
+
+const setupOverallLabel = computed(() => {
+  const items = setupChecklist.value.filter(i => !i.optional);
+  const okCount = items.filter(i => i.status === 'ok').length;
+  if (okCount === items.length) return 'READY';
+  return `${okCount}/${items.length}`;
+});
+
+async function probeEdgeFunction(name: string, checkKey: string) {
+  try {
+    if (name === 'mts') {
+      const { data, error } = await supabase.functions.invoke('mts', {
+        body: { type: 'test', orgId: '__setup_test__' },
+      });
+      if (error) {
+        updateCheckItem(checkKey, 'fail', `Unreachable: ${error.message}`);
+      } else if (data?.error === 'recipientEmail required for test') {
+        updateCheckItem(checkKey, 'ok', 'Deployed and responding');
+      } else if (data?.error === 'Mailgun not configured') {
+        updateCheckItem(checkKey, 'ok', 'Deployed (Mailgun not set)');
+        updateCheckItem('mailgun', 'fail', 'Secrets not set — run setup-pantry.sh --mailgun');
+      } else {
+        updateCheckItem(checkKey, 'ok', 'Deployed and responding');
+      }
+    } else {
+      const { error } = await supabase.functions.invoke(name, { body: {} });
+      if (error && (error.message || '').includes('FetchError')) {
+        updateCheckItem(checkKey, 'fail', 'Not deployed or unreachable');
+      } else {
+        updateCheckItem(checkKey, 'ok', 'Deployed');
+      }
+    }
+  } catch {
+    updateCheckItem(checkKey, 'fail', 'Network error');
+  }
+}
+
+async function probeMailgunViaTest() {
+  try {
+    const { data } = await supabase.functions.invoke('mts', {
+      body: {
+        type: 'test', orgId: '__setup_test__',
+        recipientEmail: 'setup-probe@test.invalid',
+        transports: ['email'],
+      },
+    });
+    if (data?.ok) {
+      updateCheckItem('mailgun', 'ok', `Domain: ${data.mailgun?.domain || 'configured'}`);
+    } else if (data?.error?.includes('Mailgun not configured')) {
+      updateCheckItem('mailgun', 'fail', 'Secrets not set');
+    } else {
+      updateCheckItem('mailgun', 'ok', `Configured (${data?.mailgun?.domain || 'active'})`);
+    }
+  } catch {
+    updateCheckItem('mailgun', 'warn', 'Could not verify — MTS unreachable');
+  }
+}
+
+async function probeSiteMessagesTable() {
+  try {
+    const { error } = await supabase.from('site_messages').select('id', { count: 'exact', head: true });
+    if (error) {
+      updateCheckItem('site_messages', 'fail', `Table missing: ${error.message}`);
+    } else {
+      updateCheckItem('site_messages', 'ok', 'Table exists');
+    }
+  } catch {
+    updateCheckItem('site_messages', 'fail', 'Query failed');
+  }
+}
+
+function probeWebhook() {
+  const webhookUrl = localStorage.getItem('wb-webhook-url');
+  if (!webhookUrl) {
+    updateCheckItem('webhook', 'warn', 'Not configured (optional)');
+  } else {
+    updateCheckItem('webhook', 'ok', `Set: ${webhookUrl.slice(0, 30)}...`);
+  }
+}
+
+async function runSetupProbes() {
+  if (supa.status === 'in_use' || supa.status === 'connected') {
+    updateCheckItem('supabase', 'ok', supa.host);
+  } else if (supa.status === 'provisioned') {
+    updateCheckItem('supabase', 'warn', 'Provisioned but not authenticated');
+  } else {
+    updateCheckItem('supabase', 'fail', 'Not configured');
+    setupChecklist.value.forEach(c => {
+      if (c.key !== 'supabase' && c.status === 'probing') {
+        c.status = 'fail'; c.detail = 'Requires Supabase';
+      }
+    });
+    return;
+  }
+
+  await Promise.all([
+    probeEdgeFunction('mts', 'mts'),
+    probeEdgeFunction('notify-member', 'notify'),
+    probeEdgeFunction('daily-digest', 'digest'),
+    probeSiteMessagesTable(),
+  ]);
+  probeWebhook();
+
+  const mtsItem = setupChecklist.value.find(c => c.key === 'mts');
+  if (mtsItem?.status === 'ok') {
+    await probeMailgunViaTest();
+  } else {
+    updateCheckItem('mailgun', 'warn', 'Cannot verify — MTS not deployed');
+  }
+}
+
+async function sendTestEmail() {
+  testEmailSending.value = true;
+  testEmailResult.value = null;
+  try {
+    const { data, error } = await supabase.functions.invoke('mts', {
+      body: {
+        type: 'test',
+        orgId: store.userOrgId || '__setup_test__',
+        recipientEmail: testEmailAddress.value,
+        transports: ['email'],
+      },
+    });
+    if (error) throw new Error(error.message);
+    if (data?.ok) {
+      testEmailResult.value = {
+        status: 'ok',
+        message: `Test email sent to ${testEmailAddress.value}`,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    } else {
+      testEmailResult.value = {
+        status: 'fail',
+        message: data?.error || 'Unknown error',
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    }
+  } catch (e: unknown) {
+    testEmailResult.value = {
+      status: 'fail',
+      message: e instanceof Error ? e.message : 'Failed to reach MTS',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+  } finally {
+    testEmailSending.value = false;
+  }
+}
+
 async function probeIndexedDB() {
   try {
     const db = await openIndexedDB();
@@ -666,6 +909,7 @@ async function probeAllDatabases() {
   dbProbing.value = true;
   await Promise.all([probeIndexedDB(), probeSupabase()]);
   probeNileDB();
+  await runSetupProbes();
   dbProbing.value = false;
 }
 
@@ -1337,5 +1581,112 @@ onMounted(async () => {
 .db-refresh-btn:hover {
   color: var(--wb-accent) !important;
   border-color: var(--wb-accent);
+}
+
+/* ── Setup Checklist ── */
+.db-card-icon--setup {
+  background: rgba(253, 216, 53, 0.12);
+  color: var(--wb-accent);
+}
+
+.setup-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.setup-check-row:last-of-type {
+  border-bottom: none;
+}
+
+.setup-check-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.setup-check-label {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--wb-text);
+}
+
+.setup-check-detail {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--wb-text-muted);
+}
+
+.setup-icon--ok { color: var(--wb-positive); }
+.setup-icon--warn { color: var(--wb-warning); }
+.setup-icon--fail { color: var(--wb-negative); }
+.setup-icon--probing { color: var(--wb-text-faint); }
+
+.setup-optional-badge {
+  padding: 1px 6px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.45rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+}
+
+.setup-test-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 4px;
+  border-top: 1px solid var(--wb-border-mid);
+  margin-top: 6px;
+}
+
+.setup-test-input {
+  flex: 1;
+}
+
+.setup-test-input :deep(.q-field__control) {
+  background: var(--wb-surface-hover) !important;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+}
+
+.setup-test-input :deep(.q-field__native) {
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+  font-size: 0.75rem;
+}
+
+.setup-test-btn {
+  color: var(--wb-accent) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  border: 1px solid var(--wb-accent);
+  border-radius: 3px;
+  align-self: center;
+}
+
+.setup-test-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.setup-test-result--ok { color: var(--wb-positive); }
+.setup-test-result--fail { color: var(--wb-negative); }
+
+.setup-test-ts {
+  margin-left: auto;
+  font-size: 0.55rem;
+  color: var(--wb-text-faint);
 }
 </style>

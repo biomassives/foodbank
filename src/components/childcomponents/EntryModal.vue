@@ -160,8 +160,22 @@
         </div>
 
         <div class="modal-actions">
-          <q-btn flat no-caps label="Cancel" class="modal-btn-flat" v-close-popup />
-          <q-btn unelevated no-caps label="Save" class="modal-btn-save" @click="saveEntry" />
+          <q-btn 
+    flat 
+    no-caps 
+    label="Cancel" 
+    class="modal-btn-flat" 
+    v-close-popup 
+    :disable="isSaving" 
+          />
+          <q-btn 
+    unelevated 
+    no-caps 
+    label="Save" 
+    class="modal-btn-save" 
+    :loading="isSaving" 
+    @click="saveEntry" 
+          />
         </div>
       </template>
 

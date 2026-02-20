@@ -333,6 +333,27 @@
             <q-btn flat no-caps dense icon="delete_outline" label="Clear"
               class="conn-btn conn-btn--clear" @click="clearMailgun" />
           </div>
+          <div class="integ-test-row">
+            <q-input
+              v-model="mailgunTestEmail"
+              dense filled
+              placeholder="your@email.com"
+              class="integ-input integ-test-input q-mb-xs"
+              type="email"
+            />
+            <q-btn flat no-caps dense icon="send"
+              label="Test"
+              class="conn-btn conn-btn--test"
+              :loading="mailgunTesting"
+              :disable="!mailgunKey || !mailgunDomain || !mailgunTestEmail.includes('@')"
+              @click="testMailgunConnection"
+            />
+          </div>
+          <div v-if="mailgunTestResult" class="integ-test-result" :class="'integ-test-result--' + mailgunTestResult.status">
+            <q-icon :name="mailgunTestResult.status === 'ok' ? 'check_circle' : 'error'" size="14px" />
+            <span>{{ mailgunTestResult.message }}</span>
+            <span class="integ-test-ts">{{ mailgunTestResult.timestamp }}</span>
+          </div>
 
           <div class="integ-divider" />
 
@@ -559,6 +580,51 @@ const webhookUrl = ref(localStorage.getItem('wb-webhook-url') || '');
 const webhookSecret = ref(localStorage.getItem('wb-webhook-secret') || '');
 const showWebhookSecret = ref(false);
 
+// ── Mailgun test ─────────────────────────────────────────────
+const mailgunTestEmail = ref('');
+const mailgunTesting = ref(false);
+const mailgunTestResult = ref<{ status: 'ok' | 'fail'; message: string; timestamp: string } | null>(null);
+
+async function testMailgunConnection() {
+  mailgunTesting.value = true;
+  mailgunTestResult.value = null;
+  try {
+    const { data, error } = await supabase.functions.invoke('mts', {
+      body: {
+        type: 'test',
+        orgId: store.userOrgId || '__setup_test__',
+        recipientEmail: mailgunTestEmail.value,
+        transports: ['email'],
+      },
+    });
+    if (error) throw new Error(error.message);
+    if (data?.ok) {
+      mailgunTestResult.value = {
+        status: 'ok',
+        message: `Email sent via ${data.mailgun?.domain || 'Mailgun'}`,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      localStorage.setItem('wb-mailgun-last-test', JSON.stringify({
+        success: true, timestamp: new Date().toISOString(),
+      }));
+    } else {
+      mailgunTestResult.value = {
+        status: 'fail',
+        message: data?.error || 'Send failed',
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    }
+  } catch (e: unknown) {
+    mailgunTestResult.value = {
+      status: 'fail',
+      message: e instanceof Error ? e.message : 'Could not reach MTS function',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+  } finally {
+    mailgunTesting.value = false;
+  }
+}
+
 function saveMailgun() {
   localStorage.setItem('wb-mailgun-key', mailgunKey.value);
   localStorage.setItem('wb-mailgun-domain', mailgunDomain.value);
@@ -775,6 +841,19 @@ async function saveEmailPrefs() {
 }
 
 onMounted(async () => {
+  // Load last Mailgun test result
+  try {
+    const lastTest = localStorage.getItem('wb-mailgun-last-test');
+    if (lastTest) {
+      const parsed = JSON.parse(lastTest);
+      mailgunTestResult.value = {
+        status: parsed.success ? 'ok' : 'fail',
+        message: parsed.success ? 'Last test succeeded' : 'Last test failed',
+        timestamp: new Date(parsed.timestamp).toLocaleString(),
+      };
+    }
+  } catch { /* ignore */ }
+
   if (store.isLoggedIn) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1256,6 +1335,42 @@ onMounted(async () => {
   color: var(--wb-text-faint);
   margin-bottom: 6px;
   letter-spacing: 0.3px;
+}
+
+.integ-test-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.integ-test-input {
+  flex: 1;
+}
+
+.conn-btn--test {
+  color: var(--wb-accent) !important;
+  border-color: var(--wb-accent);
+  align-self: center;
+}
+
+.integ-test-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  padding: 4px 0;
+}
+
+.integ-test-result--ok { color: var(--wb-positive); }
+.integ-test-result--fail { color: var(--wb-negative); }
+
+.integ-test-ts {
+  margin-left: auto;
+  font-size: 0.55rem;
+  color: var(--wb-text-faint);
 }
 
 /* ---- Export ---- */
