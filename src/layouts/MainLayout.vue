@@ -14,15 +14,17 @@
         <div class="brand-text-sub">{{ t.app.brandSub }}</div>
       </div>
 
-      <div class="q-px-md q-py-sm bg-grey-2 row items-center justify-between">
-        <div class="status-pill-minimal" :class="statusClass">
-          <q-icon :name="statusIcon" size="14px" class="q-mr-xs" />
-          <span class="text-caption text-weight-bold">{{ statusLabel }}</span>
-        </div>
-        <div v-if="pantryName" class="text-caption text-grey-7 text-italic">
-          {{ pantryName }}
-        </div>
-      </div>
+<div class="status-strip-container row items-center justify-between">
+  <div class="status-pill-minimal" :class="statusClass">
+    <q-icon :name="statusIcon" size="14px" class="q-mr-xs" />
+    <span class="status-text">{{ statusLabel }}</span>
+  </div>
+  
+  <div v-if="pantryName" class="pantry-label-tag">
+    <q-icon name="hub" size="12px" class="q-mr-xs" />
+    {{ pantryName }}
+  </div>
+</div>
 
       <q-scroll-area class="col" style="height: calc(100% - 150px);">
         <div class="drawer-section-label">Create</div>
@@ -323,5 +325,57 @@ async function handleLogout() {
   background: #333;
   margin: 20px;
 }
+
+/* The container strip */
+.status-strip-container {
+  background: #1a1a1a;        /* Slightly lighter than the main drawer #121212 */
+  border-bottom: 1px solid #2a2a2a;
+  padding: 8px 16px;
+  min-height: 32px;
+}
+
+/* The Status Pill */
+.status-pill-minimal {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 2px;         /* Blocky aesthetic */
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+/* Status-specific Glows */
+.status-pill--visitor {
+  background: rgba(255, 255, 255, 0.05);
+  color: #888;
+  border: 1px solid #444;
+}
+
+.status-pill--local {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.status-pill--synced {
+  background: rgba(0, 255, 195, 0.1);
+  color: #00ffc3;
+  border: 1px solid rgba(0, 255, 195, 0.3);
+}
+
+/* The Pantry Name Tag */
+.pantry-label-tag {
+  color: #555;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
+}
+
+.status-text {
+  font-weight: 800;
+}
+
 
 </style>
