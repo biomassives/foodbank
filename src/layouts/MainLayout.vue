@@ -9,110 +9,89 @@
       :breakpoint="960"
       class="nav-drawer"
     >
-      <!-- Brand strip -->
-      <div class="drawer-brand">
-        <div class="drawer-brand-title">{{ t.app.brand }}</div>
-        <div class="drawer-brand-sub">{{ t.app.brandSub }}</div>
+      <div class="drawer-header-block q-pa-lg">
+        <div class="brand-text-main">{{ t.app.brand }}</div>
+        <div class="brand-text-sub">{{ t.app.brandSub }}</div>
       </div>
 
-      <!-- Status pill -->
-      <div class="q-px-md q-pb-sm">
-        <div class="status-pill" :class="statusClass">
-          <q-icon :name="statusIcon" size="14px" />
-          <span>{{ statusLabel }}</span>
+      <div class="q-px-md q-py-sm bg-grey-2 row items-center justify-between">
+        <div class="status-pill-minimal" :class="statusClass">
+          <q-icon :name="statusIcon" size="14px" class="q-mr-xs" />
+          <span class="text-caption text-weight-bold">{{ statusLabel }}</span>
         </div>
-        <div v-if="pantryName" class="drawer-pantry-name">{{ pantryName }}</div>
-      </div>
-
-      <div class="drawer-rule" />
-
-      <!-- Quick Actions -->
-      <div class="drawer-section-label">{{ t.nav.add }}</div>
-
-      <div class="q-px-sm q-gutter-y-none">
-        <div class="drawer-action" @click="quickAdd('contact')">
-          <q-icon name="person_add" size="16px" /><span>{{ t.entries.contact }}</span>
-        </div>
-        <div class="drawer-action" @click="quickAdd('need')">
-          <q-icon name="volunteer_activism" size="16px" /><span>{{ t.entries.need }}</span>
-        </div>
-        <div class="drawer-action" @click="quickAdd('offering')">
-          <q-icon name="card_giftcard" size="16px" /><span>{{ t.entries.offering }}</span>
-        </div>
-        <div class="drawer-action" @click="quickAdd('looking_for')">
-          <q-icon name="search" size="16px" /><span>{{ t.entries.lookingFor }}</span>
-        </div>
-        <div class="drawer-action" @click="quickAdd('upcoming_need')">
-          <q-icon name="event" size="16px" /><span>{{ t.entries.upcomingNeed }}</span>
-        </div>
-        <div v-if="store.canEdit" class="drawer-action drawer-action--accent" @click="quickAdd('pickup_queue')">
-          <q-icon name="local_shipping" size="16px" /><span>{{ t.entries.pickupQueue }}</span>
+        <div v-if="pantryName" class="text-caption text-grey-7 text-italic">
+          {{ pantryName }}
         </div>
       </div>
 
-      <div class="drawer-rule" />
-
-      <!-- Navigate -->
-      <div class="drawer-section-label">{{ t.nav.go }}</div>
-
-      <div class="q-px-sm">
-        <router-link to="/" custom v-slot="{ navigate, isExactActive }">
-          <div class="drawer-nav" :class="{ 'drawer-nav--active': isExactActive }" @click="navigate(); drawer = false;">
-            <q-icon name="contacts" size="16px" /><span>{{ t.nav.home }}</span>
+      <q-scroll-area class="col" style="height: calc(100% - 150px);">
+        <div class="drawer-section-label">Create</div>
+        <div class="q-px-sm">
+          <div class="drawer-action-item" @click="quickAdd('contact')">
+            <q-icon name="person_add" /><span>{{ t.entries.contact }}</span>
           </div>
-        </router-link>
-
-        <router-link v-if="store.canEdit" to="/admin" custom v-slot="{ navigate, isActive }">
-          <div class="drawer-nav" :class="{ 'drawer-nav--active': isActive }" @click="navigate(); drawer = false;">
-            <q-icon name="admin_panel_settings" size="16px" /><span>{{ t.nav.manager }}</span>
+          <div class="drawer-action-item" @click="quickAdd('need')">
+            <q-icon name="volunteer_activism" /><span>{{ t.entries.need }}</span>
           </div>
-        </router-link>
-
-        <router-link to="/settings" custom v-slot="{ navigate, isActive }">
-          <div class="drawer-nav" :class="{ 'drawer-nav--active': isActive }" @click="navigate(); drawer = false;">
-            <q-icon name="settings" size="16px" /><span>{{ t.nav.settings }}</span>
+          <div class="drawer-action-item" @click="quickAdd('offering')">
+            <q-icon name="card_giftcard" /><span>{{ t.entries.offering }}</span>
           </div>
-        </router-link>
-
-        <router-link to="/tests" custom v-slot="{ navigate, isActive }">
-          <div class="drawer-nav" :class="{ 'drawer-nav--active': isActive }" @click="navigate(); drawer = false;">
-            <q-icon name="science" size="16px" /><span>Tests</span>
+          <div class="drawer-action-item" @click="quickAdd('looking_for')">
+            <q-icon name="search" /><span>{{ t.entries.lookingFor }}</span>
           </div>
-        </router-link>
-      </div>
-
-      <div class="drawer-rule" />
-
-      <!-- Account -->
-      <div class="drawer-section-label">{{ t.nav.account }}</div>
-
-      <div class="q-px-sm">
-        <div v-if="!store.isLoggedIn && !store.localMode" class="drawer-nav" @click="$router.push('/login'); drawer = false;">
-          <q-icon name="login" size="16px" /><span>{{ t.nav.signIn }}</span>
+          <div class="drawer-action-item" @click="quickAdd('upcoming_need')">
+            <q-icon name="event" /><span>{{ t.entries.upcomingNeed }}</span>
+          </div>
         </div>
 
-        <div v-if="store.isLoggedIn && !store.canSync" class="drawer-nav" @click="$router.push('/login'); drawer = false;">
-          <q-icon name="group_add" size="16px" /><span>{{ t.nav.joinPantry }}</span>
+        <div class="drawer-hr" />
+
+        <div class="drawer-section-label">Explore</div>
+        <div class="q-px-sm">
+          <router-link to="/" custom v-slot="{ navigate, isExactActive }">
+            <div class="drawer-nav-item" :class="{ 'active-block': isExactActive }" @click="navigate(); drawer = false;">
+              <q-icon name="grid_view" /><span>{{ t.nav.home }}</span>
+            </div>
+          </router-link>
+
+          <router-link v-if="store.canEdit" to="/admin" custom v-slot="{ navigate, isActive }">
+            <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+              <q-icon name="token" /><span>{{ t.nav.manager }}</span>
+            </div>
+          </router-link>
+
+          <router-link to="/settings" custom v-slot="{ navigate, isActive }">
+            <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+              <q-icon name="tune" /><span>{{ t.nav.settings }}</span>
+            </div>
+          </router-link>
         </div>
 
-        <div v-if="store.isLoggedIn || store.localMode" class="drawer-nav drawer-nav--danger" @click="handleLogout">
-          <q-icon name="logout" size="16px" /><span>{{ t.nav.signOut }}</span>
+        <div class="drawer-hr" />
+
+        <div class="drawer-section-label">Identity</div>
+        <div class="q-px-sm">
+          <div v-if="!store.isLoggedIn && !store.localMode" class="drawer-nav-item" @click="router.push('/login'); drawer = false;">
+            <q-icon name="login" /><span>Sign In</span>
+          </div>
+          <div v-if="store.isLoggedIn || store.localMode" class="drawer-nav-item text-negative" @click="handleLogout">
+            <q-icon name="logout" /><span>{{ t.nav.signOut }}</span>
+          </div>
         </div>
-      </div>
+      </q-scroll-area>
 
-      <q-space />
-
-      <!-- Footer -->
-      <div class="drawer-footer">
-        <div>{{ t.app.footer1 }}</div>
-        <div>{{ t.app.footer2 }}</div>
+      <div class="drawer-footer-minimal q-pa-md">
+        <div class="text-overline">{{ t.app.footer1 }}</div>
+        <div class="text-caption text-grey-5">{{ t.app.footer2 }}</div>
       </div>
     </q-drawer>
 
-    <notification-drawer />
-
     <q-page-container class="book-container">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition enter-active-class="animated fadeIn" leave-active-class="animated fadeOut" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </q-page-container>
 
     <entry-modal v-model:card-state="entryModalOpen" :initial-type="entryModalType" @saved="handleEntrySaved" />
@@ -138,6 +117,26 @@ const router = useRouter();
 const $q = useQuasar();
 const { t } = useI18n();
 
+// ── Theme Management ──────────────────────────────────────────────
+const currentTheme = ref('dark'); // Default to your Lou Reed/Factory theme
+
+function setTheme(theme: string) {
+  currentTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('pantry-theme', theme);
+  
+  // Feedback for the user
+  if (theme === 'bio') {
+    $q.notify({
+      message: 'Bio-Friendly Mode Activated',
+      icon: 'eco',
+      color: 'positive',
+      position: 'top-right',
+      timeout: 1000
+    });
+  }
+}
+
 // ── Offline / Online detection ────────────────────────────────────
 function onOffline() {
   $q.notify({
@@ -156,12 +155,17 @@ function onOnline() {
     caption: 'Connection restored',
     timeout: 3000,
   });
-  // Flush any queued MTS messages
   flushMtsOutbox().catch(() => { /* offline flush — ignore */ });
 }
+
 onMounted(async () => {
   window.addEventListener('offline', onOffline);
   window.addEventListener('online', onOnline);
+
+  // Initialize Theme
+  const savedTheme = localStorage.getItem('pantry-theme') || 'dark';
+  setTheme(savedTheme);
+
   // Init notifications if logged in
   if (store.isLoggedIn) {
     await notifStore.fetchMessages();
@@ -169,11 +173,13 @@ onMounted(async () => {
     if (user) notifStore.subscribeRealtime(user.id);
   }
 });
+
 onUnmounted(() => {
   window.removeEventListener('offline', onOffline);
   window.removeEventListener('online', onOnline);
 });
 
+// ── Modal & Navigation ────────────────────────────────────────────
 const entryModalOpen = ref(false);
 const entryModalType = ref<string | null>(null);
 
@@ -183,6 +189,7 @@ function quickAdd(type: string) {
   drawer.value = false;
 }
 
+// ── Computed Status ───────────────────────────────────────────────
 const statusIcon = computed(() => {
   if (store.canSync) return 'cloud_done';
   if (store.localMode) return 'smartphone';
@@ -212,12 +219,109 @@ function handleEntrySaved(payload: { type: string }) {
 }
 
 async function handleLogout() {
+  $q.loading.show({ message: 'Signing out of the network...' });
+  
   await supabase.auth.signOut();
   localStorage.removeItem('localMode');
   localStorage.removeItem('pantryName');
   localStorage.removeItem('siloInitiator');
+  
   store.$patch({ role: 'viewer', userOrgId: null, user: null });
+  
   drawer.value = false;
-  router.push('/login');
+  $q.loading.hide();
+  
+  // Use a hard redirect for the "Gatekeeper" page to reset all memory
+  window.location.href = '/#/login'; 
 }
 </script>
+<style>
+/* Put this in your MainLayout.vue <style> or app.scss */
+
+.nav-drawer {
+  background-color: #121212; /* Deep Matte Black */
+  color: #ececec; /* Soft White text */
+}
+
+/* Brand Section */
+.drawer-header-block {
+  background: #000000;
+  border-bottom: 2px solid #333;
+  padding: 32px 24px;
+}
+
+.brand-text-main {
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+.brand-text-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #00ffc3; /* Funky Cyan Accent */
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+/* Status Strip */
+.status-bar-dark {
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #888;
+}
+
+/* Labels */
+.drawer-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 28px 20px 8px;
+  text-transform: uppercase;
+  color: #555; /* Dimmer labels to create hierarchy */
+}
+
+/* Links / Actions */
+.drawer-action-item, .drawer-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  margin: 2px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #bbb; /* Readable Silver */
+  transition: all 0.2s ease;
+  
+  .q-icon {
+    font-size: 20px;
+    margin-right: 16px;
+    color: #666; 
+  }
+
+  &:hover {
+    background: #252525;
+    color: #fff;
+    .q-icon { color: #00ffc3; }
+  }
+}
+
+/* Active State: The "Highlight" */
+.active-block {
+  background: #252525 !important;
+  color: #00ffc3 !important;
+  border-left: 3px solid #00ffc3;
+  
+  .q-icon { color: #00ffc3 !important; }
+}
+
+.drawer-hr {
+  height: 1px;
+  background: #333;
+  margin: 20px;
+}
+
+</style>

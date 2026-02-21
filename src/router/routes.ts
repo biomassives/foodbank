@@ -11,6 +11,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/IndexPage.vue'),
         meta: { title: 'Address Book' },
       },
+      { path: 'newlogin', component: () => import('pages/LoginPage.vue'), meta: { title: 'Get Started' } },
       { path: 'login', component: () => import('pages/OnboardPage.vue'), meta: { title: 'Get Started' } },
       { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { title: 'Settings' } },
       { path: 'tests', component: () => import('pages/TestResultsPage.vue'), meta: { title: 'Tests' } },

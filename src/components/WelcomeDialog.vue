@@ -79,6 +79,32 @@
           <circle cx="50" cy="60" r="0.8" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.06)' : 'rgba(199,119,0,0.04)'" />
           <circle cx="350" cy="55" r="1" :fill="isDark === 'dark' ? 'rgba(253,216,53,0.08)' : 'rgba(199,119,0,0.05)'" />
         </svg>
+
+
+        <q-carousel
+          v-model="slide"
+          transition-prev="fade"
+          transition-next="fade"
+          swipeable
+          animated
+          control-color="accent"
+          navigation
+          padding
+          arrows
+          height="160px"
+          class="bg-transparent"
+        >
+          <q-carousel-slide name="welcome" class="column no-wrap flex-center">
+            <div class="welcome-title text-shadow">{{ t.welcome.title }}</div>
+            <div class="welcome-subtitle">{{ t.welcome.subtitle }}</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="mission" class="column no-wrap flex-center">
+             <div class="welcome-blurb q-px-md text-weight-bold">
+               {{ t.welcome.body }}
+             </div>
+          </q-carousel-slide>
+        </q-carousel>
       </q-card-section>
 
       <!-- Body -->
@@ -150,7 +176,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
+import WelcomeCarousel from './WelcomeCarousel.vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'src/i18n';
 import { useTheme } from 'src/composables/useTheme';
@@ -161,6 +188,8 @@ const emit = defineEmits<{ (e: 'update:modelValue', val: boolean): void }>();
 const router = useRouter();
 const { t } = useI18n();
 const { isDark } = useTheme();
+
+const slide = ref('welcome'); // Track the new carousel state
 
 const show = computed({
   get: () => props.modelValue,
@@ -194,6 +223,15 @@ function goCreate() {
 </script>
 
 <style scoped>
+/* Keeping your original styles, adding carousel transparency */
+.bg-transparent { background: transparent !important; }
+.text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+/* Ensure the carousel doesn't hide the SVG petals */
+:deep(.q-carousel__control) {
+  opacity: 0.7;
+}
+
 .welcome-card {
   background: var(--wb-modal-bg);
   color: var(--wb-text);

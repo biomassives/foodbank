@@ -14,6 +14,35 @@ const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY')!;
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN')!;
 const FROM_EMAIL = Deno.env.get('NOTIFY_FROM_EMAIL') || `notify@${MAILGUN_DOMAIN}`;
 
+// Create a shared helper or add this to the top of your function's index.ts
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // Or 'http://localhost:9000' for more security
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// In your serve function:
+Deno.serve(async (req) => {
+  // 1. Handle Preflight (This is what's failing right now)
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    // ... your existing logic ...
+    return new Response(JSON.stringify({ done: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    })
+  }
+})
+
+
+
 interface NotifyRequest {
   type: 'welcome' | 'admin-join' | 'pickup-claimed' | 'pickup-delivered' | 'pickup-stocked';
   orgId: string;

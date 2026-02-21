@@ -2,6 +2,7 @@
 -- PART 1: SCHEMA (The Garden)
 -- ──────────────────────────────────────────────────────────────────
 
+
 -- Organizations must come first (the parent container)
 CREATE TABLE IF NOT EXISTS public.organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -113,3 +114,17 @@ ON CONFLICT (id) DO NOTHING;
 -- ──────────────────────────────────────────────────────────────────
 -- This enables Realtime so your Quasar app can 'hear' the MTS responses
 ALTER PUBLICATION supabase_realtime ADD TABLE public.site_messages;
+
+
+-- Ensure the admin user exists in local auth
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, role, aud)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'admin@funkypony.org', crypt('password123', gen_salt('bf')), now(), 'authenticated', 'authenticated')
+ON CONFLICT (id) DO NOTHING;
+
+-- Ensure the profile exists
+INSERT INTO public.profiles (id, email, active, role)
+VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'admin@funkypony.org', true, 'admin')
+ON CONFLICT (id) DO NOTHING;
+
+
+

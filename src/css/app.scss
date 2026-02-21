@@ -34,3 +34,10 @@
     }
   }
 }
+// --- Utility Classes ---
+.text-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tracking-tight { letter-spacing: -0.5px; }
+.tracking-wide  { letter-spacing: 1px; }

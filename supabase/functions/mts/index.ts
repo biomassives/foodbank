@@ -59,6 +59,35 @@ interface TransportResult {
   errors: number;
 }
 
+// Create a shared helper or add this to the top of your function's index.ts
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // Or 'http://localhost:9000' for more security
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// In your serve function:
+Deno.serve(async (req) => {
+  // 1. Handle Preflight (This is what's failing right now)
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    // ... your existing logic ...
+    return new Response(JSON.stringify({ done: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    })
+  }
+})
+
+
+
 // ── Main handler ────────────────────────────────────────────────
 
 serve(async (req: Request) => {
