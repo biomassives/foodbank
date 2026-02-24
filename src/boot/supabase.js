@@ -1,20 +1,15 @@
-// 1. You MUST have this import at the top!
-import { createClient } from '@supabase/supabase-js'
+// Single Supabase client — created in src/dbManagement/index.ts.
+// This boot file re-exports it so Quasar's boot lifecycle can attach
+// it to the Vue app, and dev mode can expose it on window.
+import { supabase } from 'src/dbManagement';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// ✅ Only expose to the window if we are running locally
 if (process.env.DEV) {
-  window.supabase = supabase
-  console.log('🛠️ Dev Mode: window.supabase is available for console debugging.')
+  window.supabase = supabase;
+  console.log('🛠️ Dev Mode: window.supabase is available for console debugging.');
 }
 
 export default ({ app }) => {
-  app.config.globalProperties.$supabase = supabase
-}
+  app.config.globalProperties.$supabase = supabase;
+};
 
-// Export it so other non-Vue files can use it
-export { supabase }
+export { supabase };
