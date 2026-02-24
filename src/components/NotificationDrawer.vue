@@ -1,72 +1,82 @@
 <template>
-  <q-drawer
-    v-model="notifStore.drawerOpen"
-    side="right"
-    bordered
-    :width="320"
-    :breakpoint="960"
-    class="notif-drawer"
-  >
+  <div class="notif-panel">
+
     <!-- Header -->
     <div class="notif-header">
-      <span class="notif-title">{{ t.notifications.title }}</span>
+      <span class="notif-title">NOTIFICATIONS</span>
       <q-btn
         v-if="notifStore.unreadCount > 0"
         flat dense no-caps
-        :label="t.notifications.markAllRead"
+        label="Mark all read"
         class="notif-mark-all"
         @click="notifStore.markAllRead()"
       />
     </div>
 
-    <!-- Empty state -->
-    <div v-if="notifStore.messages.length === 0 && !notifStore.loading" class="notif-empty">
-      <q-icon name="notifications_none" size="28px" />
-      <div>{{ t.notifications.empty }}</div>
+    <!-- Announcement badge (admin/owner) -->
+    <div v-if="store.canEdit" class="notif-announce-hint">
+      <q-icon name="campaign" size="12px" />
+      <span>Post an announcement in</span>
+      <router-link to="/admin" class="notif-announce-link" @click="$emit('close')">Admin</router-link>
     </div>
 
     <!-- Loading -->
     <div v-if="notifStore.loading" class="notif-empty">
-      <q-spinner size="20px" />
+      <q-spinner size="18px" color="grey-5" />
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="notifStore.sortedMessages.length === 0" class="notif-empty">
+      <q-icon name="notifications_none" size="26px" />
+      <div>No notifications</div>
     </div>
 
     <!-- Message list -->
-    <div
-      v-for="msg in notifStore.sortedMessages"
-      :key="msg.id"
-      class="notif-item"
-      :class="{ 'notif-item--unread': !msg.read }"
-      @click="notifStore.markRead(msg.id)"
-    >
-      <div class="notif-item-dot" v-if="!msg.read" />
-      <q-icon :name="typeIcon(msg.type)" size="16px" class="notif-item-icon" />
-      <div class="notif-item-body">
-        <div class="notif-item-title">{{ msg.title }}</div>
-        <div v-if="msg.body" class="notif-item-text">{{ msg.body.slice(0, 80) }}</div>
-        <div class="notif-item-time">{{ timeAgo(msg.created_at) }}</div>
+    <div class="notif-list">
+      <div
+        v-for="msg in notifStore.sortedMessages"
+        :key="msg.id"
+        class="notif-item"
+        :class="{
+          'notif-item--unread': !msg.read,
+          'notif-item--announce': msg.type === 'announcement',
+        }"
+        @click="notifStore.markRead(msg.id)"
+      >
+        <div v-if="!msg.read" class="notif-item-dot" />
+        <q-icon :name="typeIcon(msg.type)" size="15px" class="notif-item-icon" />
+        <div class="notif-item-body">
+          <div class="notif-item-title">{{ msg.title }}</div>
+          <div v-if="msg.body" class="notif-item-text">{{ msg.body.slice(0, 90) }}</div>
+          <div class="notif-item-time">{{ timeAgo(msg.created_at) }}</div>
+        </div>
       </div>
     </div>
-  </q-drawer>
+
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useNotificationStore } from 'src/store/notifications';
-import { useI18n } from 'src/i18n';
+import { useAddressStore } from 'src/store/store';
+
+defineEmits(['close']);
 
 const notifStore = useNotificationStore();
-const { t } = useI18n();
+const store = useAddressStore();
 
 function typeIcon(type: string): string {
   const map: Record<string, string> = {
-    welcome: 'celebration',
-    'admin-join': 'group_add',
-    'pickup-claimed': 'local_shipping',
+    announcement:       'campaign',
+    welcome:            'celebration',
+    'admin-join':       'group_add',
+    'pickup-claimed':   'local_shipping',
     'pickup-delivered': 'check_circle',
-    'pickup-stocked': 'shelves',
-    'daily-digest': 'summarize',
-    bounce_permanent: 'error',
-    bounce_temporary: 'warning',
-    spam_complaint:   'report',
+    'pickup-stocked':   'shelves',
+    'daily-digest':     'summarize',
+    bounce_permanent:   'error',
+    bounce_temporary:   'warning',
+    spam_complaint:     'report',
   };
   return map[type] || 'notifications';
 }
@@ -83,23 +93,30 @@ function timeAgo(iso: string): string {
 </script>
 
 <style scoped>
-.notif-drawer {
-  background: var(--wb-bg) !important;
-  border-left: 3px solid var(--wb-border) !important;
+.notif-panel {
+  width: 320px;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: var(--wb-bg);
+  border: 2px solid var(--wb-border);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .notif-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 14px 10px;
+  padding: 12px 14px 10px;
   border-bottom: 2px solid var(--wb-border);
+  flex-shrink: 0;
 }
 
 .notif-title {
   font-family: var(--wb-font);
   font-weight: 800;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   letter-spacing: 4px;
   color: var(--wb-text);
 }
@@ -116,27 +133,56 @@ function timeAgo(iso: string): string {
   color: var(--wb-accent) !important;
 }
 
+.notif-announce-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: var(--wb-surface);
+  border-bottom: 1px solid var(--wb-border-subtle);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.58rem;
+  letter-spacing: 0.5px;
+  color: var(--wb-text-faint);
+  flex-shrink: 0;
+}
+
+.notif-announce-link {
+  color: var(--wb-accent);
+  text-decoration: none;
+}
+
+.notif-announce-link:hover {
+  text-decoration: underline;
+}
+
 .notif-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 48px 16px;
+  padding: 40px 16px;
   color: var(--wb-text-faint);
   font-family: var(--wb-font);
   font-weight: 700;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   letter-spacing: 2px;
+}
+
+.notif-list {
+  overflow-y: auto;
+  flex: 1;
 }
 
 .notif-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 11px 14px 11px 20px;
   border-bottom: 1px solid var(--wb-border-subtle);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s;
   position: relative;
 }
 
@@ -148,12 +194,17 @@ function timeAgo(iso: string): string {
   background: var(--wb-surface-alt);
 }
 
+.notif-item--announce {
+  border-left: 3px solid var(--wb-accent);
+  padding-left: 11px;
+}
+
 .notif-item-dot {
   position: absolute;
-  left: 5px;
-  top: 18px;
-  width: 6px;
-  height: 6px;
+  left: 6px;
+  top: 17px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--wb-accent);
 }
@@ -164,6 +215,10 @@ function timeAgo(iso: string): string {
   margin-top: 2px;
 }
 
+.notif-item--announce .notif-item-icon {
+  color: var(--wb-accent);
+}
+
 .notif-item-body {
   flex: 1;
   min-width: 0;
@@ -172,7 +227,7 @@ function timeAgo(iso: string): string {
 .notif-item-title {
   font-family: var(--wb-font);
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--wb-text);
   line-height: 1.3;
 }
@@ -180,16 +235,16 @@ function timeAgo(iso: string): string {
 .notif-item-text {
   font-family: var(--wb-font);
   font-weight: 600;
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   color: var(--wb-text-muted);
   margin-top: 2px;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .notif-item-time {
   font-family: var(--wb-font);
   font-weight: 600;
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   color: var(--wb-text-faint);
   margin-top: 3px;
   letter-spacing: 0.5px;

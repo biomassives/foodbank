@@ -57,6 +57,132 @@
         </div>
       </div>
 
+      <!-- ANNOUNCE -->
+      <div v-if="tab === 'announce'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">ANNOUNCE</span>
+          <span class="panel-count">Broadcast to members</span>
+        </div>
+
+        <div v-if="!store.userOrgId" class="panel-empty">
+          <q-icon name="cloud_off" size="24px" />
+          <span>Cloud connection required to send announcements</span>
+        </div>
+
+        <template v-else>
+          <div class="announce-form">
+            <q-input
+              v-model="announceTitle"
+              dense filled
+              label="Title"
+              placeholder="e.g. Pantry open Saturday 9am–1pm"
+              class="announce-input"
+              maxlength="120"
+            />
+            <q-input
+              v-model="announceBody"
+              dense filled
+              type="textarea"
+              label="Body (optional)"
+              placeholder="Additional details for members..."
+              class="announce-input"
+              rows="3"
+              maxlength="500"
+            />
+            <div class="announce-row">
+              <q-select
+                v-model="announceRole"
+                :options="announceRoleOptions"
+                dense filled
+                emit-value map-options
+                label="Send to"
+                class="announce-role-select"
+              />
+              <q-btn
+                unelevated no-caps
+                icon="campaign"
+                label="Send"
+                class="announce-send-btn"
+                :loading="announceSending"
+                :disable="!announceTitle.trim()"
+                @click="sendAnnouncement"
+              />
+            </div>
+          </div>
+
+          <div v-if="announceHistory.length > 0" class="announce-history">
+            <div class="announce-history-label">RECENT</div>
+            <div v-for="(a, i) in announceHistory" :key="i" class="announce-history-row">
+              <q-icon name="campaign" size="13px" class="announce-history-icon" />
+              <div class="announce-history-body">
+                <div class="announce-history-title">{{ a.title }}</div>
+                <div class="announce-history-meta">
+                  {{ a.role === 'all' ? 'All members' : a.role === 'editor' ? 'Editors+' : 'Admins' }}
+                  &middot; {{ new Date(a.created_at).toLocaleDateString() }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- SCHEDULE -->
+      <div v-if="tab === 'schedule'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">WEEKLY SCHEDULE</span>
+        </div>
+        <div class="sched-edit-hint">Set pantry open hours for each day. Saved locally and shown on the public homepage calendar.</div>
+
+        <div v-for="i in [1,2,3,4,5,6,0]" :key="i" class="sched-edit-row">
+          <div class="sched-edit-toggle">
+            <q-toggle v-model="weekSchedule[i].open" dense color="positive" />
+            <span class="sched-edit-day" :class="{ 'sched-edit-day--open': weekSchedule[i].open }">
+              {{ DAY_NAMES[i] }}
+            </span>
+          </div>
+          <template v-if="weekSchedule[i].open">
+            <q-input
+              v-model="weekSchedule[i].openTime"
+              type="time" dense filled
+              class="sched-edit-time"
+              label="Open"
+            />
+            <q-input
+              v-model="weekSchedule[i].closeTime"
+              type="time" dense filled
+              class="sched-edit-time"
+              label="Close"
+            />
+            <q-input
+              v-model="weekSchedule[i].locationName"
+              dense filled
+              class="sched-edit-loc"
+              label="Location"
+              placeholder="e.g. Main Pantry"
+            />
+          </template>
+          <template v-else>
+            <span class="sched-edit-closed">CLOSED</span>
+          </template>
+        </div>
+
+        <q-input
+          v-model="weekSchedule[1].notes"
+          dense filled type="textarea" rows="2"
+          label="Public note (shown on homepage)"
+          placeholder="e.g. Bring ID, enter from Oak St entrance"
+          class="sched-edit-notes"
+        />
+
+        <q-btn
+          unelevated no-caps
+          icon="save"
+          label="Save Schedule"
+          class="sched-save-btn"
+          @click="saveWeekSchedule"
+        />
+      </div>
+
       <!-- LOCATIONS -->
       <div v-if="tab === 'locations'" class="admin-panel">
         <div class="panel-head">
@@ -409,11 +535,13 @@ const genLoading = ref(false);
 const newLocName = ref('');
 
 const tabs = [
-  { key: 'members', icon: 'group', label: 'MEMBERS' },
-  { key: 'locations', icon: 'map', label: 'LOCATIONS' },
-  { key: 'invites', icon: 'vpn_key', label: 'INVITES' },
-  { key: 'data', icon: 'storage', label: 'DATA' },
-  { key: 'launch', icon: 'rocket_launch', label: 'LAUNCH' },
+  { key: 'members',  icon: 'group',         label: 'MEMBERS' },
+  { key: 'announce', icon: 'campaign',       label: 'ANNOUNCE' },
+  { key: 'schedule', icon: 'event',          label: 'SCHEDULE' },
+  { key: 'locations',icon: 'map',            label: 'LOCATIONS' },
+  { key: 'invites',  icon: 'vpn_key',        label: 'INVITES' },
+  { key: 'data',     icon: 'storage',        label: 'DATA' },
+  { key: 'launch',   icon: 'rocket_launch',  label: 'LAUNCH' },
 ];
 
 // ── Members ──────────────────────────────────────────────────────
@@ -489,6 +617,105 @@ async function fetchCloudProfiles() {
       role: p.role || 'viewer',
     }));
   } catch { /* offline */ }
+}
+
+// ── Announcements ────────────────────────────────────────────────
+
+const announceTitle = ref('');
+const announceBody = ref('');
+const announceRole = ref('all');
+const announceSending = ref(false);
+const announceHistory = ref<{ title: string; created_at: string; role: string }[]>([]);
+
+const announceRoleOptions = [
+  { label: 'All members', value: 'all' },
+  { label: 'Editors & admins', value: 'editor' },
+  { label: 'Admins only', value: 'admin' },
+];
+
+async function sendAnnouncement() {
+  if (!announceTitle.value.trim()) return;
+  if (!store.userOrgId) {
+    $q.notify({ color: 'negative', message: 'No org connected — cloud required for announcements' });
+    return;
+  }
+  announceSending.value = true;
+  try {
+    const { error } = await supabase.from('site_messages').insert({
+      org_id: store.userOrgId,
+      user_id: null,
+      type: 'announcement',
+      title: announceTitle.value.trim(),
+      body: announceBody.value.trim() || null,
+      data: { targetRole: announceRole.value },
+      read: false,
+    });
+    if (error) throw error;
+    announceHistory.value.unshift({
+      title: announceTitle.value.trim(),
+      created_at: new Date().toISOString(),
+      role: announceRole.value,
+    });
+    announceTitle.value = '';
+    announceBody.value = '';
+    $q.notify({ color: 'positive', icon: 'campaign', message: 'Announcement posted' });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Failed to post announcement' });
+  } finally {
+    announceSending.value = false;
+  }
+}
+
+async function fetchAnnounceHistory() {
+  if (!store.userOrgId) return;
+  try {
+    const { data } = await supabase
+      .from('site_messages')
+      .select('title, created_at, data')
+      .eq('org_id', store.userOrgId)
+      .eq('type', 'announcement')
+      .is('user_id', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    announceHistory.value = (data || []).map((r: any) => ({
+      title: r.title,
+      created_at: r.created_at,
+      role: r.data?.targetRole || 'all',
+    }));
+  } catch { /* offline */ }
+}
+
+// ── Schedule ─────────────────────────────────────────────────────
+
+const SCHEDULE_KEY = 'pantry-weekly-schedule';
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+interface DaySchedule { open: boolean; openTime: string; closeTime: string; locationName: string; notes: string; }
+type WeekSchedule = Record<number, DaySchedule>;
+
+function defaultDay(): DaySchedule {
+  return { open: false, openTime: '09:00', closeTime: '14:00', locationName: '', notes: '' };
+}
+
+const weekSchedule = ref<WeekSchedule>(
+  Object.fromEntries([0,1,2,3,4,5,6].map(i => [i, defaultDay()]))
+);
+
+function loadWeekSchedule() {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw) as WeekSchedule;
+      for (let i = 0; i < 7; i++) {
+        weekSchedule.value[i] = { ...defaultDay(), ...saved[i] };
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+function saveWeekSchedule() {
+  localStorage.setItem(SCHEDULE_KEY, JSON.stringify(weekSchedule.value));
+  $q.notify({ color: 'positive', icon: 'event', message: 'Schedule saved', timeout: 1500 });
 }
 
 // ── Locations ────────────────────────────────────────────────────
@@ -927,11 +1154,13 @@ function openVercelDeploy() {
 // ── Init ─────────────────────────────────────────────────────────
 
 onMounted(async () => {
+  loadWeekSchedule();
   await store.loadData();
   await store.loadLocations();
   if (store.canSync) {
     await fetchCloudProfiles();
     await fetchCloudInvites();
+    await fetchAnnounceHistory();
   }
   probeAllDatabases();
 });
@@ -1690,5 +1919,162 @@ onMounted(async () => {
   margin-left: auto;
   font-size: 0.55rem;
   color: var(--wb-text-faint);
+}
+/* ── Schedule editor ── */
+.sched-edit-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--wb-text-muted);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.sched-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  flex-wrap: wrap;
+}
+
+.sched-edit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.sched-edit-day {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--wb-text-faint);
+  letter-spacing: 0.5px;
+}
+
+.sched-edit-day--open {
+  color: var(--wb-text);
+}
+
+.sched-edit-time {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.sched-edit-loc {
+  flex: 1;
+  min-width: 120px;
+}
+
+.sched-edit-closed {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+}
+
+.sched-edit-notes {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+.sched-save-btn {
+  background: var(--wb-positive) !important;
+  color: #000 !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  border-radius: 2px;
+  width: 100%;
+}
+
+/* ── Announce ── */
+.announce-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.announce-input {
+  font-family: var(--wb-font);
+}
+
+.announce-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.announce-role-select {
+  flex: 1;
+  font-family: var(--wb-font);
+}
+
+.announce-send-btn {
+  background: var(--wb-accent) !important;
+  color: #000 !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  padding: 0 18px;
+  height: 40px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.announce-history {
+  border-top: 1px solid var(--wb-border-subtle);
+  padding-top: 12px;
+}
+
+.announce-history-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: var(--wb-text-faint);
+  margin-bottom: 8px;
+}
+
+.announce-history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.announce-history-icon {
+  color: var(--wb-accent);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.announce-history-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.announce-history-title {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--wb-text);
+}
+
+.announce-history-meta {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--wb-text-faint);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
 }
 </style>

@@ -11,12 +11,22 @@
 
       <div class="header-spacer" />
 
-      <!-- Notification bell -->
-      <button v-if="store.isLoggedIn" class="header-notif-btn" @click="notifStore.toggleDrawer()">
+      <!-- Notification bell + popover -->
+      <button v-if="store.isLoggedIn" class="header-notif-btn">
         <q-icon name="notifications_none" size="16px" />
         <span v-if="notifStore.unreadCount > 0" class="notif-badge">
           {{ notifStore.unreadCount > 9 ? '9+' : notifStore.unreadCount }}
         </span>
+        <q-menu
+          v-model="notifOpen"
+          :offset="[0, 2]"
+          anchor="bottom right"
+          self="top right"
+          :max-height="'480px'"
+          style="border-radius:3px;"
+        >
+          <notification-panel @close="notifOpen = false" />
+        </q-menu>
       </button>
 
       <!-- Search -->
@@ -44,6 +54,7 @@ import { ref, watch, nextTick } from 'vue';
 import { useAddressStore } from '../store/store';
 import { useNotificationStore } from 'src/store/notifications';
 import { useI18n } from 'src/i18n';
+import NotificationPanel from './NotificationDrawer.vue';
 
 defineEmits(['toggleDrawer']);
 
@@ -53,6 +64,7 @@ const { t } = useI18n();
 const search = ref('');
 const searchOpen = ref(false);
 const searchInput = ref<HTMLInputElement | null>(null);
+const notifOpen = ref(false);
 
 function toggleSearch() {
   searchOpen.value = !searchOpen.value;

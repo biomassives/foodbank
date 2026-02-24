@@ -51,7 +51,7 @@ export const useAddressStore = defineStore('address', () => {
       state.userOrgId = null;
       return;
     }
-    const { data } = await supabase.from('profiles').select('role, org_id').single();
+    const { data } = await supabase.from('profiles').select('role, org_id').maybeSingle();
     state.role = data?.role || 'viewer';
     state.userOrgId = data?.org_id || null;
   }

@@ -204,7 +204,7 @@ const rippleStroke = computed(() => isDark.value === 'dark' ? 'rgba(255,255,255,
 
 onMounted(async () => {
   try {
-    const res = await fetch('./test-results.json');
+    const res = await fetch('/test-results.json');
     if (!res.ok) throw new Error('not found');
     const raw = await res.json();
 
@@ -248,18 +248,26 @@ interface SuiteGroup {
 
 const groups = computed<SuiteGroup[]>(() => {
   if (!data.value) return [];
-  const sprint1: SuiteResult[] = [];
+  const sprintBuckets: Record<string, SuiteResult[]> = {};
   const unit: SuiteResult[] = [];
   const other: SuiteResult[] = [];
 
   for (const s of data.value.testResults) {
-    if (s.name.includes('/sprint1/')) sprint1.push(s);
-    else if (s.name.includes('/unit/')) unit.push(s);
-    else other.push(s);
+    const sprintMatch = s.name.match(/\/sprint(\d+)\//);
+    if (sprintMatch) {
+      const key = sprintMatch[1];
+      (sprintBuckets[key] ??= []).push(s);
+    } else if (s.name.includes('/unit/')) {
+      unit.push(s);
+    } else {
+      other.push(s);
+    }
   }
 
   const result: SuiteGroup[] = [];
-  if (sprint1.length) result.push({ label: 'SPRINT 1 — FEATURE TESTS', suites: sprint1 });
+  for (const key of Object.keys(sprintBuckets).sort()) {
+    result.push({ label: `SPRINT ${key} — FEATURE TESTS`, suites: sprintBuckets[key] });
+  }
   if (unit.length) result.push({ label: 'UNIT TESTS', suites: unit });
   if (other.length) result.push({ label: 'OTHER', suites: other });
   return result;

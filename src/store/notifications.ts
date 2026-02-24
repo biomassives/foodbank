@@ -29,14 +29,28 @@ export const useNotificationStore = defineStore('notifications', () => {
     )
   );
 
-  async function fetchMessages() {
+  async function fetchMessages(orgId?: string) {
     loading.value = true;
     try {
-      const { data } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { loading.value = false; return; }
+
+      // Personal messages + org-wide announcements (user_id IS NULL)
+      let query = supabase
         .from('site_messages')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
+
+      if (orgId) {
+        query = query.or(
+          `user_id.eq.${user.id},and(type.eq.announcement,user_id.is.null,org_id.eq.${orgId})`
+        );
+      } else {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data } = await query;
       messages.value = (data || []) as SiteMessage[];
       await cacheNotifications(messages.value);
     } catch {

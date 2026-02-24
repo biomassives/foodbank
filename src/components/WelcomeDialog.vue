@@ -116,7 +116,7 @@
         <div class="welcome-badges">
           <div class="welcome-badge welcome-badge--tdd">
             <q-icon name="verified" size="14px" />
-            <span>{{ t.welcome.tdd }}</span>
+            <span>{{ tddLabel }}</span>
           </div>
           <div class="welcome-badge welcome-badge--oss">
             <q-icon name="code" size="14px" />
@@ -176,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import WelcomeCarousel from './WelcomeCarousel.vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'src/i18n';
@@ -189,7 +189,27 @@ const router = useRouter();
 const { t } = useI18n();
 const { isDark } = useTheme();
 
-const slide = ref('welcome'); // Track the new carousel state
+const slide = ref('welcome');
+const testStats = ref<{ tests: number; suites: number } | null>(null);
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/test-results.json');
+    if (!res.ok) return;
+    const raw = await res.json();
+    testStats.value = {
+      tests: raw.numPassedTests ?? 0,
+      suites: raw.numPassedTestSuites ?? 0,
+    };
+  } catch { /* silent — badge just won't show count */ }
+});
+
+const tddLabel = computed(() => {
+  if (testStats.value) {
+    return `${testStats.value.tests} tests passing across ${testStats.value.suites} suites. ${t.welcome.tdd}`;
+  }
+  return t.welcome.tdd;
+});
 
 const show = computed({
   get: () => props.modelValue,

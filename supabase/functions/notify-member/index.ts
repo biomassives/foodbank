@@ -22,10 +22,6 @@ interface NotifyRequest {
   claimedBy?: string;
 }
 
-// Then cast it inside the handler:
-const body: NotifyRequest = await req.json();
-
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 

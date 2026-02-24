@@ -1,40 +1,37 @@
 <template>
   <q-page class="index-page">
 
-    <!-- Mobile: filter indicator or view toggle -->
-    <div v-if="!isDesktop" class="toggle-bar">
-      <!-- Active filter: back button + label -->
-      <template v-if="activeFilter">
-        <div class="filter-active-bar">
-          <q-btn flat dense round icon="arrow_back" size="sm" class="filter-back-btn" @click="clearFilter" />
-          <q-icon :name="filterIcon(activeFilter)" size="15px" :style="{ color: filterColor(activeFilter) }" />
-          <span class="filter-active-label">{{ filterLabel(activeFilter) }}</span>
-          <q-btn
-            round dense
-            icon="add"
-            class="filter-add-btn"
-            @click="filterAdd"
-          />
-        </div>
-      </template>
-      <!-- No filter: standard directory/queue toggle -->
-      <div
-        v-else-if="store.userOrgId || store.localMode || store.demoMode"
-        class="view-toggle"
-      >
+    <!-- Filter bar: shown when any filter is active (mobile + desktop) -->
+    <div v-if="activeFilter" class="toggle-bar">
+      <div class="filter-active-bar">
+        <q-btn flat dense round icon="arrow_back" size="sm" class="filter-back-btn" @click="clearFilter" />
+        <q-icon :name="filterIcon(activeFilter)" size="15px" :style="{ color: filterColor(activeFilter) }" />
+        <span class="filter-active-label">{{ filterLabel(activeFilter) }}</span>
+        <q-btn round dense icon="add" class="filter-add-btn" @click="filterAdd" />
+      </div>
+    </div>
+
+    <!-- Mobile-only: directory/queue toggle (no filter active) -->
+    <div v-else-if="!isDesktop && (store.userOrgId || store.localMode || store.demoMode)" class="toggle-bar">
+      <div class="view-toggle">
         <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'directory' }" @click="viewMode = 'directory'">DIRECTORY</button>
         <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'queue' }" @click="viewMode = 'queue'">QUEUE</button>
       </div>
     </div>
 
     <!-- Scrollable content -->
-    <div class="index-content" :class="{ 'mondrian-grid': isDesktop }">
+    <div class="index-content" :class="{ 'mondrian-grid': isDesktop && !activeFilter }">
 
+      <!-- === SCHEDULE cell (desktop top-left, always public) === -->
+      <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--schedule">
+        <div class="mondrian-cell-header">
+          THIS WEEK
+        </div>
+        <pantry-schedule-cell />
+      </div>
 
-
-
-    <!-- === QUEUE cell (always visible on desktop, toggled on mobile) === -->
-      <div v-if="isDesktop || (!activeFilter && viewMode === 'queue')" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
+      <!-- === QUEUE cell (desktop top-right; mobile toggled) === -->
+      <div v-if="(!activeFilter && isDesktop) || (!activeFilter && viewMode === 'queue')" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop">
           TASK QUEUE
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addEntry" />
@@ -42,8 +39,8 @@
         <queue-list />
       </div>
 
-      <!-- === ACTIVITY cell — summary stats (desktop only) === -->
-      <div v-if="isDesktop" class="mondrian-cell mondrian-cell--activity">
+      <!-- === ACTIVITY cell — summary stats (desktop only, no filter) === -->
+      <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--activity">
         <div class="mondrian-cell-header">ACTIVITY</div>
         <div class="activity-stats">
           <div class="activity-stat">
@@ -72,8 +69,8 @@
 
 
       <!-- === LOCATIONS cell === -->
-      <div v-if="isDesktop || activeFilter === 'contacts' || (!activeFilter && viewMode === 'directory')" :class="isDesktop ? 'mondrian-cell mondrian-cell--locations' : ''">
-        <div class="mondrian-cell-header" v-if="isDesktop">
+      <div v-if="activeFilter === 'contacts' || (!activeFilter && (isDesktop || viewMode === 'directory'))" :class="(isDesktop && !activeFilter) ? 'mondrian-cell mondrian-cell--locations' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop && !activeFilter">
           LOCATIONS
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addLocation" />
         </div>
@@ -145,8 +142,8 @@
       </div>
 
       <!-- === DIRECTORY cell === -->
-      <div v-if="isDesktop || activeFilter === 'contacts' || (!activeFilter && viewMode === 'directory')" :class="isDesktop ? 'mondrian-cell mondrian-cell--directory' : ''">
-        <div class="mondrian-cell-header" v-if="isDesktop">
+      <div v-if="activeFilter === 'contacts' || (!activeFilter && (isDesktop || viewMode === 'directory'))" :class="(isDesktop && !activeFilter) ? 'mondrian-cell mondrian-cell--directory' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop && !activeFilter">
           DIRECTORY
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addContact" />
         </div>
@@ -175,8 +172,8 @@
       </div>
 
       <!-- === COMMUNITY cell === -->
-      <div v-if="isDesktop || isCommunityFilter || (!activeFilter && viewMode === 'directory')" :class="isDesktop ? 'mondrian-cell mondrian-cell--community' : ''">
-        <div class="mondrian-cell-header" v-if="isDesktop">
+      <div v-if="isCommunityFilter || (!activeFilter && (isDesktop || viewMode === 'directory'))" :class="(isDesktop && !activeFilter) ? 'mondrian-cell mondrian-cell--community' : ''">
+        <div class="mondrian-cell-header" v-if="isDesktop && !activeFilter">
           COMMUNITY
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addEntry" />
         </div>
@@ -279,6 +276,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAddressStore } from '../store/store';
 import QueueList from '../components/QueueList.vue';
+import PantryScheduleCell from '../components/PantryScheduleCell.vue';
 import EntryModal from '../components/childcomponents/EntryModal.vue';
 import LocationModal from '../components/childcomponents/LocationModal.vue';
 import AddressModal from '../components/childcomponents/Modal.vue';

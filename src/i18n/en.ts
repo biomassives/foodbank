@@ -145,7 +145,7 @@ const en = {
     title: 'WELCOME',
     subtitle: 'Built test-first, community-driven, and open to every fork in the road.',
     body: 'Funky Pony Pantry is a GPL-licensed platform for sharing food, coordinating pickups, and connecting neighbors. Every feature ships with tests. Every release invites collaboration.',
-    tdd: '136 tests passing across 13 core features. This site is designed to help educate new developers and vibe coders.',
+    tdd: 'This site is designed to help educate new developers and vibe coders.',
     openSource: 'Open to iteration, new themes, regional variants, and community editions. Your pull request is welcome.',
     inviteLabel: 'I Have an Invite Code',
     inviteDesc: 'Enter a code from a pantry member to join their community.',

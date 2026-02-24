@@ -196,6 +196,7 @@
   border-width: 4px;
   border-color: #000;
 }
+[data-theme="bauhaus"] .mondrian-cell--schedule { background: #f8f8f5; }
 [data-theme="bauhaus"] .mondrian-cell--locations { background: #f2c800; }
 [data-theme="bauhaus"] .mondrian-cell--community { background: #d4001a; color: #fff; }
 [data-theme="bauhaus"] .mondrian-cell--community .mondrian-cell-header { color: rgba(255,255,255,0.7); }
@@ -808,7 +809,7 @@
   @media (min-width: 960px) {
     display: grid;
     grid-template-columns: 1fr 1.4fr 0.8fr;
-    grid-template-rows: 1fr 1fr auto;
+    grid-template-rows: minmax(140px, 22vh) 1fr 1fr auto;
     gap: 3px;
     min-height: calc(100vh - 60px);
     padding: 3px;
@@ -828,42 +829,51 @@
 }
 
 // Specific cell positioning for the asymmetric layout
-// Row 1 (data region): DIRECTORY spans cols 1-2, COMMUNITY takes col 3
-// Row 2 (ops region):  LOCATIONS at col 1,        QUEUE spans cols 2-3
-// Row 3 (stats):       ACTIVITY spans all cols
-.mondrian-cell--queue {
+// Row 1: SCHEDULE at col 1,        QUEUE spans cols 2-3
+// Row 2: LOCATIONS at col 1,       DIRECTORY spans cols 2-3
+// Row 3: COMMUNITY spans cols 1-2, (empty col 3)
+// Row 4: ACTIVITY spans all cols
+.mondrian-cell--schedule {
   @media (min-width: 960px) {
-    grid-column: 1 / 3;  // cols 1+2 — top primary block
+    grid-column: 1;
     grid-row: 1;
-    border-color: var(--wb-positive);
+    border-color: var(--wb-accent);
+    overflow: hidden;
   }
 }
-.mondrian-cell--community {
+.mondrian-cell--queue {
   @media (min-width: 960px) {
-    grid-column: 3;
+    grid-column: 2 / 4;  // cols 2+3
     grid-row: 1;
-    border-color: var(--wb-negative);
+    border-color: var(--wb-positive);
   }
 }
 .mondrian-cell--locations {
   @media (min-width: 960px) {
     grid-column: 1;
     grid-row: 2;
-    border-color: var(--wb-accent);
+    border-color: var(--wb-info);
   }
 }
 .mondrian-cell--directory {
   @media (min-width: 960px) {
     grid-column: 2 / 4;  // cols 2+3
     grid-row: 2;
-    border-color: var(--wb-info);
+    border-color: var(--wb-warning);
+  }
+}
+.mondrian-cell--community {
+  @media (min-width: 960px) {
+    grid-column: 1 / 4;  // full width
+    grid-row: 3;
+    border-color: var(--wb-negative);
   }
 }
 .mondrian-cell--activity {
   @media (min-width: 960px) {
     grid-column: 1 / 4;  // full width
-    grid-row: 3;
-    border-color: var(--wb-warning);
+    grid-row: 4;
+    border-color: var(--wb-border);
   }
 }
 

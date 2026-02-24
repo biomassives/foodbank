@@ -16,7 +16,16 @@ export const mockSignOut = jest.fn().mockResolvedValue({ error: null });
 // --------------- Channel / Realtime ---------------
 const channelCallbacks: Record<string, Function> = {};
 
-export const mockSubscribe = jest.fn().mockReturnValue({ unsubscribe: jest.fn() });
+// Holds the last status callback passed to .subscribe(cb) so tests can trigger
+// connection-state transitions (SUBSCRIBED, CHANNEL_ERROR, CLOSED, TIMED_OUT).
+let _statusCallback: ((status: string) => void) | null = null;
+
+export const mockSubscribe = jest.fn().mockImplementation(
+  (statusCb?: (status: string) => void) => {
+    if (typeof statusCb === 'function') _statusCallback = statusCb;
+    return { unsubscribe: jest.fn() };
+  },
+);
 
 export const mockOn = jest.fn().mockImplementation((_event, _filter, callback) => {
   channelCallbacks[_filter?.table || 'default'] = callback;
@@ -32,6 +41,18 @@ export const mockChannel = jest.fn().mockReturnValue({
 export function simulateRealtimeEvent(table: string, payload?: any) {
   const cb = channelCallbacks[table];
   if (cb) cb(payload || {});
+}
+
+/**
+ * Helper: fire a channel status transition.
+ * Mirrors what Supabase Realtime sends when the WebSocket state changes:
+ *   'SUBSCRIBED'    — connection established
+ *   'CHANNEL_ERROR' — server-side or protocol error
+ *   'TIMED_OUT'     — no PONG received within the timeout window
+ *   'CLOSED'        — WebSocket closed (network drop, server restart, etc.)
+ */
+export function simulateChannelStatus(status: 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED') {
+  if (_statusCallback) _statusCallback(status);
 }
 
 // --------------- Query builder ---------------
@@ -92,4 +113,5 @@ export function resetAllMocks() {
     mockOn, mockChannel, mockSingle, mockOrder, mockEq, mockSelect,
     mockInsert, mockUpdate, mockDelete, mockFrom }).forEach(fn => fn.mockClear());
   Object.keys(channelCallbacks).forEach(k => delete channelCallbacks[k]);
+  _statusCallback = null;
 }

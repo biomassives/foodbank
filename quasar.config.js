@@ -59,12 +59,11 @@ module.exports = configure(function (/* ctx */) {
       distDir: 'dist/spa', // Build directly into Astro's public folder
       publicPath: '/',     // Ensure assets are referenced correctly
       vueRouterBase: '/', // This ensures the router knows its home
-      vueRouterMode: 'hash',
       target: {
         browser: [ 'es2022', 'edge100', 'firefox100', 'chrome100', 'safari15.4' ],
         node: 'node20'
       },
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      vueRouterMode: 'history', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,

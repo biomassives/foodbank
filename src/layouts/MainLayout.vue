@@ -146,7 +146,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import HeaderComponent from 'components/MainHeader.vue';
 import EntryModal from 'components/childcomponents/EntryModal.vue';
-import NotificationDrawer from 'components/NotificationDrawer.vue';
 import { useAddressStore } from 'src/store/store';
 import { useNotificationStore } from 'src/store/notifications';
 import { supabase, flushMtsOutbox } from 'src/dbManagement';
@@ -223,7 +222,7 @@ onMounted(async () => {
 
   // Init notifications if logged in
   if (store.isLoggedIn) {
-    await notifStore.fetchMessages();
+    await notifStore.fetchMessages(store.userOrgId || undefined);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) notifStore.subscribeRealtime(user.id);
   }
@@ -290,7 +289,7 @@ async function handleLogout() {
   window.location.href = '/#/login'; 
 }
 </script>
-<style>
+<style lang="scss">
 /* Put this in your MainLayout.vue <style> or app.scss */
 
 .nav-drawer {
