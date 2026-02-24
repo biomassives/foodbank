@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
+@import './themes.scss';
+
+// app global css in SCSS form
+:root {
+  body {
+    display: grid;
+    background-color: var(--wb-bg);
+    background-image: url('../assets/funkypony_bak1a.gif');
+    background-repeat: repeat;
+    background-size: auto;
+    background-attachment: fixed;
+    #q-app {
+      display: flex;
+      justify-self: center;
+      max-width: $mobile-width;
+      border-radius: 0;
+      overflow: hidden;
+      background-color: var(--wb-app-bg);
+      border-left: 2px solid var(--wb-border-subtle);
+      border-right: 2px solid var(--wb-border-subtle);
+      & header.fixed-top {
+        max-width: $mobile-width;
+        margin: auto;
+      }
+      & main {
+        max-width: $mobile-width;
+        min-height: calc(100vh - 55px);
+        overflow-y: auto;
+      }
+
+      // Desktop: expand to fill
+      @media (min-width: $desktop-break) {
+        max-width: 1200px;
+        & header.fixed-top { max-width: 1200px; }
+        & main { max-width: 1200px; }
+      }
+    }
+  }
+}
+// --- Utility Classes ---
+.text-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tracking-tight { letter-spacing: -0.5px; }
+.tracking-wide  { letter-spacing: 1px; }
+
+// ── Global Quasar button fix ─────────────────────────────────────
+// $primary is #000 so Quasar defaults flat/outline buttons to black text —
+// invisible on our dark background.  Set the base to the theme text color;
+// component-level overrides that use !important still win.
+.q-btn--flat,
+.q-btn--outline {
+  color: var(--wb-text) !important;
+}
+
+// q-focus-helper uses currentColor for the ripple overlay; cap its opacity
+// so it stays a subtle surface hint regardless of button color.
+.q-btn .q-focus-helper {
+  opacity: 0.08 !important;
+  background: currentColor !important;
+}
+
+// ── Dialog input text fix ─────────────────────────────────────────
+// q-dialog teleports its DOM to <body>, which strips Vue's scoped
+// data-attributes — so any :deep() rules inside modal components
+// become dead.  These global rules ensure inputs are always readable.
+.q-dialog__inner {
+  // Input text
+  .q-field__native,
+  .q-field__input {
+    color: var(--wb-text) !important;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  // Textarea
+  textarea.q-field__native {
+    color: var(--wb-text) !important;
+  }
+
+  // Floating label + hint
+  .q-field__label {
+    color: var(--wb-text-mid) !important;
+  }
+  .q-field__messages,
+  .q-field__hint,
+  .q-field__counter {
+    color: var(--wb-text-muted) !important;
+  }
+
+  // Append/prepend icons, clear icon
+  .q-field__marginal {
+    color: var(--wb-text-muted) !important;
+  }
+
+  // Input control background
+  .q-field--filled .q-field__control {
+    background: var(--wb-card-input-bg) !important;
+  }
+
+  // q-select option chips (use-chips mode)
+  .q-chip {
+    background: rgba(253, 216, 53, 0.12) !important;
+    color: var(--wb-accent) !important;
+    border: 1px solid rgba(253, 216, 53, 0.3) !important;
+  }
+  .q-chip__icon {
+    color: var(--wb-accent) !important;
+  }
+}

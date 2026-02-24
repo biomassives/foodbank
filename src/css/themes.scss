@@ -1,0 +1,926 @@
+// ====================================================
+//  FUNKY PONY PANTRY — Design System
+//  Lou Reed / Warhol Factory aesthetic
+//  Dark-first, light-ready via CSS custom properties
+// ====================================================
+
+
+// ---- 1. Design Tokens ----
+
+:root {
+  // Surfaces
+  --wb-bg: #000;
+  --wb-bg-page: #0a0a0a;
+  --wb-app-bg: rgba(0, 0, 0, 0.83);
+  --wb-surface: #111;
+  --wb-surface-alt: #0a0a0a;
+  --wb-surface-hover: rgba(255,255,255,0.06);
+
+  // Typography
+  --wb-text: #fff;
+  --wb-text-mid: rgba(255,255,255,0.82);
+  --wb-text-muted: rgba(255,255,255,0.6);
+  --wb-text-faint: rgba(255,255,255,0.45);
+
+  // Borders
+  --wb-border: #fff;
+  --wb-border-mid: rgba(255,255,255,0.2);
+  --wb-border-subtle: rgba(255,255,255,0.12);
+
+  // Accents
+  --wb-accent: #fdd835;
+  --wb-accent-text: #000;
+  --wb-positive: #69f0ae;
+  --wb-negative: #ef5350;
+  --wb-info: #82b1ff;
+  --wb-warning: #ffab40;
+
+  // Typography
+  --wb-font: 'Nunito', sans-serif;
+
+  // Card body (onboarding)
+  --wb-card-body: #111;
+  --wb-card-body-text: rgba(255,255,255,0.82);
+  --wb-card-body-muted: rgba(255,255,255,0.6);
+  --wb-card-input-bg: rgba(255,255,255,0.06);
+  --wb-card-input-border: rgba(255,255,255,0.15);
+
+  // Modal / dialog
+  --wb-modal-bg: #111;
+  --wb-modal-border: #fff;
+  --wb-modal-header-bg: #000;
+
+  // Queue status colors
+  --wb-queue-pending: #ffab40;
+  --wb-queue-claimed: #82b1ff;
+  --wb-queue-transit: #ce93d8;
+  --wb-queue-delivered: #69f0ae;
+
+  // Count chips
+  --wb-count-num: #fdd835;
+  --wb-count-border: rgba(255,255,255,0.2);
+
+  // FAB
+  --wb-fab-bg: #fdd835;
+  --wb-fab-text: #000;
+  --wb-fab-glow: rgba(253, 216, 53, 0.3);
+  --wb-fab-loc-bg: #000;
+  --wb-fab-loc-text: #69f0ae;
+  --wb-fab-loc-border: #69f0ae;
+  --wb-fab-loc-glow: rgba(105, 240, 174, 0.2);
+}
+
+// Light theme
+[data-theme="light"] {
+  // Surfaces
+  --wb-bg: #f5f2eb;
+  --wb-bg-page: #ede8df;
+  --wb-app-bg: rgba(237, 232, 223, 0.88);
+  --wb-surface: #fff;
+  --wb-surface-alt: #faf8f4;
+  --wb-surface-hover: rgba(0,0,0,0.04);
+
+  // Typography
+  --wb-text: #1a1a1a;
+  --wb-text-mid: rgba(0,0,0,0.7);
+  --wb-text-muted: rgba(0,0,0,0.45);
+  --wb-text-faint: rgba(0,0,0,0.18);
+
+  // Borders
+  --wb-border: #333;
+  --wb-border-mid: rgba(0,0,0,0.15);
+  --wb-border-subtle: rgba(0,0,0,0.06);
+
+  // Accents — warm earth tones for light
+  --wb-accent: #c77700;
+  --wb-accent-text: #fff;
+  --wb-positive: #2e7d32;
+  --wb-negative: #c62828;
+  --wb-info: #1565c0;
+  --wb-warning: #e65100;
+
+  // Card body (onboarding)
+  --wb-card-body: #fff;
+  --wb-card-body-text: rgba(0,0,0,0.7);
+  --wb-card-body-muted: rgba(0,0,0,0.4);
+  --wb-card-input-bg: rgba(0,0,0,0.04);
+  --wb-card-input-border: rgba(0,0,0,0.12);
+
+  // Modal / dialog
+  --wb-modal-bg: #fff;
+  --wb-modal-border: #333;
+  --wb-modal-header-bg: #f5f2eb;
+
+  // Queue status colors (readable on light)
+  --wb-queue-pending: #e65100;
+  --wb-queue-claimed: #1565c0;
+  --wb-queue-transit: #7b1fa2;
+  --wb-queue-delivered: #2e7d32;
+
+  // Count chips
+  --wb-count-num: #c77700;
+  --wb-count-border: rgba(0,0,0,0.1);
+
+  // FAB
+  --wb-fab-bg: #c77700;
+  --wb-fab-text: #fff;
+  --wb-fab-glow: rgba(199, 119, 0, 0.3);
+  --wb-fab-loc-bg: #fff;
+  --wb-fab-loc-text: #2e7d32;
+  --wb-fab-loc-border: #2e7d32;
+  --wb-fab-loc-glow: rgba(46, 125, 50, 0.2);
+}
+
+// Bauhaus / Mondrian theme
+[data-theme="bauhaus"] {
+  // Surfaces — clean white with bold blocks
+  --wb-bg: #f8f8f5;
+  --wb-bg-page: #ffffff;
+  --wb-surface: #ffffff;
+  --wb-surface-alt: #f0f0ec;
+  --wb-surface-hover: rgba(0,0,0,0.03);
+
+  // Typography — high contrast black
+  --wb-text: #1a1a1a;
+  --wb-text-mid: #333333;
+  --wb-text-muted: #666666;
+  --wb-text-faint: #999999;
+
+  // Borders — thick black (Mondrian signature)
+  --wb-border: #000000;
+  --wb-border-mid: #000000;
+  --wb-border-subtle: rgba(0,0,0,0.15);
+
+  // Accents — Mondrian primary
+  --wb-accent: #d4001a;      // Mondrian red
+  --wb-accent-text: #fff;
+  --wb-positive: #1a56db;    // Mondrian blue
+  --wb-negative: #d4001a;    // Mondrian red
+  --wb-info: #1a56db;        // Mondrian blue
+  --wb-warning: #f2c800;     // Mondrian yellow
+
+  // Card body
+  --wb-card-body: #ffffff;
+  --wb-card-body-text: #333;
+  --wb-card-body-muted: #888;
+  --wb-card-input-bg: #f5f5f0;
+  --wb-card-input-border: #000;
+
+  // Modal
+  --wb-modal-bg: #fff;
+  --wb-modal-border: #000;
+  --wb-modal-header-bg: #f0f0ec;
+
+  // Queue — bold primary + black
+  --wb-queue-pending: #f2c800;
+  --wb-queue-claimed: #1a56db;
+  --wb-queue-transit: #d4001a;
+  --wb-queue-delivered: #2e7d32;
+
+  // Count
+  --wb-count-num: #d4001a;
+  --wb-count-border: #000;
+
+  // FAB
+  --wb-fab-bg: #d4001a;
+  --wb-fab-text: #fff;
+  --wb-fab-glow: rgba(212, 0, 26, 0.3);
+  --wb-fab-loc-bg: #fff;
+  --wb-fab-loc-text: #1a56db;
+  --wb-fab-loc-border: #000;
+  --wb-fab-loc-glow: rgba(26, 86, 219, 0.2);
+}
+
+// Bauhaus-specific overrides: thicker borders on grid cells
+[data-theme="bauhaus"] .mondrian-cell {
+  border-width: 4px;
+  border-color: #000;
+}
+[data-theme="bauhaus"] .mondrian-cell--locations { background: #f2c800; }
+[data-theme="bauhaus"] .mondrian-cell--community { background: #d4001a; color: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--community .mondrian-cell-header { color: rgba(255,255,255,0.7); }
+[data-theme="bauhaus"] .mondrian-cell--queue { background: #1a56db; color: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--queue .mondrian-cell-header { color: rgba(255,255,255,0.7); }
+[data-theme="bauhaus"] .mondrian-cell--directory { background: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--activity { background: #f8f8f5; }
+
+// Bauhaus queue overrides for colored cell backgrounds
+[data-theme="bauhaus"] .mondrian-cell--queue .queue-act-btn {
+  border-color: rgba(255,255,255,0.5);
+  color: #fff !important;
+}
+[data-theme="bauhaus"] .mondrian-cell--queue .queue-empty { color: rgba(255,255,255,0.6); }
+
+
+// ---- 2. Onboard Page ----
+
+.onboard-page {
+  background: var(--wb-bg-page);
+  min-height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 12px 40px;
+}
+
+.onboard-wrap {
+  width: 460px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.onboard-brand {
+  text-align: center;
+  padding: 24px 12px 20px;
+}
+
+.onboard-brand-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: 8px;
+  color: var(--wb-text);
+  line-height: 1.1;
+}
+
+.onboard-brand-tagline {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-muted);
+  margin-top: 6px;
+}
+
+
+// ---- 3. Onboard Cards — Boxy Warhol ----
+
+.onboard-card {
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid var(--wb-border-mid);
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--wb-text-muted);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  }
+
+  &.expanded {
+    cursor: default;
+    transform: none;
+    border-color: var(--theme-accent);
+    box-shadow: 0 4px 20px var(--theme-glow);
+  }
+}
+
+
+// ---- 4. Hero Section — Vector Art Canvas ----
+
+.onboard-hero {
+  background: var(--theme-bg);
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 28px 16px 24px;
+}
+
+// Screen-print scan lines
+.onboard-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+// Bottom edge (hard cut, no gradient — boxy)
+.onboard-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--theme-accent);
+  z-index: 4;
+}
+
+// SVG vector art layer
+.hero-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+// Content sits above vector art
+.onboard-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.onboard-hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.25);
+  border: 2px solid rgba(255,255,255,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.onboard-hero h2 {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+.onboard-hero p {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.8);
+  margin: 4px 0 0;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+
+// Registration marks (print alignment crosses)
+.hero-reg {
+  position: absolute;
+  z-index: 4;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255,255,255,0.12);
+  pointer-events: none;
+}
+
+
+// ---- 5. Card Body — Dark Warhol Forms ----
+
+.onboard-body {
+  background: var(--wb-card-body);
+  padding: 20px;
+  border-top: 2px solid var(--wb-border-mid);
+}
+
+.onboard-body .q-field__control {
+  background: var(--wb-card-input-bg) !important;
+  border: 1px solid var(--wb-card-input-border);
+  border-radius: 2px;
+}
+
+.onboard-body .q-field__label {
+  color: var(--wb-card-body-muted);
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+}
+
+.onboard-body .q-field__native,
+.onboard-body input,
+.onboard-body .q-field__messages {
+  color: var(--wb-card-body-text);
+  font-family: var(--wb-font);
+}
+
+.onboard-btn {
+  background: var(--theme-accent) !important;
+  color: #fff !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.75rem;
+  padding: 10px 20px;
+  box-shadow: none;
+  border: 2px solid transparent;
+  transition: box-shadow 0.2s, border-color 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 16px var(--theme-btn-shadow);
+  }
+}
+
+.onboard-body-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.5px;
+  color: var(--wb-card-body-muted);
+  text-align: center;
+}
+
+.onboard-body-divider {
+  height: 1px;
+  background: var(--wb-border-mid);
+  margin: 16px 0;
+}
+
+.invite-fail-box {
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 4px;
+  padding: 14px;
+  background: rgba(0,0,0,0.12);
+}
+
+.invite-fail-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--wb-negative, #ef5350);
+  margin-bottom: 8px;
+}
+
+.invite-fail-hint {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--wb-card-body-muted);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+
+// ---- 6. About section ----
+
+.onboard-about {
+  font-family: var(--wb-font);
+  color: var(--wb-text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.6;
+  padding: 12px 20px 0;
+  border-top: 1px solid var(--wb-border-subtle);
+  margin-top: 8px;
+}
+
+
+// ---- 7. Wizard (Setup Stepper) ----
+
+.wizard-page {
+  background: var(--wb-bg-page);
+  min-height: 100vh;
+  padding: 0 12px 40px;
+}
+
+.wizard-wrap {
+  width: 560px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.wizard-stepper {
+  background: var(--wb-surface) !important;
+  border: 2px solid var(--wb-border-mid);
+  border-radius: 3px;
+  color: var(--wb-text);
+}
+
+.wizard-stepper :deep(.q-stepper__tab) {
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.wizard-stepper :deep(.q-stepper__tab--active) {
+  color: var(--wb-accent) !important;
+}
+
+.wizard-stepper :deep(.q-stepper__dot) {
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+}
+
+.wizard-stepper :deep(.q-stepper__step-content) {
+  border-left: 1px solid var(--wb-border-mid);
+}
+
+.wizard-stepper :deep(.q-stepper__title) {
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+
+.wizard-step-body {
+  padding: 12px 4px 16px;
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.wizard-btn-next {
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-size: 0.72rem;
+  border-radius: 3px;
+  padding: 8px 20px;
+}
+
+.wizard-btn-skip {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+}
+
+
+// ====================================================
+//  THEME: SUNSET — Warm amber/orange
+//  Factory skyline at dusk
+// ====================================================
+
+.theme-sunset {
+  --theme-bg:
+    linear-gradient(178deg,
+      #ffe0b2 0%,
+      #ffb74d 15%,
+      #fb8c00 30%,
+      #e65100 50%,
+      #bf360c 70%,
+      #7f1d00 88%,
+      #4e1500 100%);
+  --theme-accent: #e65100;
+  --theme-glow: rgba(230, 81, 0, 0.35);
+  --theme-btn-shadow: rgba(191, 54, 12, 0.5);
+}
+
+
+// ====================================================
+//  THEME: FOREST — Deep green
+//  Angular tree canopy
+// ====================================================
+
+.theme-forest {
+  --theme-bg:
+    linear-gradient(178deg,
+      #c8e6c9 0%,
+      #81c784 15%,
+      #43a047 30%,
+      #2e7d32 50%,
+      #1b5e20 70%,
+      #0a3d0a 88%,
+      #052005 100%);
+  --theme-accent: #2e7d32;
+  --theme-glow: rgba(46, 125, 50, 0.35);
+  --theme-btn-shadow: rgba(27, 94, 32, 0.5);
+}
+
+
+// ====================================================
+//  THEME: MOUNTAIN — Bold blue
+//  Sharp angular peaks
+// ====================================================
+
+.theme-mountain {
+  --theme-bg:
+    linear-gradient(178deg,
+      #bbdefb 0%,
+      #64b5f6 15%,
+      #1e88e5 30%,
+      #1565c0 50%,
+      #0d47a1 70%,
+      #062460 88%,
+      #031440 100%);
+  --theme-accent: #1565c0;
+  --theme-glow: rgba(21, 101, 192, 0.35);
+  --theme-btn-shadow: rgba(13, 71, 161, 0.5);
+}
+
+
+// ====================================================
+//  DRAWER — Lou Reed / Warhol Factory
+//  Stark black, high contrast, blocky type, bold lines
+// ====================================================
+
+.nav-drawer {
+  background: var(--wb-bg) !important;
+  display: flex;
+  flex-direction: column;
+  border-right: 3px solid var(--wb-border) !important;
+}
+
+.drawer-brand {
+  padding: 20px 16px 12px;
+  border-bottom: 2px solid var(--wb-border);
+}
+
+.drawer-brand-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: 6px;
+  color: var(--wb-text);
+  line-height: 1;
+}
+
+.drawer-brand-sub {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  letter-spacing: 12px;
+  color: var(--wb-text-muted);
+  margin-top: 2px;
+}
+
+.drawer-pantry-name {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--wb-accent);
+  margin-top: 6px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.status-pill--synced {
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+}
+
+.status-pill--local {
+  color: var(--wb-info);
+  border-color: var(--wb-info);
+}
+
+.status-pill--auth {
+  color: var(--wb-warning);
+  border-color: var(--wb-warning);
+}
+
+.status-pill--visitor {
+  color: var(--wb-text-muted);
+  border-color: var(--wb-border-mid);
+}
+
+.drawer-rule {
+  height: 1px;
+  background: var(--wb-border-mid);
+  margin: 8px 12px;
+}
+
+.drawer-section-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: var(--wb-text-faint);
+  padding: 10px 16px 4px;
+}
+
+.drawer-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 1px 0;
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--wb-text);
+    background: var(--wb-surface-hover);
+    border-left-color: var(--wb-border);
+  }
+}
+
+.drawer-action--accent {
+  color: var(--wb-warning);
+  &:hover {
+    border-left-color: var(--wb-warning);
+  }
+}
+
+.drawer-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 1px 0;
+  color: var(--wb-text-mid);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--wb-text);
+    background: var(--wb-surface-hover);
+    border-left-color: var(--wb-border);
+  }
+}
+
+.drawer-nav--active {
+  color: var(--wb-accent);
+  border-left-color: var(--wb-accent);
+  background: rgba(253, 216, 53, 0.06);
+}
+
+.drawer-nav--danger {
+  color: var(--wb-negative);
+  &:hover {
+    border-left-color: var(--wb-negative);
+  }
+}
+
+.drawer-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--wb-border-subtle);
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--wb-text-faint);
+  line-height: 1.8;
+}
+
+
+// ---- Mondrian Asymmetric Grid (desktop) ----
+.mondrian-grid {
+  display: flex;
+  flex-direction: column; // mobile: stacked
+
+  @media (min-width: 960px) {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 0.8fr;
+    grid-template-rows: 1fr 1fr auto;
+    gap: 3px;
+    min-height: calc(100vh - 60px);
+    padding: 3px;
+  }
+}
+
+// Named regions with Mondrian-style colored borders
+.mondrian-cell {
+  border: 2px solid var(--wb-border);
+  padding: 0;
+  overflow-y: auto;
+  background: var(--wb-bg);
+
+  @media (min-width: 960px) {
+    border-width: 3px;
+  }
+}
+
+// Specific cell positioning for the asymmetric layout
+// Row 1 (data region): DIRECTORY spans cols 1-2, COMMUNITY takes col 3
+// Row 2 (ops region):  LOCATIONS at col 1,        QUEUE spans cols 2-3
+// Row 3 (stats):       ACTIVITY spans all cols
+.mondrian-cell--queue {
+  @media (min-width: 960px) {
+    grid-column: 1 / 3;  // cols 1+2 — top primary block
+    grid-row: 1;
+    border-color: var(--wb-positive);
+  }
+}
+.mondrian-cell--community {
+  @media (min-width: 960px) {
+    grid-column: 3;
+    grid-row: 1;
+    border-color: var(--wb-negative);
+  }
+}
+.mondrian-cell--locations {
+  @media (min-width: 960px) {
+    grid-column: 1;
+    grid-row: 2;
+    border-color: var(--wb-accent);
+  }
+}
+.mondrian-cell--directory {
+  @media (min-width: 960px) {
+    grid-column: 2 / 4;  // cols 2+3
+    grid-row: 2;
+    border-color: var(--wb-info);
+  }
+}
+.mondrian-cell--activity {
+  @media (min-width: 960px) {
+    grid-column: 1 / 4;  // full width
+    grid-row: 3;
+    border-color: var(--wb-warning);
+  }
+}
+
+// Cell headers
+.mondrian-cell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: var(--wb-accent);
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.cell-add-btn {
+  color: var(--wb-text-faint) !important;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+  &:hover {
+    opacity: 1;
+    color: var(--wb-accent) !important;
+  }
+}
+
+// Activity stats panel
+.activity-stats {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.activity-stat {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  border: 1px solid var(--wb-count-border);
+  border-radius: 3px;
+}
+
+.activity-stat-num {
+  display: block;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--wb-count-num);
+  letter-spacing: 1px;
+}
+
+.activity-stat-label {
+  display: block;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.45rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+  margin-top: 2px;
+}
