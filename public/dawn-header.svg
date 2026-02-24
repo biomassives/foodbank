@@ -1,0 +1,46 @@
+<svg viewBox="0 0 1200 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base parchment -->
+  <rect width="1200" height="80" fill="#FFF9F0"/>
+
+  <!-- Color blocks -->
+  <!-- Golden left anchor -->
+  <rect x="0"    y="0"  width="120" height="80" fill="#F9A602" opacity="0.72"/>
+  <!-- Small terracotta slice -->
+  <rect x="120"  y="0"  width="40"  height="80" fill="#E2725B" opacity="0.65"/>
+  <!-- Parchment gap: 160–300 -->
+  <!-- Morning mist band -->
+  <rect x="300"  y="0"  width="60"  height="40" fill="#4A5D66" opacity="0.45"/>
+  <!-- Parchment gap: 360–520 -->
+  <!-- Mid golden block -->
+  <rect x="520"  y="40" width="180" height="40" fill="#F9A602" opacity="0.50"/>
+  <!-- Terracotta right section -->
+  <rect x="760"  y="0"  width="30"  height="80" fill="#E2725B" opacity="0.55"/>
+  <!-- Parchment gap: 790–900 -->
+  <!-- Morning mist small -->
+  <rect x="900"  y="0"  width="80"  height="55" fill="#4A5D66" opacity="0.38"/>
+  <!-- Far-right goldenrod -->
+  <rect x="1060" y="0"  width="140" height="80" fill="#F9A602" opacity="0.62"/>
+  <!-- Terracotta corner accent -->
+  <rect x="1140" y="0"  width="60"  height="35" fill="#E2725B" opacity="0.70"/>
+
+  <!-- Horizontal grid lines -->
+  <line x1="0"   y1="40" x2="300"  y2="40" stroke="#2C2420" stroke-width="2.5"/>
+  <line x1="360" y1="40" x2="520"  y2="40" stroke="#2C2420" stroke-width="2.5"/>
+  <line x1="700" y1="40" x2="760"  y2="40" stroke="#2C2420" stroke-width="2.5"/>
+  <line x1="790" y1="55" x2="980"  y2="55" stroke="#2C2420" stroke-width="2"/>
+  <!-- Main baseline -->
+  <line x1="0"   y1="78" x2="1200" y2="78" stroke="#2C2420" stroke-width="4"/>
+
+  <!-- Vertical grid lines -->
+  <line x1="120"  y1="0" x2="120"  y2="80" stroke="#2C2420" stroke-width="3.5"/>
+  <line x1="160"  y1="0" x2="160"  y2="80" stroke="#2C2420" stroke-width="2.5"/>
+  <line x1="300"  y1="0" x2="300"  y2="80" stroke="#2C2420" stroke-width="2.5"/>
+  <line x1="360"  y1="0" x2="360"  y2="80" stroke="#2C2420" stroke-width="2"/>
+  <line x1="520"  y1="0" x2="520"  y2="80" stroke="#2C2420" stroke-width="2"/>
+  <line x1="700"  y1="0" x2="700"  y2="80" stroke="#2C2420" stroke-width="2.5"/>
+  <line x1="760"  y1="0" x2="760"  y2="80" stroke="#2C2420" stroke-width="3"/>
+  <line x1="900"  y1="0" x2="900"  y2="80" stroke="#2C2420" stroke-width="2"/>
+  <line x1="980"  y1="0" x2="980"  y2="80" stroke="#2C2420" stroke-width="2"/>
+  <line x1="1060" y1="0" x2="1060" y2="80" stroke="#2C2420" stroke-width="3"/>
+  <line x1="1140" y1="35" x2="1140" y2="80" stroke="#2C2420" stroke-width="2"/>
+</svg>

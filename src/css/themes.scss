@@ -70,6 +70,147 @@
   --wb-fab-loc-glow: rgba(105, 240, 174, 0.2);
 }
 
+/* Scoped to the data-theme attribute */
+[data-theme="mondrian-dawn"] {
+  // ── Brand palette ──────────────────────────────────
+  --q-primary:   #E2725B;   // Terracotta
+  --q-secondary: #4A5D66;   // Morning Mist
+  --q-accent:    #F9A602;   // Goldenrod
+  --bg-warm:     #FFF9F0;   // Parchment
+  --grid-line:   #2C2420;   // Deep Umber
+
+  // ── Surfaces ───────────────────────────────────────
+  --wb-bg:           #FFF9F0;
+  --wb-bg-page:      #FFF4E8;
+  --wb-app-bg:       rgba(255,249,240,0.92);
+  --wb-surface:      #FFFFFF;
+  --wb-surface-alt:  #FFF9F0;
+  --wb-surface-hover: rgba(44,36,32,0.05);
+
+  // ── Typography ─────────────────────────────────────
+  --wb-text:       #2C2420;
+  --wb-text-mid:   rgba(44,36,32,0.78);
+  --wb-text-muted: rgba(44,36,32,0.52);
+  --wb-text-faint: rgba(44,36,32,0.28);
+
+  // ── Borders ────────────────────────────────────────
+  --wb-border:        #2C2420;
+  --wb-border-mid:    rgba(44,36,32,0.22);
+  --wb-border-subtle: rgba(44,36,32,0.09);
+
+  // ── Accents ────────────────────────────────────────
+  --wb-accent:      #F9A602;           // Goldenrod
+  --wb-accent-text: #2C2420;
+  --wb-positive:    #4A7C59;           // Earthy green
+  --wb-negative:    #C0392B;           // Deep red
+  --wb-info:        #4A5D66;           // Morning mist
+  --wb-warning:     #E2725B;           // Terracotta
+
+  // ── Card body ──────────────────────────────────────
+  --wb-card-body:         #FFFFFF;
+  --wb-card-body-text:    rgba(44,36,32,0.82);
+  --wb-card-body-muted:   rgba(44,36,32,0.50);
+  --wb-card-input-bg:     rgba(44,36,32,0.04);
+  --wb-card-input-border: rgba(44,36,32,0.16);
+
+  // ── Modal / dialog ─────────────────────────────────
+  --wb-modal-bg:         #FFFFFF;
+  --wb-modal-border:     #2C2420;
+  --wb-modal-header-bg:  #FFF9F0;
+
+  // ── Queue status ───────────────────────────────────
+  --wb-queue-pending:   #E2725B;   // Terracotta
+  --wb-queue-claimed:   #4A5D66;   // Morning Mist
+  --wb-queue-transit:   #7B5EA7;   // Warm violet
+  --wb-queue-delivered: #4A7C59;   // Earthy green
+
+  // ── Count chips ────────────────────────────────────
+  --wb-count-num:    #F9A602;
+  --wb-count-border: rgba(44,36,32,0.18);
+
+  // ── FAB ────────────────────────────────────────────
+  --wb-fab-bg:        #F9A602;
+  --wb-fab-text:      #2C2420;
+  --wb-fab-glow:      rgba(249,166,2,0.28);
+  --wb-fab-loc-bg:    #FFF9F0;
+  --wb-fab-loc-text:  #4A7C59;
+  --wb-fab-loc-border:#4A7C59;
+  --wb-fab-loc-glow:  rgba(74,124,89,0.2);
+
+  // ── Quasar component overrides ─────────────────────
+  background-color: var(--wb-bg);
+  color: var(--wb-text);
+
+  .q-header {
+    background-color: var(--wb-bg) !important;
+    color: var(--wb-text) !important;
+    border-bottom: 4px solid var(--grid-line);
+    box-shadow: none;
+  }
+
+  .q-drawer {
+    background-color: var(--wb-bg);
+    border-right: 4px solid var(--grid-line);
+  }
+
+  .q-card {
+    border: 2px solid var(--grid-line);
+    border-radius: 0;
+    box-shadow: none;
+    background: #FFFFFF;
+  }
+
+  // Drawer active nav uses terracotta accent bar
+  .drawer-nav--active {
+    color: #E2725B;
+    border-left-color: #E2725B;
+    background: rgba(226,114,91,0.07);
+  }
+}
+
+// ── Mondrian grid cell overrides for dawn ──────────────
+[data-theme="mondrian-dawn"] .mondrian-cell {
+  border-width: 3px;
+  border-color: var(--grid-line);
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--schedule {
+  background: #FFF4E8;
+  border-color: #F9A602;   // Goldenrod top bar
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--welcome {
+  background: #FFFFFF;
+  border-color: #4A5D66;   // Morning mist
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--queue {
+  background: #FFF9F0;
+  border-color: #4A7C59;   // Earthy green
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--locations {
+  background: rgba(249,166,2,0.08);
+  border-color: #F9A602;   // Goldenrod
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--directory {
+  background: #FFFFFF;
+  border-color: #4A5D66;
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--community {
+  background: rgba(226,114,91,0.06);
+  border-color: #E2725B;   // Terracotta
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--activity {
+  background: #FFF9F0;
+  border-color: var(--grid-line);
+}
+[data-theme="mondrian-dawn"] .mondrian-cell-header {
+  color: #E2725B;          // Terracotta header labels
+}
+// Cell-specific header tint overrides
+[data-theme="mondrian-dawn"] .mondrian-cell--schedule .mondrian-cell-header { color: #C47E00; }
+[data-theme="mondrian-dawn"] .mondrian-cell--queue    .mondrian-cell-header { color: #4A7C59; }
+[data-theme="mondrian-dawn"] .mondrian-cell--welcome  .mondrian-cell-header { color: #4A5D66; }
+
+
+
 // Light theme
 [data-theme="light"] {
   // Surfaces

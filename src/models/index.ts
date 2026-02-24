@@ -14,9 +14,13 @@ export type EntryType =
   | 'offering'
   | 'pickup_queue'
   | 'looking_for'
-  | 'upcoming_need';
+  | 'upcoming_need'
+  | 'calendar_event';
 
 export type QueueStatus = 'pending' | 'claimed' | 'in_transit' | 'delivered' | 'stocked';
+
+export type CalendarVisibility = 'public' | 'drivers' | 'stock_pantry' | 'logistics_outreach' | 'admin';
+export type CalendarRecurrence = 'weekly' | 'biweekly' | 'monthly' | 'none';
 
 export interface Entry {
   id: string;
@@ -32,6 +36,11 @@ export interface Entry {
   syncedToCloud: boolean;
   sketch?: string;
   image?: string;
+  calendarDate?: string;
+  calendarDayOfWeek?: string;
+  calendarRecurrence?: CalendarRecurrence;
+  calendarVisibility?: CalendarVisibility[];
+  calendarLocationId?: string;
 }
 
 export type TransportSize = 'small' | 'medium' | 'large' | 'oversize' | 'superload';

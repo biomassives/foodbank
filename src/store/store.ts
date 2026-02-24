@@ -142,7 +142,7 @@ export const useAddressStore = defineStore('address', () => {
   const getEntries = computed(() => state.entryList);
 
   const getActiveEntries = computed(() =>
-    state.entryList.filter(e => e.type !== 'pickup_queue' && e.status === 'active')
+    state.entryList.filter(e => e.type !== 'pickup_queue' && e.type !== 'calendar_event' && e.status === 'active')
   );
 
   // ---- Location actions ----
@@ -224,6 +224,10 @@ export const useAddressStore = defineStore('address', () => {
   // ---- Queue claim actions ----
   const getQueueEntries = computed(() =>
     state.entryList.filter(e => e.type === 'pickup_queue')
+  );
+
+  const getCalendarEntries = computed(() =>
+    state.entryList.filter(e => e.type === 'calendar_event' && e.status === 'active')
   );
 
   async function claimEntry(id: string, claimer: string) {
@@ -318,6 +322,7 @@ export const useAddressStore = defineStore('address', () => {
     clearDemoMode,
     getActiveEntries,
     getQueueEntries,
+    getCalendarEntries,
     claimEntry,
     unclaimEntry,
     transitEntry,

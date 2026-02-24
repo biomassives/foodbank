@@ -18,6 +18,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { title: 'Settings' } },
       { path: 'tests', component: () => import('pages/TestResultsPage.vue'), meta: { title: 'Tests' } },
       { path: 'wizard', component: () => import('pages/WizardPage.vue'), meta: { title: 'Setup Wizard' } },
+      { path: 'calendar', component: () => import('pages/CalendarPage.vue'), meta: { title: 'Calendar' } },
       {
         path: 'setup',
         component: () => import('pages/SetupPage.vue'),

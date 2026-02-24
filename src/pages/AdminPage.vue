@@ -628,6 +628,59 @@
         </div>
       </div>
 
+      <!-- CALENDAR -->
+      <div v-if="tab === 'calendar'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">CALENDAR</span>
+          <span class="panel-count">{{ upcomingCalEvents.length }} events</span>
+        </div>
+        <div class="sched-edit-hint">
+          Location schedules auto-generate weekly calendar entries for 12 weeks. Manage upcoming events below.
+        </div>
+
+        <!-- Actions row -->
+        <div class="cal-mgmt-actions">
+          <q-btn
+            flat no-caps
+            icon="refresh"
+            label="Regenerate All"
+            class="cal-regen-btn"
+            :loading="calRegening"
+            @click="regenAllCalendar"
+          />
+          <q-btn
+            unelevated no-caps
+            icon="open_in_new"
+            label="Full Calendar"
+            class="cal-open-btn"
+            @click="router.push('/calendar')"
+          />
+        </div>
+
+        <!-- Upcoming event list -->
+        <div v-if="upcomingCalEvents.length === 0" class="panel-empty">
+          <q-icon name="calendar_month" size="24px" />
+          <span>No upcoming events — add location schedules to generate</span>
+        </div>
+
+        <!-- Group by week -->
+        <div v-for="(group, gi) in calEventGroups" :key="gi" class="cal-group">
+          <div class="cal-group-label">{{ group.label }}</div>
+          <div v-for="ev in group.events" :key="ev.id" class="cal-ev-row">
+            <div class="cal-ev-dot" />
+            <div class="cal-ev-info">
+              <div class="cal-ev-title">{{ ev.description }}</div>
+              <div class="cal-ev-meta">
+                <span>{{ formatCalDate(ev.calendarDate!) }}</span>
+                <span v-if="ev.location"> · {{ ev.location }}</span>
+                <span v-if="ev.calendarDayOfWeek"> · {{ ev.calendarDayOfWeek }}</span>
+              </div>
+            </div>
+            <q-btn flat dense round icon="delete_outline" size="xs" class="cal-ev-del" @click="deleteCalEvent(ev.id)" />
+          </div>
+        </div>
+      </div>
+
       <!-- Help dialog -->
       <q-dialog v-model="showHelp">
         <q-card class="help-card">
@@ -656,6 +709,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAddressStore } from 'src/store/store';
+import { useRouter } from 'vue-router';
+import { generateLocationEntries } from 'src/utils/calendar';
+import type { Location as LocType } from 'src/models';
 import { supabase, openIndexedDB } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
 import type { Location, Entry } from 'src/models';
@@ -664,6 +720,7 @@ import { buildInviteCode } from 'src/utils/inviteCode';
 
 const store = useAddressStore();
 const $q = useQuasar();
+const router = useRouter();
 
 const tab = ref('members');
 const showHelp = ref(false);
@@ -679,6 +736,7 @@ const tabs = [
   { key: 'invites',  icon: 'vpn_key',        label: 'INVITES' },
   { key: 'data',     icon: 'storage',        label: 'DATA' },
   { key: 'launch',   icon: 'rocket_launch',  label: 'LAUNCH' },
+  { key: 'calendar', icon: 'calendar_month', label: 'CALENDAR' },
 ];
 
 // ── Members ──────────────────────────────────────────────────────
@@ -1054,8 +1112,81 @@ async function addNewLocation() {
 }
 
 async function removeLocation(loc: Location) {
+  const calEntries = (store.getEntries as any[]).filter(
+    (e: any) => e.type === 'calendar_event' && e.calendarLocationId === loc.id
+  );
+  for (const ev of calEntries) await store.deleteEntry(ev.id);
   await store.deleteLocation(loc.id);
   $q.notify({ color: 'positive', message: `"${loc.name}" removed` });
+}
+
+// ── Calendar management ───────────────────────────────────────────
+
+const calRegening = ref(false);
+
+const upcomingCalEvents = computed(() => {
+  const now = new Date();
+  return (store.getEntries as any[])
+    .filter((e: any) => e.type === 'calendar_event' && e.status === 'active' && e.calendarDate && new Date(e.calendarDate) >= now)
+    .sort((a: any, b: any) => a.calendarDate.localeCompare(b.calendarDate));
+});
+
+interface CalGroup { label: string; events: any[] }
+
+const calEventGroups = computed<CalGroup[]>(() => {
+  const events = upcomingCalEvents.value;
+  if (!events.length) return [];
+  const groupMap = new Map<string, any[]>();
+  for (const ev of events) {
+    const d = new Date(ev.calendarDate);
+    // Get the Monday of this event's week
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    monday.setHours(0, 0, 0, 0);
+    const key = monday.toISOString().slice(0, 10);
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(ev);
+  }
+  return Array.from(groupMap.entries()).map(([key, evs]) => {
+    const mon = new Date(key);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return { label: `${fmt(mon)} — ${fmt(sun)}`, events: evs };
+  });
+});
+
+function formatCalDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch { return iso; }
+}
+
+async function deleteCalEvent(id: string) {
+  await store.deleteEntry(id);
+  $q.notify({ color: 'info', message: 'Event removed', timeout: 1200 });
+}
+
+async function regenAllCalendar() {
+  calRegening.value = true;
+  try {
+    // Delete all existing calendar entries
+    const toDelete = (store.getEntries as any[]).filter((e: any) => e.type === 'calendar_event');
+    for (const ev of toDelete) await store.deleteEntry(ev.id);
+    // Regenerate for all locations that have schedule days
+    const locs = store.getLocations as LocType[];
+    let total = 0;
+    for (const loc of locs) {
+      if (!loc.schedule || loc.schedule.length === 0) continue;
+      const entries = generateLocationEntries(loc.id, loc.name, loc.schedule);
+      for (const ev of entries) await store.addEntry(ev, false);
+      total += entries.length;
+    }
+    $q.notify({ color: 'positive', icon: 'calendar_month', message: `Calendar regenerated · ${total} events`, timeout: 2500 });
+  } finally {
+    calRegening.value = false;
+  }
 }
 
 // ── Invites ──────────────────────────────────────────────────────
@@ -2666,4 +2797,94 @@ onMounted(async () => {
   margin-top: 2px;
   letter-spacing: 0.5px;
 }
+
+/* ── Admin Calendar ── */
+.cal-mgmt-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.cal-regen-btn {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+}
+.cal-regen-btn:hover { color: var(--wb-accent) !important; border-color: var(--wb-accent); }
+
+.cal-open-btn {
+  background: var(--wb-info) !important;
+  color: #000 !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  border-radius: 2px;
+}
+
+.cal-group {
+  margin-bottom: 14px;
+}
+
+.cal-group-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  margin-bottom: 4px;
+}
+
+.cal-ev-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.cal-ev-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wb-info);
+  flex-shrink: 0;
+}
+
+.cal-ev-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cal-ev-title {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--wb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-ev-meta {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--wb-text-faint);
+  margin-top: 1px;
+}
+
+.cal-ev-del {
+  color: var(--wb-negative) !important;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+.cal-ev-del:hover { opacity: 1; }
 </style>

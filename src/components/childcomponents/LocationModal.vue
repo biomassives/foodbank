@@ -112,6 +112,8 @@ import { ref, watch, toRef } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import type { Location, DayOfWeek, TransportSize } from 'src/models';
+import { generateLocationEntries } from 'src/utils/calendar';
+import type { Entry } from 'src/models';
 
 const props = defineProps<{
   cardState: boolean;
@@ -243,10 +245,27 @@ async function save() {
 
   if (editing.value) {
     await store.updateLocation(editId.value, loc);
-    $q.notify({ color: 'positive', message: 'Location updated.' });
+    // Refresh calendar entries for this location
+    if (loc.schedule.length > 0) {
+      const existing = (store.getEntries as Entry[]).filter(
+        e => e.type === 'calendar_event' && e.calendarLocationId === editId.value
+      );
+      for (const ev of existing) await store.deleteEntry(ev.id);
+      const newEntries = generateLocationEntries(editId.value, loc.name, loc.schedule);
+      for (const ev of newEntries) await store.addEntry(ev, false);
+    }
+    $q.notify({ color: 'positive', message: `Location updated${loc.schedule.length ? ' · calendar refreshed' : ''}.` });
   } else {
     await store.addLocation(loc);
-    $q.notify({ color: 'positive', message: 'Location saved.' });
+    // Find the saved location (id was assigned by DB)
+    if (loc.schedule.length > 0) {
+      const saved = (store.getLocations as Location[]).find(l => l.name === loc.name);
+      if (saved) {
+        const newEntries = generateLocationEntries(saved.id, saved.name, saved.schedule);
+        for (const ev of newEntries) await store.addEntry(ev, false);
+      }
+    }
+    $q.notify({ color: 'positive', message: `Location saved${loc.schedule.length ? ' · ' + loc.schedule.length * 12 + ' calendar events created' : ''}.` });
   }
   emit('update:cardState', false);
 }
