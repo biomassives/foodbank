@@ -1056,7 +1056,7 @@ onMounted(async () => {
   object-fit: cover;
   border-radius: 2px;
   border: 1px solid var(--wb-border-mid);
-  background: var(--wb-surface-alt);
+  background: #0a0a0a;
   flex-shrink: 0;
   align-self: flex-start;
 }

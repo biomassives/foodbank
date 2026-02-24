@@ -96,7 +96,7 @@ onMounted(() => {
   object-fit: contain;
   border-radius: 2px;
   opacity: 0.92;
-  background: transparent;
+  background: #0a0a0a;
   margin-top: 4px;
 }
 </style>

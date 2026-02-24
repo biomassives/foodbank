@@ -4,6 +4,8 @@
       <canvas
         ref="canvasEl"
         class="sketch-canvas"
+        :class="{ 'stamp-mode': stampMode }"
+        :style="{ height: (canvasHeight ?? 180) + 'px' }"
         @mousedown="startDraw"
         @mousemove="onDraw"
         @mouseup="endDraw"
@@ -23,7 +25,7 @@
           class="sketch-swatch"
           :class="{ active: strokeColor === c }"
           :style="{ background: c }"
-          @click="strokeColor = c"
+          @click="strokeColor = c; stampMode = false"
         />
       </div>
 
@@ -33,10 +35,26 @@
           v-for="w in widths"
           :key="w.size"
           class="sketch-width-btn"
-          :class="{ active: strokeWidth === w.size }"
-          @click="strokeWidth = w.size"
+          :class="{ active: strokeWidth === w.size && !stampMode }"
+          @click="strokeWidth = w.size; stampMode = false"
         >
           <span class="sketch-width-dot" :style="{ width: w.size + 'px', height: w.size + 'px' }" />
+        </button>
+      </div>
+
+      <div class="sketch-sep" />
+
+      <!-- Icon stamps -->
+      <div class="sketch-icons">
+        <button
+          v-for="ic in stampIcons"
+          :key="ic.name"
+          class="sketch-icon-btn"
+          :class="{ active: stampMode && selectedIcon?.name === ic.name }"
+          :title="ic.name"
+          @click="selectStamp(ic)"
+        >
+          <q-icon :name="ic.name" size="14px" />
         </button>
       </div>
 
@@ -48,12 +66,12 @@
       </button>
 
       <!-- Undo -->
-      <button class="sketch-tool-btn" :disabled="paths.length === 0" @click="undo">
+      <button class="sketch-tool-btn" :disabled="items.length === 0" @click="undo">
         <q-icon name="undo" size="14px" />
       </button>
 
       <!-- Clear -->
-      <button class="sketch-tool-btn" :disabled="paths.length === 0" @click="clearCanvas">
+      <button class="sketch-tool-btn" :disabled="items.length === 0" @click="clearCanvas">
         <q-icon name="delete_outline" size="14px" />
       </button>
     </div>
@@ -64,19 +82,42 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 interface Point { x: number; y: number }
-interface StrokePath { points: Point[]; color: string; width: number }
+interface StrokePath { type: 'stroke'; points: Point[]; color: string; width: number }
+interface IconStamp { type: 'icon'; x: number; y: number; char: string; name: string; color: string; size: number }
+type DrawItem = StrokePath | IconStamp;
+
+interface StampIcon { name: string; char: string }
+
+const props = defineProps<{ canvasHeight?: number }>();
 
 const emit = defineEmits<{ (e: 'update:modelValue', val: string): void }>();
 
 const canvasEl = ref<HTMLCanvasElement | null>(null);
-const paths = ref<StrokePath[]>([]);
+const items = ref<DrawItem[]>([]);
 const drawing = ref(false);
 const strokeColor = ref('#fff');
 const strokeWidth = ref(3);
 const showGrid = ref(false);
+const stampMode = ref(false);
+const selectedIcon = ref<StampIcon | null>(null);
 
 const palette = ['#fff', '#fdd835', '#69f0ae', '#82b1ff', '#ef5350', '#ffab40'];
 const widths = [{ size: 2 }, { size: 4 }, { size: 8 }];
+
+const stampIcons: StampIcon[] = [
+  { name: 'favorite',            char: '\uE87D' },
+  { name: 'star',                char: '\uE838' },
+  { name: 'home',                char: '\uE88A' },
+  { name: 'people',              char: '\uE7FB' },
+  { name: 'eco',                 char: '\uEA35' },
+  { name: 'local_grocery_store', char: '\uE547' },
+  { name: 'restaurant',          char: '\uE56C' },
+  { name: 'pets',                char: '\uE91D' },
+  { name: 'cake',                char: '\uE7E9' },
+  { name: 'thumb_up',            char: '\uE8DC' },
+  { name: 'wb_sunny',            char: '\uE430' },
+  { name: 'volunteer_activism',  char: '\uEA70' },
+];
 
 let ctx: CanvasRenderingContext2D | null = null;
 let dpr = 1;
@@ -109,23 +150,49 @@ function getPos(e: MouseEvent | TouchEvent): Point {
 }
 
 function startDraw(e: MouseEvent | TouchEvent) {
-  drawing.value = true;
   const pos = getPos(e);
-  paths.value.push({ points: [pos], color: strokeColor.value, width: strokeWidth.value });
+  if (stampMode.value && selectedIcon.value) {
+    const stamp: IconStamp = {
+      type: 'icon',
+      x: pos.x,
+      y: pos.y,
+      char: selectedIcon.value.char,
+      name: selectedIcon.value.name,
+      color: strokeColor.value,
+      size: 28 + strokeWidth.value * 3,
+    };
+    items.value.push(stamp);
+    drawIconStamp(stamp);
+    emitData();
+    return;
+  }
+  drawing.value = true;
+  items.value.push({ type: 'stroke', points: [pos], color: strokeColor.value, width: strokeWidth.value });
 }
 
 function onDraw(e: MouseEvent | TouchEvent) {
-  if (!drawing.value || !ctx) return;
+  if (stampMode.value || !drawing.value || !ctx) return;
   const pos = getPos(e);
-  const current = paths.value[paths.value.length - 1];
+  const current = items.value[items.value.length - 1] as StrokePath;
   current.points.push(pos);
   drawLastSegment(current);
 }
 
 function endDraw() {
-  if (!drawing.value) return;
+  if (stampMode.value || !drawing.value) return;
   drawing.value = false;
   emitData();
+}
+
+function drawIconStamp(stamp: IconStamp) {
+  if (!ctx) return;
+  ctx.save();
+  ctx.font = `${stamp.size}px "Material Icons"`;
+  ctx.fillStyle = stamp.color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(stamp.char, stamp.x, stamp.y);
+  ctx.restore();
 }
 
 /** Draw just the latest segment for performance */
@@ -145,7 +212,6 @@ function drawLastSegment(path: StrokePath) {
     ctx.moveTo(pts[0].x, pts[0].y);
     ctx.lineTo(pts[1].x, pts[1].y);
   } else {
-    // Smooth curve through midpoints
     const p0 = pts[len - 3];
     const p1 = pts[len - 2];
     const p2 = pts[len - 1];
@@ -164,7 +230,6 @@ function redraw() {
   const h = canvasEl.value.getBoundingClientRect().height;
   ctx.clearRect(0, 0, w, h);
 
-  // Grid
   if (showGrid.value) {
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 0.5;
@@ -177,34 +242,43 @@ function redraw() {
     }
   }
 
-  // Paths
-  for (const path of paths.value) {
-    if (path.points.length < 2) continue;
-    ctx.strokeStyle = path.color;
-    ctx.lineWidth = path.width;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(path.points[0].x, path.points[0].y);
-    for (let i = 1; i < path.points.length - 1; i++) {
-      const mx = (path.points[i].x + path.points[i + 1].x) / 2;
-      const my = (path.points[i].y + path.points[i + 1].y) / 2;
-      ctx.quadraticCurveTo(path.points[i].x, path.points[i].y, mx, my);
+  for (const item of items.value) {
+    if (item.type === 'icon') {
+      drawIconStamp(item);
+    } else {
+      const path = item as StrokePath;
+      if (path.points.length < 2) continue;
+      ctx.strokeStyle = path.color;
+      ctx.lineWidth = path.width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(path.points[0].x, path.points[0].y);
+      for (let i = 1; i < path.points.length - 1; i++) {
+        const mx = (path.points[i].x + path.points[i + 1].x) / 2;
+        const my = (path.points[i].y + path.points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(path.points[i].x, path.points[i].y, mx, my);
+      }
+      const last = path.points[path.points.length - 1];
+      ctx.lineTo(last.x, last.y);
+      ctx.stroke();
     }
-    const last = path.points[path.points.length - 1];
-    ctx.lineTo(last.x, last.y);
-    ctx.stroke();
   }
 }
 
+function selectStamp(ic: StampIcon) {
+  selectedIcon.value = ic;
+  stampMode.value = true;
+}
+
 function undo() {
-  paths.value.pop();
+  items.value.pop();
   redraw();
   emitData();
 }
 
 function clearCanvas() {
-  paths.value = [];
+  items.value = [];
   redraw();
   emitData();
 }
@@ -216,16 +290,24 @@ function toggleGrid() {
 
 function emitData() {
   if (!canvasEl.value) return;
-  if (paths.value.length === 0) {
+  if (items.value.length === 0) {
     emit('update:modelValue', '');
     return;
   }
-  emit('update:modelValue', canvasEl.value.toDataURL('image/png'));
+  // Bake dark background into the exported PNG so white strokes are visible on light themes
+  const c = canvasEl.value;
+  const offscreen = document.createElement('canvas');
+  offscreen.width = c.width;
+  offscreen.height = c.height;
+  const offCtx = offscreen.getContext('2d')!;
+  offCtx.fillStyle = '#0a0a0a';
+  offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
+  offCtx.drawImage(c, 0, 0);
+  emit('update:modelValue', offscreen.toDataURL('image/png'));
 }
 
-/** Reset canvas when parent clears */
 function reset() {
-  paths.value = [];
+  items.value = [];
   nextTick(() => redraw());
 }
 
@@ -234,7 +316,6 @@ let resizeObs: ResizeObserver | null = null;
 onMounted(() => {
   initCanvas();
   resizeObs = new ResizeObserver(() => {
-    // Preserve paths but re-init dimensions
     initCanvas();
   });
   if (canvasEl.value) resizeObs.observe(canvasEl.value);
@@ -262,9 +343,12 @@ defineExpose({ reset });
 .sketch-canvas {
   display: block;
   width: 100%;
-  height: 180px;
   cursor: crosshair;
   touch-action: none;
+}
+
+.sketch-canvas.stamp-mode {
+  cursor: cell;
 }
 
 .sketch-toolbar {
@@ -274,6 +358,7 @@ defineExpose({ reset });
   padding: 6px 8px;
   background: #000;
   border-top: 1px solid var(--wb-border-mid, rgba(255,255,255,0.15));
+  flex-wrap: wrap;
 }
 
 .sketch-colors {
@@ -333,6 +418,36 @@ defineExpose({ reset });
   height: 16px;
   background: var(--wb-border-mid, rgba(255,255,255,0.15));
   margin: 0 4px;
+}
+
+.sketch-icons {
+  display: flex;
+  gap: 2px;
+}
+
+.sketch-icon-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--wb-text-muted, rgba(255,255,255,0.4));
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sketch-icon-btn:hover {
+  color: #fff;
+  background: var(--wb-surface-hover, rgba(255,255,255,0.06));
+}
+
+.sketch-icon-btn.active {
+  color: var(--wb-accent, #fdd835);
+  border-color: var(--wb-accent, #fdd835);
 }
 
 .sketch-tool-btn {

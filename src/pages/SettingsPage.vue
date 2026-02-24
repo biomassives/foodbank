@@ -550,12 +550,13 @@ import { useTheme } from 'src/composables/useTheme';
 
 const store = useAddressStore();
 const $q = useQuasar();
-const { isDark, set: themeSet } = useTheme();
+const { isDark, theme, set: themeSet } = useTheme();
 
 const themeOptions = [
-  { value: 'dark' as const, icon: 'dark_mode', label: 'Dark Mode', hint: 'Warhol Factory — stark & bold' },
-  { value: 'light' as const, icon: 'light_mode', label: 'Light Mode', hint: 'Earth tones — warm & readable' },
-  { value: 'bauhaus' as const, icon: 'grid_view', label: 'Bauhaus', hint: 'Mondrian — primary colors & bold black lines' },
+  { value: 'dark' as const,          icon: 'dark_mode',        label: 'Dark Mode',      hint: 'Warhol Factory — stark & bold' },
+  { value: 'light' as const,         icon: 'light_mode',       label: 'Light Mode',     hint: 'Earth tones — warm & readable' },
+  { value: 'bauhaus' as const,       icon: 'grid_view',        label: 'Bauhaus',        hint: 'Mondrian — primary colors & bold black lines' },
+  { value: 'mondrian-dawn' as const, icon: 'wb_twilight',      label: 'Mondrian Dawn',  hint: 'Terracotta & goldenrod — warm morning palette' },
 ];
 
 const confirmClear = ref(false);

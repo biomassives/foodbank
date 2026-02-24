@@ -1,15 +1,25 @@
 import { ref, watchEffect } from 'vue';
 
-// Added 'mondrian-dawn' to the type definition
 type Theme = 'dark' | 'light' | 'bauhaus' | 'mondrian-dawn';
 
 const STORAGE_KEY = 'wb-theme';
 
+/**
+ * 4-period 6-hour rotation (used as the default for new visitors).
+ * Once a theme is stored in localStorage (either auto-picked or user-chosen),
+ * it persists until the user changes it in Settings.
+ *
+ *  00:00 – 05:59  →  dark          (night)
+ *  06:00 – 11:59  →  mondrian-dawn (morning)
+ *  12:00 – 17:59  →  light         (afternoon)
+ *  18:00 – 23:59  →  bauhaus       (evening)
+ */
 function getDefaultTheme(): Theme {
   const hour = new Date().getHours();
-  // Early morning context (6am - 9am) gets the new theme by default!
-  if (hour >= 6 && hour < 9) return 'mondrian-dawn';
-  return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+  if (hour < 6)  return 'dark';
+  if (hour < 12) return 'mondrian-dawn';
+  if (hour < 18) return 'light';
+  return 'bauhaus';
 }
 
 const current = ref<Theme>(
@@ -31,7 +41,6 @@ export function useTheme() {
   });
 
   function toggle() {
-    // Included 'mondrian-dawn' in the rotation
     const order: Theme[] = ['dark', 'light', 'bauhaus', 'mondrian-dawn'];
     const idx = order.indexOf(current.value);
     current.value = order[(idx + 1) % order.length];
@@ -41,8 +50,14 @@ export function useTheme() {
     current.value = theme;
   }
 
+  // isDark is exported as the full theme value (not boolean) because
+  // SettingsPage uses it as `isDark === 'dark'` / `isDark === opt.value`.
+  // This naming is legacy; use `theme` for new code.
+  const isDark = current;
+
   return {
-    theme: current, 
+    theme: current,
+    isDark,
     toggle,
     set,
   };

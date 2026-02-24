@@ -87,7 +87,7 @@
           </div>
 
           <!-- Sketch pad for new drawing -->
-          <sketch-pad ref="homepageSketchRef" v-model="newDrawingData" />
+          <sketch-pad ref="homepageSketchRef" v-model="newDrawingData" :canvas-height="240" />
 
           <q-btn
             unelevated no-caps
@@ -2500,7 +2500,7 @@ onMounted(async () => {
   width: 100%;
   max-height: 160px;
   object-fit: contain;
-  background: var(--wb-surface-alt);
+  background: #0a0a0a;
 }
 
 .drawing-clear-btn {

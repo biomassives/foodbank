@@ -24,15 +24,15 @@
       <section class="profile-section">
         <div class="section-hd">IDENTITY</div>
 
-        <q-input v-model="form.display_name" filled dark dense label="Display Name"
-          class="profile-input" color="yellow" />
+        <q-input v-model="form.display_name" filled :dark="isDarkTheme" dense label="Display Name"
+          class="profile-input" />
 
-        <q-input v-model="form.bio" filled dark dense label="Bio" type="textarea"
-          :rows="3" autogrow class="profile-input" color="yellow"
+        <q-input v-model="form.bio" filled :dark="isDarkTheme" dense label="Bio" type="textarea"
+          :rows="3" autogrow class="profile-input"
           hint="A short note about yourself for pantry members" />
 
-        <q-input v-model="form.location_label" filled dark dense label="Location"
-          class="profile-input" color="yellow"
+        <q-input v-model="form.location_label" filled :dark="isDarkTheme" dense label="Location"
+          class="profile-input"
           hint="Neighbourhood or area (not a full address)" />
       </section>
 
@@ -137,9 +137,9 @@
 
         <q-input
           v-model="form.off_week_notes"
-          filled dark dense label="Off-weeks & exceptions"
+          filled :dark="isDarkTheme" dense label="Off-weeks & exceptions"
           type="textarea" :rows="2" autogrow
-          class="profile-input q-mt-md" color="yellow"
+          class="profile-input q-mt-md"
           hint="e.g. 'Away first week of month' or 'No evenings in winter'"
         />
       </section>
@@ -218,9 +218,12 @@ import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import EntryModal from 'src/components/childcomponents/EntryModal.vue';
 import type { Entry, DayOfWeek } from 'src/models';
+import { useTheme } from 'src/composables/useTheme';
 
 const store = useAddressStore();
 const $q = useQuasar();
+const { theme } = useTheme();
+const isDarkTheme = computed(() => theme.value === 'dark');
 
 // ── Constants ─────────────────────────────────────────────────────
 const DAYS: DayOfWeek[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -541,7 +544,7 @@ function entryTypeLabel(type: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1a1a1a;
+  background: var(--wb-surface);
 }
 
 .avatar-overlay {
@@ -607,6 +610,29 @@ function entryTypeLabel(type: string): string {
 }
 
 .profile-input { margin-bottom: 10px; }
+
+/* Override Quasar input internals to respect theme tokens */
+.profile-input :deep(.q-field__control) {
+  background: var(--wb-card-input-bg) !important;
+  border: 1px solid var(--wb-card-input-border) !important;
+}
+.profile-input :deep(.q-field__label) {
+  color: var(--wb-text-muted) !important;
+}
+.profile-input :deep(.q-field__native),
+.profile-input :deep(.q-field__native::placeholder),
+.profile-input :deep(textarea) {
+  color: var(--wb-text) !important;
+}
+.profile-input :deep(.q-field__messages) {
+  color: var(--wb-text-faint) !important;
+}
+.profile-input :deep(.q-field--focused .q-field__label) {
+  color: var(--wb-accent) !important;
+}
+.profile-input :deep(.q-field--focused .q-field__control::after) {
+  background: var(--wb-accent) !important;
+}
 
 /* ── Groups ── */
 .group-card {
@@ -972,7 +998,7 @@ function entryTypeLabel(type: string): string {
   width: 100%;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--wb-surface-hover);
+  background: #0a0a0a;
 }
 
 .entry-thumb-img {

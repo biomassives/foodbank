@@ -21,7 +21,7 @@
       </div>
 
       <div class="drawer-content-relative">
-        <div class="drawer-header-block q-pa-lg">
+        <div class="drawer-header-block q-pa-md">
           <div class="brand-text-main">{{ t.app.brand }}</div>
           <div class="brand-text-sub">{{ t.app.brandSub }}</div>
         </div>
@@ -37,7 +37,7 @@
           </div>
         </div>
 
-        <q-scroll-area class="col" style="height: calc(100% - 220px);">
+        <q-scroll-area class="col" style="flex: 1; height: 0;">
           <div class="drawer-section-label">Data</div>
           <div class="q-px-sm">
 
@@ -273,261 +273,218 @@ async function handleLogout() {
 </script>
 
 <style lang="scss">
-/* ── Dark Factory drawer (default) ── */
+// ── Drawer layout — all colors via CSS variables so every theme works ──
+
 .nav-drawer {
-  background-color: #121212;
-  color: #ececec;
+  // background handled by themes.scss with !important
+  color: var(--wb-text);
+}
+
+// Full-height flex column so scroll area fills remaining space
+.drawer-content-relative {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .drawer-header-block {
-  background: #000000;
-  border-bottom: 2px solid #333;
-  padding: 32px 24px;
+  flex-shrink: 0;
+  background: var(--wb-surface);
+  border-bottom: 2px solid var(--wb-border-mid);
 }
 
 .brand-text-main {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 900;
-  font-size: 1.5rem;
-  color: #fff;
-  letter-spacing: -1px;
+  font-size: 1.25rem;
+  color: var(--wb-text);
+  letter-spacing: 4px;
+  line-height: 1.1;
 }
 
 .brand-text-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  color: #00ffc3;
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  color: var(--wb-accent);
   text-transform: uppercase;
   letter-spacing: 3px;
+  margin-top: 3px;
 }
 
 .status-strip-container {
-  background: #1a1a1a;
-  border-bottom: 1px solid #2a2a2a;
-  padding: 8px 16px;
-  min-height: 32px;
+  flex-shrink: 0;
+  background: var(--wb-surface-alt);
+  border-bottom: 1px solid var(--wb-border-subtle);
+  padding: 7px 14px;
 }
 
 .status-pill-minimal {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 2px 8px;
   border-radius: 2px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
+  font-weight: 700;
   letter-spacing: 1px;
 }
 
 .status-pill--visitor {
-  background: rgba(255,255,255,0.05);
-  color: #888;
-  border: 1px solid #444;
+  color: var(--wb-text-faint);
+  border: 1px solid var(--wb-border-mid);
 }
 .status-pill--local {
-  background: rgba(255,193,7,0.1);
-  color: #ffc107;
-  border: 1px solid rgba(255,193,7,0.3);
+  color: var(--wb-info);
+  border: 1px solid var(--wb-info);
 }
 .status-pill--synced {
-  background: rgba(0,255,195,0.1);
-  color: #00ffc3;
-  border: 1px solid rgba(0,255,195,0.3);
+  color: var(--wb-positive);
+  border: 1px solid var(--wb-positive);
 }
 .status-pill--auth {
-  background: rgba(255,171,64,0.1);
-  color: #ffab40;
-  border: 1px solid rgba(255,171,64,0.3);
+  color: var(--wb-warning);
+  border: 1px solid var(--wb-warning);
 }
 
 .status-text { font-weight: 800; }
 
 .pantry-label-tag {
-  color: #555;
-  font-size: 10px;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
   font-weight: 700;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
+// Section labels inside scroll area
 .drawer-section-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 28px 20px 8px;
+  font-family: var(--wb-font);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  color: #555;
+  color: var(--wb-text-faint);
+  padding: 14px 16px 5px;
 }
 
-/* Dual-action rows */
+// Dual-action rows (icon add + text nav)
 .drawer-dual-item {
   display: flex;
   align-items: center;
-  margin: 2px 8px;
+  margin: 1px 8px;
 }
 
 .drawer-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   cursor: pointer;
-  border-radius: 4px;
-  color: #444;
-  border-right: 1px solid #222;
-  transition: all 0.2s ease;
+  color: var(--wb-text-faint);
+  border-right: 1px solid var(--wb-border-subtle);
+  transition: color 0.15s, background 0.15s;
 
-  .q-icon { font-size: 18px; }
-  &:hover { background: #1e1e1e; color: #00ffc3; }
+  .q-icon { font-size: 16px; }
+  &:hover { color: var(--wb-accent); background: var(--wb-surface-hover); }
 }
 
 .drawer-text-link {
   flex: 1;
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 9px 14px;
   cursor: pointer;
-  border-radius: 0 4px 4px 0;
-  color: #bbb;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.2s ease;
-  &:hover { background: #252525; color: #fff; }
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: color 0.15s, background 0.15s;
+  &:hover { color: var(--wb-text); background: var(--wb-surface-hover); }
 }
 
 .drawer-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
-  margin: 2px 8px;
+  gap: 10px;
+  padding: 9px 14px;
+  margin: 1px 8px;
   cursor: pointer;
-  border-radius: 4px;
-  color: #bbb;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  .q-icon { font-size: 18px; color: #555; }
-  &:hover { background: #252525; color: #fff; .q-icon { color: #00ffc3; } }
+  border-left: 3px solid transparent;
+  border-radius: 0 3px 3px 0;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+
+  .q-icon { font-size: 16px; color: var(--wb-text-faint); flex-shrink: 0; }
+
+  &:hover {
+    color: var(--wb-text);
+    background: var(--wb-surface-hover);
+    border-left-color: var(--wb-border);
+    .q-icon { color: var(--wb-accent); }
+  }
 }
 
 .active-block {
-  background: #252525 !important;
-  color: #00ffc3 !important;
-  border-left: 3px solid #00ffc3;
-  .q-icon { color: #00ffc3 !important; }
+  color: var(--wb-accent) !important;
+  background: var(--wb-surface-hover) !important;
+  border-left: 3px solid var(--wb-accent) !important;
+  .q-icon { color: var(--wb-accent) !important; }
 }
 
 .drawer-hr {
   height: 1px;
-  background: #333;
-  margin: 20px;
+  background: var(--wb-border-subtle);
+  margin: 6px 14px;
 }
 
 .drawer-footer-minimal {
-  border-top: 1px solid #222;
+  flex-shrink: 0;
+  border-top: 1px solid var(--wb-border-subtle);
+  color: var(--wb-text-faint);
 }
 
-/* Profile nav */
-.profile-nav-item { align-items: center; gap: 14px; }
-.profile-nav-text { display: flex; flex-direction: column; gap: 1px; }
+// Profile row
+.profile-nav-item { align-items: center; gap: 12px; }
+.profile-nav-text { display: flex; flex-direction: column; gap: 2px; }
 .profile-nav-name {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--wb-font);
   font-weight: 700;
-  font-size: 0.88rem;
-  color: #ddd;
+  font-size: 0.82rem;
+  color: var(--wb-text-mid);
 }
 .profile-nav-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.55rem;
-  font-weight: 700;
+  font-family: var(--wb-font);
+  font-size: 0.52rem;
+  font-weight: 800;
   letter-spacing: 2px;
-  color: #00ffc3;
-  opacity: 0.7;
+  color: var(--wb-accent);
+  opacity: 0.85;
 }
 
-/* ── Mondrian Dawn drawer overrides ── */
-[data-theme="mondrian-dawn"] .nav-drawer {
-  background-color: #FFF9F0;
-  color: #2C2420;
-  border-right: 4px solid #2C2420 !important;
-}
+// ── Mondrian Dawn decoration elements ──────────────────────────
 
-[data-theme="mondrian-dawn"] .drawer-header-block {
-  background: #FFF4E8;
-  border-bottom: 3px solid #2C2420;
-}
-
-[data-theme="mondrian-dawn"] .brand-text-main {
-  color: #2C2420;
-}
-
-[data-theme="mondrian-dawn"] .brand-text-sub {
-  color: #E2725B;
-}
-
-[data-theme="mondrian-dawn"] .status-strip-container {
-  background: #FFF4E8;
-  border-bottom: 1px solid rgba(44,36,32,0.15);
-}
-
-[data-theme="mondrian-dawn"] .drawer-section-label {
-  color: rgba(44,36,32,0.4);
-  font-family: var(--wb-font);
-}
-
-[data-theme="mondrian-dawn"] .drawer-text-link {
-  color: rgba(44,36,32,0.72);
-  font-family: var(--wb-font);
-  font-weight: 700;
-  &:hover { background: rgba(44,36,32,0.05); color: #2C2420; }
-}
-
-[data-theme="mondrian-dawn"] .drawer-nav-item {
-  color: rgba(44,36,32,0.72);
-  font-family: var(--wb-font);
-  font-weight: 700;
-  .q-icon { color: rgba(44,36,32,0.35); }
-  &:hover { background: rgba(44,36,32,0.05); color: #2C2420; .q-icon { color: #E2725B; } }
-}
-
-[data-theme="mondrian-dawn"] .drawer-icon-btn {
-  color: rgba(44,36,32,0.35);
-  border-right-color: rgba(44,36,32,0.12);
-  &:hover { background: rgba(44,36,32,0.05); color: #F9A602; }
-}
-
-[data-theme="mondrian-dawn"] .active-block {
-  background: rgba(249,166,2,0.12) !important;
-  color: #C47E00 !important;
-  border-left-color: #F9A602;
-  .q-icon { color: #C47E00 !important; }
-}
-
-[data-theme="mondrian-dawn"] .drawer-hr {
-  background: rgba(44,36,32,0.12);
-}
-
-[data-theme="mondrian-dawn"] .drawer-footer-minimal {
-  border-top-color: rgba(44,36,32,0.1);
-}
-
-[data-theme="mondrian-dawn"] .profile-nav-name { color: #2C2420; }
-[data-theme="mondrian-dawn"] .profile-nav-sub { color: #E2725B; }
-
-/* Mondrian Dawn decorator positioning */
 .header-mondrian-decorator {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
-  height: 50px;
+  height: 52px;
   overflow: hidden;
-  z-index: 2000;
+  z-index: 1999;
   pointer-events: none;
 
   .mondrian-svg-header {
@@ -535,11 +492,10 @@ async function handleLogout() {
     height: 100%;
     object-fit: cover;
     object-position: bottom;
-    opacity: 0.55;
+    opacity: 0.5;
   }
 }
 
-/* Drawer background art */
 .drawer-mondrian-bg {
   position: absolute;
   top: 0;
@@ -547,19 +503,10 @@ async function handleLogout() {
   width: 80px;
   height: 100%;
   overflow: hidden;
-  opacity: 0.35;
+  opacity: 0.28;
   pointer-events: none;
   z-index: 0;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-}
-
-.drawer-content-relative {
-  position: relative;
-  z-index: 1;
+  img { width: 100%; height: 100%; object-fit: cover; }
 }
 </style>
