@@ -24,6 +24,10 @@
         <!-- Status indicator -->
         <div class="queue-status-bar" :class="'queue-status-bar--' + (task.queueStatus || 'pending')" />
 
+        <div v-if="task.image || task.sketch" class="queue-thumb-col">
+          <img :src="task.image || task.sketch" alt="" class="queue-thumb" />
+        </div>
+
         <div class="queue-item-body">
           <!-- Header row -->
           <div class="queue-item-top">
@@ -287,6 +291,21 @@ async function stock(task: Entry) {
 .queue-status-bar {
   width: 3px;
   flex-shrink: 0;
+}
+
+.queue-thumb-col {
+  flex-shrink: 0;
+  padding: 8px 0 8px 8px;
+}
+
+.queue-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--wb-border-mid);
+  background: var(--wb-surface-alt);
+  display: block;
 }
 
 .queue-status-bar--pending { background: var(--wb-queue-pending); }

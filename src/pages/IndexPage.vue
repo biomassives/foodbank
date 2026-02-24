@@ -22,15 +22,19 @@
     <!-- Scrollable content -->
     <div class="index-content" :class="{ 'mondrian-grid': isDesktop && !activeFilter }">
 
-      <!-- === SCHEDULE cell (desktop top-left, always public) === -->
+      <!-- === SCHEDULE cell (desktop top-left, row 1) === -->
       <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--schedule">
-        <div class="mondrian-cell-header">
-          THIS WEEK
-        </div>
+        <div class="mondrian-cell-header">THIS WEEK</div>
         <pantry-schedule-cell />
       </div>
 
-      <!-- === QUEUE cell (desktop top-right; mobile toggled) === -->
+      <!-- === WELCOME cell (desktop top-right, row 1) === -->
+      <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--welcome">
+        <div class="mondrian-cell-header">ABOUT THE PANTRY</div>
+        <pantry-welcome-cell />
+      </div>
+
+      <!-- === QUEUE cell (desktop row 2; mobile toggled) === -->
       <div v-if="(!activeFilter && isDesktop) || (!activeFilter && viewMode === 'queue')" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop">
           TASK QUEUE
@@ -182,12 +186,18 @@
             {{ isCommunityFilter ? filterLabel(activeFilter!) : 'COMMUNITY' }}
           </div>
           <div v-for="entry in filteredEntries" :key="entry.id" class="entry-row">
-            <q-icon :name="entryIcon(entry.type)" size="18px" :style="{ color: entryColor(entry.type) }" />
+            <q-icon :name="entryIcon(entry.type)" size="18px" :style="{ color: entryColor(entry.type) }" class="entry-type-icon" />
             <div class="entry-text">
               <div class="entry-type-chip">{{ entryTypeLabel(entry.type) }}</div>
               <div class="entry-desc">{{ entry.description }}</div>
               <div class="entry-meta">{{ timeAgo(entry.createdAt) }}</div>
             </div>
+            <img
+              v-if="entry.image || entry.sketch"
+              :src="entry.image || entry.sketch"
+              alt=""
+              class="entry-thumb"
+            />
             <div v-if="store.canEdit" class="entry-actions">
               <q-btn flat dense round icon="edit" size="xs" class="loc-act-btn" @click="editEntryItem(entry)" />
               <q-btn flat dense round icon="delete" size="xs" class="loc-act-btn loc-act-btn--del" @click="confirmDelEntry(entry)" />
@@ -277,6 +287,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAddressStore } from '../store/store';
 import QueueList from '../components/QueueList.vue';
 import PantryScheduleCell from '../components/PantryScheduleCell.vue';
+import PantryWelcomeCell from '../components/PantryWelcomeCell.vue';
 import EntryModal from '../components/childcomponents/EntryModal.vue';
 import LocationModal from '../components/childcomponents/LocationModal.vue';
 import AddressModal from '../components/childcomponents/Modal.vue';
@@ -1032,6 +1043,22 @@ onMounted(async () => {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
+}
+
+.entry-type-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.entry-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--wb-border-mid);
+  background: var(--wb-surface-alt);
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 </style>

@@ -27,6 +27,79 @@
         </button>
       </div>
 
+      <!-- WELCOME -->
+      <div v-if="tab === 'welcome'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">WELCOME PAGE</span>
+          <span class="panel-count">Public homepage</span>
+        </div>
+        <div class="sched-edit-hint">This content appears on the homepage welcome cell, visible to all visitors.</div>
+
+        <div class="welcome-form">
+          <q-input
+            v-model="welcomeContent.name"
+            dense filled
+            label="Pantry name"
+            placeholder="e.g. Ward Community Food Pantry"
+            class="welcome-input"
+            maxlength="80"
+          />
+          <q-input
+            v-model="welcomeContent.tagline"
+            dense filled
+            label="Tagline (optional)"
+            placeholder="e.g. Serving our neighbors since 2015"
+            class="welcome-input"
+            maxlength="100"
+          />
+          <q-input
+            v-model="welcomeContent.about"
+            dense filled
+            type="textarea"
+            label="About / description"
+            placeholder="Describe your pantry, who you serve, what you offer..."
+            class="welcome-input"
+            rows="4"
+            maxlength="600"
+          />
+          <q-btn
+            unelevated no-caps
+            icon="save"
+            label="Save Welcome Content"
+            class="sched-save-btn"
+            :disable="!welcomeContent.name.trim()"
+            @click="saveWelcome"
+          />
+        </div>
+
+        <!-- Homepage Drawing -->
+        <div class="drawing-section">
+          <div class="drawing-section-label">HOMEPAGE DRAWING</div>
+          <div class="sched-edit-hint">Draw an illustration for the public welcome cell. Replaces any previously saved drawing.</div>
+
+          <!-- Current saved drawing preview -->
+          <div v-if="savedDrawing" class="drawing-current">
+            <img :src="savedDrawing" alt="Current drawing" class="drawing-current-img" />
+            <button class="drawing-clear-btn" @click="clearHomepageDrawing">
+              <q-icon name="delete_outline" size="12px" />
+              CLEAR
+            </button>
+          </div>
+
+          <!-- Sketch pad for new drawing -->
+          <sketch-pad ref="homepageSketchRef" v-model="newDrawingData" />
+
+          <q-btn
+            unelevated no-caps
+            icon="draw"
+            label="Save Drawing"
+            class="sched-save-btn q-mt-sm"
+            :disable="!newDrawingData"
+            @click="saveHomepageDrawing"
+          />
+        </div>
+      </div>
+
       <!-- MEMBERS -->
       <div v-if="tab === 'members'" class="admin-panel">
         <div class="panel-head">
@@ -61,69 +134,131 @@
       <div v-if="tab === 'announce'" class="admin-panel">
         <div class="panel-head">
           <span class="panel-title">ANNOUNCE</span>
-          <span class="panel-count">Broadcast to members</span>
+          <span class="panel-count">{{ store.userOrgId ? 'BROADCAST' : 'STAGED / LOCAL' }}</span>
+        </div>
+        <div class="sched-edit-hint">
+          Compose messages and stage them offline. Schedule a message to add it to the calendar queue. When cloud is connected, staged messages can be sent instantly.
         </div>
 
-        <div v-if="!store.userOrgId" class="panel-empty">
-          <q-icon name="cloud_off" size="24px" />
-          <span>Cloud connection required to send announcements</span>
-        </div>
+        <div class="announce-form">
+          <q-input
+            v-model="announceTitle"
+            dense filled
+            label="Title"
+            placeholder="e.g. Pantry open Saturday 9am–1pm"
+            class="announce-input"
+            maxlength="120"
+          />
+          <q-input
+            v-model="announceBody"
+            dense filled
+            type="textarea"
+            label="Body (optional)"
+            placeholder="Additional details for volunteers..."
+            class="announce-input"
+            rows="3"
+            maxlength="500"
+          />
 
-        <template v-else>
-          <div class="announce-form">
-            <q-input
-              v-model="announceTitle"
-              dense filled
-              label="Title"
-              placeholder="e.g. Pantry open Saturday 9am–1pm"
-              class="announce-input"
-              maxlength="120"
-            />
-            <q-input
-              v-model="announceBody"
-              dense filled
-              type="textarea"
-              label="Body (optional)"
-              placeholder="Additional details for members..."
-              class="announce-input"
-              rows="3"
-              maxlength="500"
-            />
-            <div class="announce-row">
-              <q-select
-                v-model="announceRole"
-                :options="announceRoleOptions"
-                dense filled
-                emit-value map-options
-                label="Send to"
-                class="announce-role-select"
-              />
-              <q-btn
-                unelevated no-caps
-                icon="campaign"
-                label="Send"
-                class="announce-send-btn"
-                :loading="announceSending"
-                :disable="!announceTitle.trim()"
-                @click="sendAnnouncement"
-              />
-            </div>
+          <!-- Recipient role chips -->
+          <div class="announce-roles-label">SEND TO</div>
+          <div class="announce-role-chips">
+            <button
+              v-for="r in roleTypeOptions"
+              :key="r.value"
+              class="role-chip"
+              :class="{ active: announceTargetRoles.includes(r.value) }"
+              type="button"
+              @click="toggleRole(r.value)"
+            >
+              <q-icon :name="r.icon" size="12px" />
+              {{ r.label }}
+            </button>
           </div>
 
-          <div v-if="announceHistory.length > 0" class="announce-history">
-            <div class="announce-history-label">RECENT</div>
-            <div v-for="(a, i) in announceHistory" :key="i" class="announce-history-row">
-              <q-icon name="campaign" size="13px" class="announce-history-icon" />
-              <div class="announce-history-body">
-                <div class="announce-history-title">{{ a.title }}</div>
-                <div class="announce-history-meta">
-                  {{ a.role === 'all' ? 'All members' : a.role === 'editor' ? 'Editors+' : 'Admins' }}
-                  &middot; {{ new Date(a.created_at).toLocaleDateString() }}
-                </div>
+          <!-- Schedule datetime -->
+          <div class="announce-sched-row">
+            <q-input
+              v-model="announceScheduledFor"
+              type="datetime-local"
+              dense filled
+              label="Schedule for (optional)"
+              class="announce-sched-input"
+            />
+          </div>
+
+          <!-- Action buttons -->
+          <div class="announce-actions">
+            <q-btn
+              flat no-caps
+              icon="save"
+              label="Stage Draft"
+              class="announce-stage-btn"
+              :disable="!announceTitle.trim()"
+              @click="stageMessage"
+            />
+            <q-btn
+              unelevated no-caps
+              icon="event"
+              label="Schedule & Queue"
+              class="announce-queue-btn"
+              :disable="!announceTitle.trim() || !announceScheduledFor"
+              @click="scheduleMessage"
+            />
+            <q-btn
+              v-if="store.userOrgId"
+              unelevated no-caps
+              icon="campaign"
+              label="Send Now"
+              class="announce-send-btn"
+              :loading="announceSending"
+              :disable="!announceTitle.trim() || announceTargetRoles.length === 0"
+              @click="sendAnnouncement"
+            />
+          </div>
+        </div>
+
+        <!-- Staged & Scheduled messages -->
+        <div v-if="stagedMessages.length > 0" class="staged-list">
+          <div class="staged-list-label">STAGED &amp; SCHEDULED</div>
+          <div v-for="msg in stagedMessages" :key="msg.id" class="staged-row">
+            <div class="staged-status-dot" :class="'staged-dot--' + msg.status" />
+            <div class="staged-info">
+              <div class="staged-title">{{ msg.title }}</div>
+              <div class="staged-meta">
+                <span class="staged-status-tag" :class="'staged-tag--' + msg.status">{{ msg.status.toUpperCase() }}</span>
+                <span v-if="msg.scheduledFor" class="staged-when"> · {{ formatScheduledFor(msg.scheduledFor) }}</span>
+                <span v-if="msg.recipientRoles.length" class="staged-roles"> · {{ msg.recipientRoles.map(r => roleTypeOptions.find(o => o.value === r)?.label || r).join(', ') }}</span>
+              </div>
+            </div>
+            <q-btn
+              v-if="store.userOrgId && msg.status !== 'sent'"
+              flat dense round icon="send" size="xs"
+              class="staged-send-btn"
+              @click="sendStagedMessage(msg)"
+            />
+            <q-btn
+              flat dense round icon="delete_outline" size="xs"
+              class="staged-del-btn"
+              @click="deleteStagedMessage(msg.id)"
+            />
+          </div>
+        </div>
+
+        <!-- Cloud sent history -->
+        <div v-if="store.userOrgId && announceHistory.length > 0" class="announce-history">
+          <div class="announce-history-label">SENT</div>
+          <div v-for="(a, i) in announceHistory" :key="i" class="announce-history-row">
+            <q-icon name="campaign" size="13px" class="announce-history-icon" />
+            <div class="announce-history-body">
+              <div class="announce-history-title">{{ a.title }}</div>
+              <div class="announce-history-meta">
+                {{ Array.isArray(a.roles) ? a.roles.join(', ') : (a.role === 'all' ? 'All' : a.role) }}
+                &middot; {{ new Date(a.created_at).toLocaleDateString() }}
               </div>
             </div>
           </div>
-        </template>
+        </div>
       </div>
 
       <!-- SCHEDULE -->
@@ -523,7 +658,8 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import { supabase, openIndexedDB } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
-import type { Location } from 'src/models';
+import type { Location, Entry } from 'src/models';
+import SketchPad from 'src/components/SketchPad.vue';
 import { buildInviteCode } from 'src/utils/inviteCode';
 
 const store = useAddressStore();
@@ -535,7 +671,8 @@ const genLoading = ref(false);
 const newLocName = ref('');
 
 const tabs = [
-  { key: 'members',  icon: 'group',         label: 'MEMBERS' },
+  { key: 'welcome',  icon: 'storefront',     label: 'WELCOME' },
+  { key: 'members',  icon: 'group',          label: 'MEMBERS' },
   { key: 'announce', icon: 'campaign',       label: 'ANNOUNCE' },
   { key: 'schedule', icon: 'event',          label: 'SCHEDULE' },
   { key: 'locations',icon: 'map',            label: 'LOCATIONS' },
@@ -621,22 +758,150 @@ async function fetchCloudProfiles() {
 
 // ── Announcements ────────────────────────────────────────────────
 
+const STAGED_KEY = 'pantry-staged-messages';
+
+interface StagedMessage {
+  id: string;
+  title: string;
+  body: string;
+  recipientRoles: string[];
+  status: 'draft' | 'staged' | 'scheduled' | 'sent';
+  scheduledFor: string | null;
+  createdAt: string;
+  sentAt?: string;
+}
+
+const roleTypeOptions = [
+  { value: 'drivers',            label: 'Drivers',           icon: 'local_shipping' },
+  { value: 'stock_pantry',       label: 'Stock & Pantry',    icon: 'inventory_2' },
+  { value: 'logistics_outreach', label: 'Logistics/Outreach',icon: 'hub' },
+  { value: 'admin',              label: 'Admin',              icon: 'admin_panel_settings' },
+];
+
 const announceTitle = ref('');
 const announceBody = ref('');
-const announceRole = ref('all');
+const announceTargetRoles = ref<string[]>(['drivers', 'stock_pantry', 'logistics_outreach', 'admin']);
+const announceScheduledFor = ref('');
 const announceSending = ref(false);
-const announceHistory = ref<{ title: string; created_at: string; role: string }[]>([]);
+const stagedMessages = ref<StagedMessage[]>([]);
+const announceHistory = ref<{ title: string; created_at: string; role: string; roles?: string[] }[]>([]);
 
-const announceRoleOptions = [
-  { label: 'All members', value: 'all' },
-  { label: 'Editors & admins', value: 'editor' },
-  { label: 'Admins only', value: 'admin' },
-];
+function loadStagedMessages() {
+  try {
+    const raw = localStorage.getItem(STAGED_KEY);
+    if (raw) stagedMessages.value = JSON.parse(raw);
+  } catch { stagedMessages.value = []; }
+}
+
+function saveStagedMessages() {
+  localStorage.setItem(STAGED_KEY, JSON.stringify(stagedMessages.value));
+}
+
+function toggleRole(role: string) {
+  const idx = announceTargetRoles.value.indexOf(role);
+  if (idx >= 0) announceTargetRoles.value.splice(idx, 1);
+  else announceTargetRoles.value.push(role);
+}
+
+function formatScheduledFor(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+           ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+function stageMessage() {
+  if (!announceTitle.value.trim()) return;
+  const msg: StagedMessage = {
+    id: crypto.randomUUID(),
+    title: announceTitle.value.trim(),
+    body: announceBody.value.trim(),
+    recipientRoles: [...announceTargetRoles.value],
+    status: 'staged',
+    scheduledFor: null,
+    createdAt: new Date().toISOString(),
+  };
+  stagedMessages.value.unshift(msg);
+  saveStagedMessages();
+  announceTitle.value = '';
+  announceBody.value = '';
+  $q.notify({ color: 'positive', icon: 'save', message: 'Message staged as draft', timeout: 1500 });
+}
+
+async function scheduleMessage() {
+  if (!announceTitle.value.trim() || !announceScheduledFor.value) return;
+  const scheduledAt = new Date(announceScheduledFor.value).toISOString();
+  const msg: StagedMessage = {
+    id: crypto.randomUUID(),
+    title: announceTitle.value.trim(),
+    body: announceBody.value.trim(),
+    recipientRoles: [...announceTargetRoles.value],
+    status: 'scheduled',
+    scheduledFor: scheduledAt,
+    createdAt: new Date().toISOString(),
+  };
+  stagedMessages.value.unshift(msg);
+  saveStagedMessages();
+
+  // Add to calendar queue (IndexedDB entryStore)
+  const calEntry: Entry = {
+    id: msg.id,
+    type: 'upcoming_need',
+    description: `[ANNOUNCE] ${msg.title}${msg.body ? ` — ${msg.body}` : ''} | To: ${msg.recipientRoles.join(', ')} | Scheduled: ${formatScheduledFor(scheduledAt)}`,
+    status: 'active',
+    queueStatus: 'pending',
+    createdAt: msg.createdAt,
+    syncedToCloud: false,
+  };
+  await store.addEntry(calEntry, false);
+
+  announceTitle.value = '';
+  announceBody.value = '';
+  announceScheduledFor.value = '';
+  $q.notify({ color: 'positive', icon: 'event', message: `Scheduled for ${formatScheduledFor(scheduledAt)} · Added to calendar queue`, timeout: 2500 });
+}
+
+function deleteStagedMessage(id: string) {
+  stagedMessages.value = stagedMessages.value.filter(m => m.id !== id);
+  saveStagedMessages();
+}
+
+async function sendStagedMessage(msg: StagedMessage) {
+  if (!store.userOrgId) {
+    $q.notify({ color: 'warning', message: 'Connect to cloud to send staged messages' });
+    return;
+  }
+  announceSending.value = true;
+  try {
+    const { error } = await supabase.from('site_messages').insert({
+      org_id: store.userOrgId,
+      user_id: null,
+      type: 'announcement',
+      title: msg.title,
+      body: msg.body || null,
+      data: { targetRoles: msg.recipientRoles },
+      read: false,
+    });
+    if (error) throw error;
+    const idx = stagedMessages.value.findIndex(m => m.id === msg.id);
+    if (idx >= 0) {
+      stagedMessages.value[idx] = { ...stagedMessages.value[idx], status: 'sent', sentAt: new Date().toISOString() };
+      saveStagedMessages();
+    }
+    $q.notify({ color: 'positive', icon: 'campaign', message: 'Announcement posted' });
+    await fetchAnnounceHistory();
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Failed to post' });
+  } finally {
+    announceSending.value = false;
+  }
+}
 
 async function sendAnnouncement() {
   if (!announceTitle.value.trim()) return;
   if (!store.userOrgId) {
-    $q.notify({ color: 'negative', message: 'No org connected — cloud required for announcements' });
+    $q.notify({ color: 'negative', message: 'No org connected — use Stage or Schedule for offline use' });
     return;
   }
   announceSending.value = true;
@@ -647,14 +912,15 @@ async function sendAnnouncement() {
       type: 'announcement',
       title: announceTitle.value.trim(),
       body: announceBody.value.trim() || null,
-      data: { targetRole: announceRole.value },
+      data: { targetRoles: announceTargetRoles.value },
       read: false,
     });
     if (error) throw error;
     announceHistory.value.unshift({
       title: announceTitle.value.trim(),
       created_at: new Date().toISOString(),
-      role: announceRole.value,
+      role: 'all',
+      roles: [...announceTargetRoles.value],
     });
     announceTitle.value = '';
     announceBody.value = '';
@@ -680,9 +946,56 @@ async function fetchAnnounceHistory() {
     announceHistory.value = (data || []).map((r: any) => ({
       title: r.title,
       created_at: r.created_at,
-      role: r.data?.targetRole || 'all',
+      role: 'all',
+      roles: r.data?.targetRoles || [],
     }));
   } catch { /* offline */ }
+}
+
+// ── Welcome ───────────────────────────────────────────────────────
+
+const WELCOME_KEY = 'pantry-welcome';
+
+interface WelcomeContent { name: string; tagline: string; about: string; }
+
+const welcomeContent = ref<WelcomeContent>({ name: '', tagline: '', about: '' });
+
+function loadWelcome() {
+  try {
+    const raw = localStorage.getItem(WELCOME_KEY);
+    if (raw) welcomeContent.value = { ...welcomeContent.value, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+}
+
+function saveWelcome() {
+  localStorage.setItem(WELCOME_KEY, JSON.stringify(welcomeContent.value));
+  $q.notify({ color: 'positive', icon: 'storefront', message: 'Welcome content saved', timeout: 1500 });
+}
+
+// ── Homepage Drawing ──────────────────────────────────────────────
+
+const DRAWING_KEY = 'pantry-homepage-drawing';
+const savedDrawing = ref('');
+const newDrawingData = ref('');
+const homepageSketchRef = ref<InstanceType<typeof SketchPad> | null>(null);
+
+function loadHomepageDrawing() {
+  savedDrawing.value = localStorage.getItem(DRAWING_KEY) || '';
+}
+
+function saveHomepageDrawing() {
+  if (!newDrawingData.value) return;
+  localStorage.setItem(DRAWING_KEY, newDrawingData.value);
+  savedDrawing.value = newDrawingData.value;
+  newDrawingData.value = '';
+  homepageSketchRef.value?.reset();
+  $q.notify({ color: 'positive', icon: 'draw', message: 'Homepage drawing saved', timeout: 1500 });
+}
+
+function clearHomepageDrawing() {
+  localStorage.removeItem(DRAWING_KEY);
+  savedDrawing.value = '';
+  $q.notify({ color: 'info', message: 'Drawing cleared', timeout: 1200 });
 }
 
 // ── Schedule ─────────────────────────────────────────────────────
@@ -1154,9 +1467,13 @@ function openVercelDeploy() {
 // ── Init ─────────────────────────────────────────────────────────
 
 onMounted(async () => {
+  loadWelcome();
   loadWeekSchedule();
+  loadStagedMessages();
+  loadHomepageDrawing();
   await store.loadData();
   await store.loadLocations();
+  await store.loadEntries();
   if (store.canSync) {
     await fetchCloudProfiles();
     await fetchCloudInvites();
@@ -1230,22 +1547,22 @@ onMounted(async () => {
 /* ── Tabs ── */
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--wb-border-subtle);
-  overflow-x: auto;
 }
 
 .admin-tab {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--wb-text-muted);
   font-family: var(--wb-font);
   font-weight: 800;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   letter-spacing: 2px;
   cursor: pointer;
   white-space: nowrap;
@@ -1993,6 +2310,92 @@ onMounted(async () => {
   width: 100%;
 }
 
+/* ── Welcome form ── */
+.welcome-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.welcome-input {
+  font-family: var(--wb-font);
+}
+
+.welcome-form :deep(.q-field--filled .q-field__control) {
+  background: var(--wb-surface) !important;
+}
+.welcome-form :deep(.q-field--filled .q-field__native),
+.welcome-form :deep(.q-field--filled .q-field__input) {
+  color: var(--wb-text) !important;
+  caret-color: var(--wb-accent) !important;
+}
+.welcome-form :deep(.q-field__label) {
+  color: var(--wb-text-muted) !important;
+}
+.welcome-form :deep(.q-field--focused .q-field__label) {
+  color: var(--wb-accent) !important;
+}
+.welcome-form :deep(.q-field--filled.q-field--focused .q-field__control::after) {
+  border-color: var(--wb-accent) !important;
+}
+
+/* ── Homepage Drawing ── */
+.drawing-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+
+.drawing-section-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 4px;
+  color: var(--wb-text-faint);
+  margin-bottom: 8px;
+}
+
+.drawing-current {
+  position: relative;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.drawing-current-img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  background: var(--wb-surface-alt);
+}
+
+.drawing-clear-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(0,0,0,0.75);
+  border: 1px solid var(--wb-negative);
+  border-radius: 2px;
+  color: var(--wb-negative);
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.48rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.drawing-clear-btn:hover {
+  background: rgba(239, 83, 80, 0.15);
+}
+
 /* ── Announce ── */
 .announce-form {
   display: flex;
@@ -2005,15 +2408,107 @@ onMounted(async () => {
   font-family: var(--wb-font);
 }
 
-.announce-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
+/* Role chips */
+.announce-roles-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  margin-bottom: 4px;
 }
 
-.announce-role-select {
+.announce-role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.role-chip:hover {
+  border-color: var(--wb-text-mid);
+  color: var(--wb-text);
+}
+
+.role-chip.active {
+  border-color: var(--wb-accent);
+  color: var(--wb-accent);
+  background: rgba(253, 216, 53, 0.07);
+}
+
+.role-chip.active[data-role="drivers"] { border-color: var(--wb-info); color: var(--wb-info); background: rgba(130, 177, 255, 0.07); }
+.role-chip.active[data-role="stock_pantry"] { border-color: var(--wb-positive); color: var(--wb-positive); background: rgba(105, 240, 174, 0.07); }
+.role-chip.active[data-role="logistics_outreach"] { border-color: #ce93d8; color: #ce93d8; background: rgba(206, 147, 216, 0.07); }
+.role-chip.active[data-role="admin"] { border-color: var(--wb-warning); color: var(--wb-warning); background: rgba(255, 171, 64, 0.07); }
+
+/* Schedule row */
+.announce-sched-row {
+  display: flex;
+}
+
+.announce-sched-input {
   flex: 1;
   font-family: var(--wb-font);
+}
+
+.announce-sched-input :deep(.q-field__control) {
+  background: var(--wb-surface-hover) !important;
+}
+
+.announce-sched-input :deep(.q-field__native) {
+  color: var(--wb-text) !important;
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+}
+
+/* Action buttons row */
+.announce-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.announce-stage-btn {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.announce-stage-btn:hover {
+  color: var(--wb-text) !important;
+  border-color: var(--wb-text-mid);
+}
+
+.announce-queue-btn {
+  background: var(--wb-info) !important;
+  color: #000 !important;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .announce-send-btn {
@@ -2021,14 +2516,108 @@ onMounted(async () => {
   color: #000 !important;
   font-family: var(--wb-font);
   font-weight: 800;
-  font-size: 0.7rem;
-  letter-spacing: 2px;
-  padding: 0 18px;
-  height: 40px;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
+/* Staged message list */
+.staged-list {
+  border-top: 1px solid var(--wb-border-mid);
+  padding-top: 12px;
+  margin-bottom: 16px;
+}
+
+.staged-list-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 4px;
+  color: var(--wb-text-faint);
+  margin-bottom: 8px;
+}
+
+.staged-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.staged-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.staged-dot--staged   { background: var(--wb-text-faint); }
+.staged-dot--draft    { background: var(--wb-border-mid); }
+.staged-dot--scheduled { background: var(--wb-info); box-shadow: 0 0 4px var(--wb-info); }
+.staged-dot--sent     { background: var(--wb-positive); }
+
+.staged-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.staged-title {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--wb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.staged-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.6rem;
+  color: var(--wb-text-faint);
+  margin-top: 2px;
+}
+
+.staged-status-tag {
+  padding: 1px 5px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  margin-right: 4px;
+}
+
+.staged-tag--staged    { color: var(--wb-text-faint); border-color: var(--wb-border-mid); }
+.staged-tag--draft     { color: var(--wb-text-faint); border-color: var(--wb-border-subtle); }
+.staged-tag--scheduled { color: var(--wb-info); border-color: var(--wb-info); }
+.staged-tag--sent      { color: var(--wb-positive); border-color: var(--wb-positive); }
+
+.staged-when   { color: var(--wb-info); }
+.staged-roles  { color: var(--wb-text-faint); font-size: 0.58rem; }
+
+.staged-send-btn {
+  color: var(--wb-accent) !important;
+  flex-shrink: 0;
+}
+
+.staged-del-btn {
+  color: var(--wb-negative) !important;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.staged-del-btn:hover {
+  opacity: 1;
+}
+
+/* Announce cloud history */
 .announce-history {
   border-top: 1px solid var(--wb-border-subtle);
   padding-top: 12px;
