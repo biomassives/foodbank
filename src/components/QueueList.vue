@@ -173,6 +173,7 @@ async function claim(task: Entry) {
   await store.claimEntry(task.id, name);
   mts.send({
     type: 'pickup-claimed',
+    ...(task.requesterEmail ? { recipientEmail: task.requesterEmail } : {}),
     data: { taskDescription: task.description, taskLocation: task.location, claimedBy: 'You' },
   }).catch(() => {
     $q.notify({ color: 'warning', icon: 'email', message: 'Notification could not be sent', timeout: 3000 });
@@ -212,6 +213,7 @@ async function complete(task: Entry) {
   await store.completeEntry(task.id);
   mts.send({
     type: 'pickup-delivered',
+    ...(task.requesterEmail ? { recipientEmail: task.requesterEmail } : {}),
     data: { taskDescription: task.description, taskLocation: task.location },
   }).catch(() => {
     $q.notify({ color: 'warning', icon: 'email', message: 'Notification could not be sent', timeout: 3000 });
@@ -229,6 +231,7 @@ async function stock(task: Entry) {
   await store.stockEntry(task.id);
   mts.send({
     type: 'pickup-stocked',
+    ...(task.requesterEmail ? { recipientEmail: task.requesterEmail } : {}),
     data: { taskDescription: task.description, taskLocation: task.location },
   }).catch(() => {
     $q.notify({ color: 'warning', icon: 'email', message: 'Notification could not be sent', timeout: 3000 });

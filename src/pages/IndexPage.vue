@@ -456,13 +456,13 @@ async function doDeleteLoc() {
   }
 }
 
-function openEdit(contact: any) {
-  editTarget.value = contact as Address;
+function openEdit(contact: Address) {
+  editTarget.value = contact;
   editOpen.value = true;
 }
 
-function confirmDel(contact: any) {
-  deleteTarget.value = contact as Address;
+function confirmDel(contact: Address) {
+  deleteTarget.value = contact;
   deleteDialogOpen.value = true;
 }
 

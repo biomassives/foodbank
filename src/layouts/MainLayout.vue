@@ -135,10 +135,7 @@
           </div>
         </q-scroll-area>
 
-        <div class="drawer-footer-minimal q-pa-md">
-          <div class="text-overline">{{ t.app.footer1 }}</div>
-          <div class="text-caption text-grey-5">{{ t.app.footer2 }}</div>
-        </div>
+        <app-footer variant="drawer" />
       </div>
     </q-drawer>
 
@@ -150,6 +147,10 @@
       </router-view>
     </q-page-container>
 
+    <q-footer class="layout-footer" elevated>
+      <app-footer variant="bar" />
+    </q-footer>
+
     <entry-modal v-model:card-state="entryModalOpen" :initial-type="entryModalType" @saved="handleEntrySaved" />
   </q-layout>
 </template>
@@ -158,6 +159,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import HeaderComponent from 'components/MainHeader.vue';
 import EntryModal from 'components/childcomponents/EntryModal.vue';
+import AppFooter from 'components/AppFooter.vue';
 import { useAddressStore } from 'src/store/store';
 import { useNotificationStore } from 'src/store/notifications';
 import { supabase, flushMtsOutbox } from 'src/dbManagement';
@@ -451,10 +453,10 @@ async function handleLogout() {
   margin: 6px 14px;
 }
 
-.drawer-footer-minimal {
-  flex-shrink: 0;
-  border-top: 1px solid var(--wb-border-subtle);
-  color: var(--wb-text-faint);
+// q-footer override — transparent so AppFooter controls its own bg
+.layout-footer {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 // Profile row

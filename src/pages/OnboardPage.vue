@@ -160,22 +160,52 @@
 
         <q-slide-transition>
           <div v-show="activeCard === 'invite'" class="onboard-body" @click.stop>
-            <q-input
-              v-model="inviteCode"
-              filled dense dark
-              :label="t.onboard.inviteLabel"
-              maxlength="20"
-              :hint="t.onboard.inviteHint"
-              color="green-4"
-              @update:model-value="v => inviteCode = (v as string).toUpperCase()"
-            />
-            <q-btn
-              :label="t.onboard.joinBtn"
-              class="onboard-btn full-width q-mt-md"
-              @click="redeemInvite"
-              :loading="inviteLoading"
-              no-caps
-            />
+
+            <!-- Step A: enter code + email (pre-auth) -->
+            <div v-if="!inviteMagicSent">
+              <q-input
+                v-model="inviteCode"
+                filled dense dark
+                :label="t.onboard.inviteLabel"
+                maxlength="20"
+                :hint="t.onboard.inviteHint"
+                color="green-4"
+                @update:model-value="v => inviteCode = (v as string).toUpperCase()"
+              />
+              <q-input
+                v-model="inviteEmail"
+                filled dense dark
+                label="Your email address"
+                hint="We'll send a sign-in link so you can join without a password"
+                type="email"
+                color="green-4"
+                class="q-mt-sm"
+              />
+              <q-btn
+                :label="t.onboard.joinBtn"
+                class="onboard-btn full-width q-mt-md"
+                @click="redeemInvite"
+                :loading="inviteLoading"
+                no-caps
+              />
+            </div>
+
+            <!-- Step B: magic link sent — check email -->
+            <div v-else class="invite-magic-sent">
+              <q-icon name="mark_email_read" size="36px" color="green-4" class="q-mb-sm" />
+              <p class="invite-magic-msg">Check your inbox!</p>
+              <p class="invite-magic-hint">
+                We sent a sign-in link to <strong>{{ inviteEmail }}</strong>.
+                Click it to join the pantry — no password needed.
+              </p>
+              <q-btn
+                flat dense no-caps
+                label="Use a different email"
+                class="full-width q-mt-sm"
+                style="color: var(--wb-text-muted); font-family: var(--wb-font); font-size: 0.72rem;"
+                @click="inviteMagicSent = false"
+              />
+            </div>
 
             <!-- Failure fallback: offer wizard path -->
             <div v-if="inviteFailed" class="invite-fail-box q-mt-md">
@@ -449,11 +479,68 @@ async function verifyOTP() {
 
 // ---- Join with Invite ----
 const inviteCode = ref('');
+const inviteEmail = ref('');
 const inviteLoading = ref(false);
 const inviteFailed = ref(false);
 const inviteFailMessage = ref('');
+const inviteMagicSent = ref(false);
 
 async function redeemInvite() {
+  if (!inviteCode.value.trim() || !inviteEmail.value.trim()) {
+    $q.notify({ color: 'warning', message: 'Please enter both your invite code and email address.' });
+    return;
+  }
+
+  // If already signed in, redeem immediately (classic path)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await redeemInviteForUser(user);
+    return;
+  }
+
+  // Not signed in: validate code, store pending, send magic link
+  inviteLoading.value = true;
+  inviteFailed.value = false;
+  try {
+    const { data: invite, error } = await supabase
+      .from('invites')
+      .select('id, org_id')
+      .eq('code', inviteCode.value.toUpperCase())
+      .eq('is_used', false)
+      .single();
+
+    if (error || !invite) throw new Error('Invalid or already-used invite code.');
+
+    // Store so fetchUserRole can auto-redeem after magic link sign-in
+    localStorage.setItem('pendingInvite', JSON.stringify({
+      code: inviteCode.value.toUpperCase(),
+      orgId: invite.org_id,
+    }));
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: inviteEmail.value.trim(),
+      options: { emailRedirectTo: window.location.origin + '/' },
+    });
+    if (otpError) throw new Error(otpError.message);
+
+    inviteMagicSent.value = true;
+    $q.notify({
+      color: 'positive',
+      icon: 'mark_email_read',
+      message: 'Magic link sent — check your inbox!',
+      timeout: 6000,
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Something went wrong';
+    inviteFailed.value = true;
+    inviteFailMessage.value = msg;
+    $q.notify({ color: 'negative', message: msg });
+  } finally {
+    inviteLoading.value = false;
+  }
+}
+
+async function redeemInviteForUser(user: { id: string; email?: string | null; phone?: string | null }) {
   inviteLoading.value = true;
   inviteFailed.value = false;
   try {
@@ -464,12 +551,8 @@ async function redeemInvite() {
       .eq('is_used', false)
       .single();
 
-    if (error || !invite) throw new Error('Invalid or used invite code.');
+    if (error || !invite) throw new Error('Invalid or already-used invite code.');
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Please sign in first, then try the invite code again.');
-
-    // Check if user is blocked by this org
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -477,7 +560,7 @@ async function redeemInvite() {
       .eq('org_id', invite.org_id)
       .single();
     if (profile?.role === 'blocked') {
-      throw new Error('Your access to this community has been restricted by an administrator. Please contact the pantry manager.');
+      throw new Error('Your access to this community has been restricted. Please contact the pantry manager.');
     }
 
     await supabase.from('profiles').update({
@@ -493,30 +576,26 @@ async function redeemInvite() {
 
     await store.fetchUserRole();
 
-    // Notifications via MTS (email + site messages)
     mts.send({
       type: 'welcome',
       orgId: invite.org_id,
       recipientEmail: user.email || undefined,
       data: { memberEmail: user.email },
-    }).catch(() => {
-      $q.notify({ color: 'warning', icon: 'email', message: 'Welcome email could not be sent', timeout: 3000 });
-    });
+    }).catch((_e: unknown) => { /* fire and forget */ });
     mts.send({
       type: 'admin-join',
       orgId: invite.org_id,
       recipientRole: ['admin'],
       data: { memberName: user.email || user.phone },
-    }).catch(() => {
-      // Silent — admin notification failure shouldn't concern the joining user
-    });
+    }).catch((_e: unknown) => { /* fire and forget */ });
 
     $q.notify({ color: 'positive', message: 'Welcome to the community!' });
     router.push('/');
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Something went wrong';
     inviteFailed.value = true;
-    inviteFailMessage.value = e.message;
-    $q.notify({ color: 'negative', message: e.message });
+    inviteFailMessage.value = msg;
+    $q.notify({ color: 'negative', message: msg });
   } finally {
     inviteLoading.value = false;
   }
@@ -544,8 +623,8 @@ async function createSharedPantry() {
     await store.createSharedPantry(bankName.value.trim());
     $q.notify({ color: 'positive', message: 'Your pantry is ready!' });
     router.push('/');
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: e instanceof Error ? e.message : 'Something went wrong' });
   } finally {
     provisionLoading.value = false;
   }
@@ -603,10 +682,69 @@ async function saveCustomConnection() {
     }
 
     router.push('/');
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: e instanceof Error ? e.message : 'Something went wrong' });
   } finally {
     provisionLoading.value = false;
   }
 }
 </script>
+
+<style scoped>
+.invite-magic-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.invite-magic-msg {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: var(--wb-positive);
+  margin: 4px 0;
+}
+
+.invite-magic-hint {
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.invite-magic-hint strong {
+  color: var(--wb-text);
+}
+
+.invite-fail-box {
+  background: rgba(244, 67, 54, 0.08);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.invite-fail-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--wb-negative);
+  margin-bottom: 6px;
+}
+
+.invite-fail-hint {
+  font-family: var(--wb-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+</style>

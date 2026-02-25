@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 // ── Helper: Setup Test Logic ──────────────────────────────────
 async function handleSetupTest(body: MtsRequest) {
   const testOrgName = String(body.data?.orgName || 'Setup Test');
-  if (!body.recipientEmail) return jsonResponse({ error: 'recipientEmail required' }, 400);
+  if (!body.recipientEmail) return jsonResponse({ error: 'recipientEmail required for test' }, 200);
   
   const message = renderMessage('test', testOrgName, body.data || {});
   try {

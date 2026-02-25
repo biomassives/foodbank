@@ -21,6 +21,7 @@ import {
   clearDemoData,
   exportAllData,
   syncAllToCloud,
+  syncLocationsToCloud,
   clearStore,
   getCustomSupabaseClient,
   provisionSharedPantry,
@@ -44,16 +45,51 @@ export const useAddressStore = defineStore('address', () => {
   });
 
   async function fetchUserRole() {
-    const { data: { user } } = await supabase.auth.getUser();
-    state.user = user;
-    if (!user) {
-      state.role = 'viewer';
-      state.userOrgId = null;
-      return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      state.user = user;
+      if (!user) {
+        state.role = 'viewer';
+        state.userOrgId = null;
+        return;
+      }
+
+      // Auto-redeem pending invite (set before magic-link sign-in)
+      const pendingRaw = localStorage.getItem('pendingInvite');
+      if (pendingRaw) {
+        try {
+          const pending = JSON.parse(pendingRaw) as { code: string; orgId: string };
+          const { data: invite } = await supabase
+            .from('invites')
+            .select('id')
+            .eq('code', pending.code)
+            .eq('org_id', pending.orgId)
+            .eq('is_used', false)
+            .single();
+          if (invite) {
+            await supabase.from('profiles').update({
+              org_id: pending.orgId,
+              role: 'editor',
+              has_invite: true,
+            }).eq('id', user.id);
+            await supabase.from('invites').update({
+              is_used: true,
+              used_by: user.id,
+            }).eq('id', invite.id);
+          }
+        } catch {
+          // Silently ignore redeem errors — user can retry via invite UI
+        } finally {
+          localStorage.removeItem('pendingInvite');
+        }
+      }
+
+      const { data } = await supabase.from('profiles').select('role, org_id').maybeSingle();
+      state.role = data?.role || 'viewer';
+      state.userOrgId = data?.org_id || null;
+    } catch {
+      // Network unavailable (e.g. offline or dev without Supabase) — keep current state
     }
-    const { data } = await supabase.from('profiles').select('role, org_id').maybeSingle();
-    state.role = data?.role || 'viewer';
-    state.userOrgId = data?.org_id || null;
   }
 
   const userOrgId = computed(() => state.userOrgId);
@@ -149,14 +185,17 @@ export const useAddressStore = defineStore('address', () => {
   async function addLocation(loc: Location) {
     await addLocationToDatabase(loc);
     await loadLocations();
+    if (state.userOrgId) await syncLocationsToCloud(state.userOrgId, state.locationList);
   }
   async function deleteLocation(id: string) {
     await deleteLocationFromDatabase(id);
     await loadLocations();
+    if (state.userOrgId) await syncLocationsToCloud(state.userOrgId, state.locationList);
   }
   async function updateLocation(id: string, loc: Location) {
     await updateLocationInDatabase(id, loc);
     await loadLocations();
+    if (state.userOrgId) await syncLocationsToCloud(state.userOrgId, state.locationList);
   }
   async function loadLocations() {
     try {

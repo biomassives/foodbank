@@ -410,8 +410,9 @@ interface EdgeFnState {
 
 const edgeFunctions = ref<EdgeFnState[]>([
   { name: 'mts', slug: 'mts', status: 'pending', detail: 'Ready' },
-  { name: 'notify-member', slug: 'notify-member', status: 'pending', detail: 'Ready' },
+  { name: 'claim-invite', slug: 'claim-invite', status: 'pending', detail: 'Ready' },
   { name: 'daily-digest', slug: 'daily-digest', status: 'pending', detail: 'Ready' },
+  { name: 'mailgun-webhook', slug: 'mailgun-webhook', status: 'pending', detail: 'Ready' },
 ]);
 const deploying = ref(false);
 

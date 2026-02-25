@@ -22,14 +22,14 @@ Deno.serve(async (req) => {
     if (MAILGUN_WEBHOOK_KEY) {
       const { timestamp, token, signature } = payload.signature ?? {};
       if (!timestamp || !token || !signature) {
-        return new Response('Missing signature fields', { status: 401 });
+        return new Response('Missing signature fields', { status: 401, headers: corsHeaders });
       }
       const valid = await verifySignature(timestamp, token, signature);
-      if (!valid) return new Response('Invalid signature', { status: 401 });
+      if (!valid) return new Response('Invalid signature', { status: 401, headers: corsHeaders });
     }
 
     const eventData = payload['event-data'];
-    if (!eventData) return new Response('No event-data', { status: 400 });
+    if (!eventData) return new Response('No event-data', { status: 400, headers: corsHeaders });
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     await routeEvent(supabase, eventData);

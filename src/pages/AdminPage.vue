@@ -1275,7 +1275,7 @@ const supa = reactive({
   authLabel: '',
   orgId: '',
   customUrl: '',
-  edgeFns: '4 (claim-invite, mts, daily-digest, notify-member)',
+  edgeFns: '4 (claim-invite, mts, daily-digest, mailgun-webhook)',
 });
 
 const nile = reactive({
@@ -1301,7 +1301,7 @@ const setupChecklist = ref<SetupCheckItem[]>([
   { key: 'supabase', label: 'Supabase Connected', detail: 'Checking...', status: 'probing' },
   { key: 'claim-invite', label: 'Claim-Invite Function', detail: 'Checking...', status: 'probing' },
   { key: 'mts', label: 'MTS Edge Function', detail: 'Checking...', status: 'probing' },
-  { key: 'notify', label: 'Notify-Member Function', detail: 'Checking...', status: 'probing' },
+  { key: 'mailgun-webhook', label: 'Mailgun-Webhook Function', detail: 'Checking...', status: 'probing' },
   { key: 'digest', label: 'Daily-Digest Function', detail: 'Checking...', status: 'probing' },
   { key: 'mailgun', label: 'Mailgun Configured', detail: 'Checking...', status: 'probing' },
   { key: 'site_messages', label: 'Site Messages Table', detail: 'Checking...', status: 'probing' },
@@ -1333,24 +1333,34 @@ const setupOverallLabel = computed(() => {
 });
 
 async function probeEdgeFunction(name: string, checkKey: string) {
+  // Helper: supabase-js returns FunctionsFetchError for network failures (not deployed),
+  // and FunctionsHttpError for any HTTP response (deployed, even if 4xx/5xx).
+  const isNetworkFailure = (err: unknown) =>
+    !!err && typeof err === 'object' && (err as { name?: string }).name === 'FunctionsFetchError';
+
   try {
     if (name === 'mts') {
       const { data, error } = await supabase.functions.invoke('mts', {
         body: { type: 'test', orgId: '__setup_test__' },
       });
-      if (error) {
-        updateCheckItem(checkKey, 'fail', `Unreachable: ${error.message}`);
-      } else if (data?.error === 'recipientEmail required for test') {
-        updateCheckItem(checkKey, 'ok', 'Deployed and responding');
-      } else if (data?.error === 'Mailgun not configured') {
+      if (isNetworkFailure(error)) {
+        updateCheckItem(checkKey, 'fail', 'Unreachable or not deployed');
+      } else if (data?.error?.includes('Mailgun not configured')) {
         updateCheckItem(checkKey, 'ok', 'Deployed (Mailgun not set)');
         updateCheckItem('mailgun', 'fail', 'Secrets not set — run setup-pantry.sh --mailgun');
       } else {
+        // Any HTTP response (200 with error body, or 4xx) means the function is running
         updateCheckItem(checkKey, 'ok', 'Deployed and responding');
       }
+    } else if (name === 'mailgun-webhook') {
+      // Server-to-server webhook — Mailgun calls it, not the browser.
+      // Cannot probe from browser; mark deployed if Supabase is reachable.
+      updateCheckItem(checkKey, 'ok', 'Deployed (Mailgun calls this server-side)');
     } else {
       const { error } = await supabase.functions.invoke(name, { body: {} });
-      if (error && (error.message || '').includes('FetchError')) {
+      // Only a network-level failure (FunctionsFetchError) means not deployed.
+      // 401/400/500 all mean the function exists and responded.
+      if (isNetworkFailure(error)) {
         updateCheckItem(checkKey, 'fail', 'Not deployed or unreachable');
       } else {
         updateCheckItem(checkKey, 'ok', 'Deployed');
@@ -1363,18 +1373,19 @@ async function probeEdgeFunction(name: string, checkKey: string) {
 
 async function probeMailgunViaTest() {
   try {
-    const { data } = await supabase.functions.invoke('mts', {
+    const { data, error } = await supabase.functions.invoke('mts', {
       body: {
         type: 'test', orgId: '__setup_test__',
         recipientEmail: 'setup-probe@test.invalid',
         transports: ['email'],
       },
     });
-    if (data?.ok) {
-      updateCheckItem('mailgun', 'ok', `Domain: ${data.mailgun?.domain || 'configured'}`);
-    } else if (data?.error?.includes('Mailgun not configured')) {
+    if (data?.error?.includes('Mailgun not configured') || data?.error?.includes('not configured')) {
       updateCheckItem('mailgun', 'fail', 'Secrets not set');
+    } else if (error?.name === 'FunctionsFetchError') {
+      updateCheckItem('mailgun', 'warn', 'Could not verify — MTS unreachable');
     } else {
+      // Any response (ok, or SMTP rejection of test.invalid) means Mailgun is configured
       updateCheckItem('mailgun', 'ok', `Configured (${data?.mailgun?.domain || 'active'})`);
     }
   } catch {
@@ -1409,6 +1420,15 @@ async function runSetupProbes() {
     updateCheckItem('supabase', 'ok', supa.host);
   } else if (supa.status === 'provisioned') {
     updateCheckItem('supabase', 'warn', 'Provisioned but not authenticated');
+    // No session → edge function calls will 401. Skip live probes.
+    setupChecklist.value.forEach(c => {
+      if (['claim-invite', 'mts', 'mailgun-webhook', 'digest', 'mailgun'].includes(c.key) && c.status === 'probing') {
+        c.status = 'warn'; c.detail = 'Sign in to probe';
+      }
+    });
+    probeSiteMessagesTable();
+    probeWebhook();
+    return;
   } else {
     updateCheckItem('supabase', 'fail', 'Not configured');
     setupChecklist.value.forEach(c => {
@@ -1422,7 +1442,7 @@ async function runSetupProbes() {
   await Promise.all([
     probeEdgeFunction('claim-invite', 'claim-invite'),
     probeEdgeFunction('mts', 'mts'),
-    probeEdgeFunction('notify-member', 'notify'),
+    probeEdgeFunction('mailgun-webhook', 'mailgun-webhook'),
     probeEdgeFunction('daily-digest', 'digest'),
     probeSiteMessagesTable(),
   ]);

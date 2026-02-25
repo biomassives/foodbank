@@ -460,6 +460,26 @@ export async function syncAllToCloud(orgId: string, client?: ReturnType<typeof c
   return { synced, errors };
 }
 
+// ---- Location cloud sync ----
+
+export async function syncLocationsToCloud(orgId: string, locations: Location[]) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !orgId) return;
+
+  const { error } = await supabase
+    .from('organizations')
+    .update({ locations: locations.map(l => ({
+      id: l.id,
+      name: l.name,
+      schedule: l.schedule,
+      contact: l.contact,
+      notes: l.notes,
+    })) })
+    .eq('id', orgId);
+
+  if (error) console.error('Location sync failed:', error.message);
+}
+
 // ---- Notification cache (IndexedDB) ----
 
 export async function cacheNotifications(messages: { id: string }[]) {

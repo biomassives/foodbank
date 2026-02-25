@@ -41,6 +41,7 @@ export interface Entry {
   calendarRecurrence?: CalendarRecurrence;
   calendarVisibility?: CalendarVisibility[];
   calendarLocationId?: string;
+  requesterEmail?: string;
 }
 
 export type TransportSize = 'small' | 'medium' | 'large' | 'oversize' | 'superload';
