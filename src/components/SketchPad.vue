@@ -88,9 +88,11 @@ type DrawItem = StrokePath | IconStamp;
 
 interface StampIcon { name: string; char: string }
 
-const props = defineProps<{ canvasHeight?: number }>();
+defineProps<{ canvasHeight?: number }>();
 
 const emit = defineEmits<{ (e: 'update:modelValue', val: string): void }>();
+
+type TransformMode = 'tile' | 'kaleidoscope' | 'overlap' | 'radial';
 
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 const items = ref<DrawItem[]>([]);
@@ -100,6 +102,7 @@ const strokeWidth = ref(3);
 const showGrid = ref(false);
 const stampMode = ref(false);
 const selectedIcon = ref<StampIcon | null>(null);
+const bgImage = ref<HTMLImageElement | null>(null);
 
 const palette = ['#fff', '#fdd835', '#69f0ae', '#82b1ff', '#ef5350', '#ffab40'];
 const widths = [{ size: 2 }, { size: 4 }, { size: 8 }];
@@ -135,7 +138,8 @@ function initCanvas() {
 }
 
 function getPos(e: MouseEvent | TouchEvent): Point {
-  const rect = canvasEl.value!.getBoundingClientRect();
+  if (!canvasEl.value) return { x: 0, y: 0 };
+  const rect = canvasEl.value.getBoundingClientRect();
   let cx: number, cy: number;
   if ('touches' in e && e.touches.length) {
     cx = e.touches[0].clientX;
@@ -230,6 +234,10 @@ function redraw() {
   const h = canvasEl.value.getBoundingClientRect().height;
   ctx.clearRect(0, 0, w, h);
 
+  if (bgImage.value) {
+    ctx.drawImage(bgImage.value, 0, 0, w, h);
+  }
+
   if (showGrid.value) {
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 0.5;
@@ -277,8 +285,105 @@ function undo() {
   emitData();
 }
 
+async function applyTransform(src: string, mode: TransformMode) {
+  const c = canvasEl.value;
+  if (!c) return;
+
+  const img = new Image();
+  img.src = src;
+  await new Promise<void>(resolve => { img.onload = () => resolve(); img.onerror = () => resolve(); });
+
+  const W = c.width;
+  const H = c.height;
+  const off = document.createElement('canvas');
+  off.width = W;
+  off.height = H;
+  const oc = off.getContext('2d');
+  if (!oc) return;
+
+  const cx = W / 2, cy = H / 2;
+
+  switch (mode) {
+    case 'tile': {
+      // Tile at ~40% canvas size → 3×3+ grid
+      const tw = W * 0.38;
+      const th = H * 0.42;
+      for (let x = 0; x < W + tw; x += tw) {
+        for (let y = 0; y < H + th; y += th) {
+          oc.drawImage(img, x, y, tw, th);
+        }
+      }
+      break;
+    }
+    case 'kaleidoscope': {
+      // 8-fold radial symmetry: rotate copies, mirror every other one
+      const size = Math.min(W, H);
+      oc.save();
+      oc.translate(cx, cy);
+      for (let i = 0; i < 8; i++) {
+        oc.save();
+        oc.rotate((Math.PI * 2 * i) / 8);
+        if (i % 2 === 0) oc.scale(1, -1);
+        oc.globalAlpha = 0.65;
+        oc.drawImage(img, -size / 2, -size / 2, size, size);
+        oc.restore();
+      }
+      oc.restore();
+      break;
+    }
+    case 'overlap': {
+      // 5 semi-transparent copies, each rotated and offset
+      const layers = [
+        { angle: 0,     ox: 0,          oy: 0,          alpha: 0.55, s: 1.0  },
+        { angle: 0.28,  ox: W * 0.07,   oy: -H * 0.04,  alpha: 0.38, s: 0.88 },
+        { angle: -0.28, ox: -W * 0.07,  oy:  H * 0.04,  alpha: 0.38, s: 0.88 },
+        { angle: 0.55,  ox: W * 0.04,   oy:  H * 0.09,  alpha: 0.28, s: 0.76 },
+        { angle: -0.55, ox: -W * 0.04,  oy: -H * 0.09,  alpha: 0.28, s: 0.76 },
+      ];
+      oc.save();
+      oc.translate(cx, cy);
+      for (const l of layers) {
+        oc.save();
+        oc.rotate(l.angle);
+        oc.globalAlpha = l.alpha;
+        const sw = W * l.s, sh = H * l.s;
+        oc.drawImage(img, -sw / 2 + l.ox, -sh / 2 + l.oy, sw, sh);
+        oc.restore();
+      }
+      oc.restore();
+      break;
+    }
+    case 'radial': {
+      // 6 thumbnail copies arranged in a circle, each rotated with the orbit
+      const radius = Math.min(W, H) * 0.26;
+      const thumbW = W * 0.36;
+      const thumbH = H * 0.44;
+      oc.save();
+      oc.translate(cx, cy);
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI * 2) / 6 - Math.PI / 2;
+        oc.save();
+        oc.rotate(angle);
+        oc.drawImage(img, radius - thumbW / 2, -thumbH / 2, thumbW, thumbH);
+        oc.restore();
+      }
+      oc.restore();
+      break;
+    }
+  }
+
+  const result = new Image();
+  result.src = off.toDataURL('image/png');
+  await new Promise<void>(resolve => { result.onload = () => resolve(); result.onerror = () => resolve(); });
+  bgImage.value = result;
+  items.value = [];
+  redraw();
+  emitData();
+}
+
 function clearCanvas() {
   items.value = [];
+  bgImage.value = null;
   redraw();
   emitData();
 }
@@ -299,7 +404,8 @@ function emitData() {
   const offscreen = document.createElement('canvas');
   offscreen.width = c.width;
   offscreen.height = c.height;
-  const offCtx = offscreen.getContext('2d')!;
+  const offCtx = offscreen.getContext('2d');
+  if (!offCtx) return;
   offCtx.fillStyle = '#0a0a0a';
   offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
   offCtx.drawImage(c, 0, 0);
@@ -308,6 +414,7 @@ function emitData() {
 
 function reset() {
   items.value = [];
+  bgImage.value = null;
   nextTick(() => redraw());
 }
 
@@ -325,7 +432,7 @@ onBeforeUnmount(() => {
   resizeObs?.disconnect();
 });
 
-defineExpose({ reset });
+defineExpose({ reset, applyTransform });
 </script>
 
 <style scoped>

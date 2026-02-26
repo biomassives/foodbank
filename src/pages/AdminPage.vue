@@ -86,6 +86,29 @@
             </button>
           </div>
 
+          <!-- Transform filters — seed the new canvas from the saved art -->
+          <div v-if="savedDrawing" class="drawing-filters">
+            <div class="drawing-filters-label">REMIX SAVED ART INTO NEW CANVAS</div>
+            <div class="drawing-filters-row">
+              <button class="df-btn" title="Tile — repeating grid" @click="applyDrawingFilter('tile')">
+                <q-icon name="grid_view" size="16px" />
+                <span>TILE</span>
+              </button>
+              <button class="df-btn" title="Kaleidoscope — 8-fold symmetry" @click="applyDrawingFilter('kaleidoscope')">
+                <q-icon name="blur_on" size="16px" />
+                <span>KALEIDOSCOPE</span>
+              </button>
+              <button class="df-btn" title="Overlap — semi-transparent layers" @click="applyDrawingFilter('overlap')">
+                <q-icon name="layers" size="16px" />
+                <span>OVERLAP</span>
+              </button>
+              <button class="df-btn" title="Radial — arranged in a circle" @click="applyDrawingFilter('radial')">
+                <q-icon name="rotate_90_degrees_cw" size="16px" />
+                <span>RADIAL</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Sketch pad for new drawing -->
           <sketch-pad ref="homepageSketchRef" v-model="newDrawingData" :canvas-height="240" />
 
@@ -125,6 +148,8 @@
           >
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>
+            <option value="driver">Driver</option>
+            <option value="stocker">Stocker</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -390,11 +415,55 @@
           <div class="invite-status" :class="inv.is_used ? 'invite-status--used' : 'invite-status--open'">
             {{ inv.is_used ? 'USED' : 'OPEN' }}
           </div>
+          <template v-if="!inv.is_used">
+            <q-btn
+              flat dense round icon="content_copy" size="xs"
+              class="invite-copy"
+              title="Copy code"
+              @click="copyCode(inv.code)"
+            />
+            <q-btn
+              flat dense round icon="link" size="xs"
+              class="invite-copy"
+              title="Copy join link"
+              @click="copyLink(inv.code)"
+            />
+          </template>
+        </div>
+
+        <!-- ── Send Email Invite ── -->
+        <div class="invite-email-section">
+          <div class="invite-email-label">SEND EMAIL INVITE</div>
+          <div class="sched-edit-hint">Send the Funky Pony driver onboarding email with a one-click join link.</div>
+          <q-input
+            v-model="inviteEmailName"
+            dense filled
+            label="Recipient name"
+            placeholder="e.g. Dan Freeman"
+            class="welcome-input"
+          />
+          <q-input
+            v-model="inviteEmailAddr"
+            dense filled
+            type="email"
+            label="Recipient email"
+            placeholder="dan@example.com"
+            class="welcome-input"
+          />
+          <div class="invite-code-row">
+            <select v-model="inviteEmailCode" class="role-select" style="flex:1;">
+              <option value="">— Select invite code —</option>
+              <option v-for="inv in openInvites" :key="inv.code" :value="inv.code">{{ inv.code }}</option>
+            </select>
+          </div>
           <q-btn
-            v-if="!inv.is_used"
-            flat dense round icon="content_copy" size="xs"
-            class="invite-copy"
-            @click="copyCode(inv.code)"
+            unelevated no-caps
+            icon="send"
+            label="Send Invite Email"
+            class="sched-save-btn"
+            :loading="inviteEmailLoading"
+            :disable="!inviteEmailAddr.trim() || !inviteEmailCode"
+            @click="sendDriverInvite"
           />
         </div>
       </div>
@@ -681,6 +750,77 @@
         </div>
       </div>
 
+      <!-- INFO PAGE -->
+      <div v-if="tab === 'infopage'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">INFO PAGE</span>
+          <span class="panel-count">Public pantry info</span>
+        </div>
+        <div class="sched-edit-hint">Create a public page at <strong>/info</strong> with details about your pantry's services, resources, and how to get help.</div>
+
+        <!-- View link -->
+        <div class="info-link-row">
+          <span class="info-link-url">{{ infoPageUrl }}</span>
+          <q-btn flat dense no-caps icon="open_in_new" size="xs" @click="router.push('/info')" />
+          <q-btn flat dense no-caps icon="content_copy" size="xs" @click="copyInfoLink" />
+        </div>
+
+        <q-input
+          v-model="opsPage.pageTitle"
+          dense filled
+          label="Page title"
+          placeholder="e.g. Ward Food Pantry — Services & Info"
+          class="welcome-input"
+          maxlength="80"
+        />
+        <q-input
+          v-model="opsPage.intro"
+          dense filled
+          type="textarea"
+          label="Intro paragraph"
+          placeholder="Brief overview of your pantry's services and who you serve..."
+          class="welcome-input"
+          rows="3"
+          maxlength="400"
+        />
+
+        <div class="ops-sections-label">SECTIONS</div>
+        <div v-if="opsPage.sections.length === 0" class="ops-empty-hint">
+          <q-icon name="add_circle_outline" size="16px" />
+          <span>Add sections like "How to Get Help", "What We Offer", "Volunteer Info"</span>
+        </div>
+
+        <div v-for="(section, idx) in opsPage.sections" :key="section.id" class="ops-section-editor">
+          <div class="ops-section-header">
+            <q-input
+              v-model="section.title"
+              dense filled
+              placeholder="Section title"
+              class="ops-section-title-input"
+              maxlength="60"
+            />
+            <div class="ops-section-btns">
+              <q-btn flat dense round icon="keyboard_arrow_up" size="xs" :disable="idx === 0" @click="moveOpsSection(idx, -1)" />
+              <q-btn flat dense round icon="keyboard_arrow_down" size="xs" :disable="idx === opsPage.sections.length - 1" @click="moveOpsSection(idx, 1)" />
+              <q-btn flat dense round icon="delete_outline" size="xs" class="ops-del-btn" @click="removeOpsSection(section.id)" />
+            </div>
+          </div>
+          <q-input
+            v-model="section.body"
+            dense filled
+            type="textarea"
+            placeholder="Section content..."
+            rows="3"
+            maxlength="800"
+          />
+        </div>
+
+        <div class="ops-actions-row">
+          <q-btn flat no-caps icon="add" label="Add Section" class="ops-add-btn" @click="addOpsSection" />
+          <q-btn unelevated no-caps icon="save" label="Save Info Page" class="sched-save-btn" @click="saveInfoPage" />
+        </div>
+      </div>
+
       <!-- Help dialog -->
       <q-dialog v-model="showHelp">
         <q-card class="help-card">
@@ -729,6 +869,7 @@ const newLocName = ref('');
 
 const tabs = [
   { key: 'welcome',  icon: 'storefront',     label: 'WELCOME' },
+  { key: 'infopage', icon: 'description',    label: 'INFO PAGE' },
   { key: 'members',  icon: 'group',          label: 'MEMBERS' },
   { key: 'announce', icon: 'campaign',       label: 'ANNOUNCE' },
   { key: 'schedule', icon: 'event',          label: 'SCHEDULE' },
@@ -767,8 +908,10 @@ const members = computed<Member[]>(() => {
 });
 
 function roleColor(role: string): string {
-  if (role === 'admin') return 'var(--wb-accent)';
-  if (role === 'editor') return 'var(--wb-positive)';
+  if (role === 'admin')   return 'var(--wb-accent)';
+  if (role === 'editor')  return 'var(--wb-positive)';
+  if (role === 'driver')  return 'var(--wb-info)';
+  if (role === 'stocker') return '#ce93d8';
   return 'var(--wb-text-faint)';
 }
 
@@ -1056,6 +1199,11 @@ function clearHomepageDrawing() {
   $q.notify({ color: 'info', message: 'Drawing cleared', timeout: 1200 });
 }
 
+function applyDrawingFilter(mode: 'tile' | 'kaleidoscope' | 'overlap' | 'radial') {
+  if (!savedDrawing.value) return;
+  homepageSketchRef.value?.applyTransform(savedDrawing.value, mode);
+}
+
 // ── Schedule ─────────────────────────────────────────────────────
 
 const SCHEDULE_KEY = 'pantry-weekly-schedule';
@@ -1242,6 +1390,59 @@ function copyCode(code: string) {
   navigator.clipboard.writeText(code).then(() => {
     $q.notify({ color: 'positive', message: 'Copied to clipboard' });
   });
+}
+
+function copyLink(code: string) {
+  const url = `${window.location.origin}/join?code=${encodeURIComponent(code)}`;
+  navigator.clipboard.writeText(url).then(() => {
+    $q.notify({ color: 'positive', icon: 'link', message: 'Join link copied — share it directly' });
+  });
+}
+
+// ── Email invite sender ─────────────────────────────────────────
+
+const inviteEmailName    = ref('');
+const inviteEmailAddr    = ref('');
+const inviteEmailCode    = ref('');
+const inviteEmailLoading = ref(false);
+
+const openInvites = computed(() => invites.value.filter(inv => !inv.is_used));
+
+async function sendDriverInvite() {
+  if (!inviteEmailAddr.value.trim() || !inviteEmailCode.value) {
+    $q.notify({ type: 'warning', message: 'Please enter an email and select an invite code' });
+    return;
+  }
+  inviteEmailLoading.value = true;
+  try {
+    const pantryName = localStorage.getItem('pantryName') || 'Ward Food Pantry';
+    const siteUrl    = 'https://ward.funkypony.space';
+    const inviteUrl  = `${siteUrl}/#/join?code=${encodeURIComponent(inviteEmailCode.value)}`;
+    const { data, error } = await supabase.functions.invoke('mts', {
+      body: {
+        type: 'driver-invite',
+        orgId: store.userOrgId || '__local__',
+        recipientEmail: inviteEmailAddr.value.trim(),
+        transports: ['email'],
+        data: {
+          recipientName: inviteEmailName.value.trim() || inviteEmailAddr.value.split('@')[0],
+          inviteCode: inviteEmailCode.value,
+          inviteUrl,
+          pantryName,
+          siteUrl,
+        },
+      },
+    });
+    if (error || (data as any)?.error) throw new Error((error as any)?.message || (data as any)?.error);
+    $q.notify({ type: 'positive', message: 'Invite email sent!' });
+    inviteEmailName.value = '';
+    inviteEmailAddr.value = '';
+    inviteEmailCode.value = '';
+  } catch (err: unknown) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Failed to send' });
+  } finally {
+    inviteEmailLoading.value = false;
+  }
 }
 
 async function fetchCloudInvites() {
@@ -1615,12 +1816,66 @@ function openVercelDeploy() {
   );
 }
 
+// ── Info Page ─────────────────────────────────────────────────────
+
+const opsPage = reactive<{
+  pageTitle: string;
+  intro: string;
+  sections: Array<{ id: string; title: string; body: string }>;
+}>({ pageTitle: '', intro: '', sections: [] });
+
+function loadOpsPage() {
+  try {
+    const raw = localStorage.getItem('pantry-ops-page');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      opsPage.pageTitle = saved.pageTitle || '';
+      opsPage.intro = saved.intro || '';
+      opsPage.sections = saved.sections || [];
+    }
+  } catch { /* skip */ }
+}
+
+function saveInfoPage() {
+  localStorage.setItem('pantry-ops-page', JSON.stringify({
+    pageTitle: opsPage.pageTitle.trim(),
+    intro: opsPage.intro.trim(),
+    sections: opsPage.sections,
+  }));
+  $q.notify({ type: 'positive', message: 'Info page saved' });
+}
+
+function addOpsSection() {
+  opsPage.sections.push({ id: Date.now().toString(), title: '', body: '' });
+}
+
+function removeOpsSection(id: string) {
+  const idx = opsPage.sections.findIndex(s => s.id === id);
+  if (idx >= 0) opsPage.sections.splice(idx, 1);
+}
+
+function moveOpsSection(idx: number, dir: -1 | 1) {
+  const arr = opsPage.sections;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx]!, arr[idx]!];
+}
+
+const infoPageUrl = computed(() => `${window.location.origin}/#/info`);
+
+function copyInfoLink() {
+  navigator.clipboard.writeText(infoPageUrl.value).then(() => {
+    $q.notify({ type: 'positive', message: 'Link copied!' });
+  });
+}
+
 // ── Init ─────────────────────────────────────────────────────────
 
 onMounted(async () => {
   loadWelcome();
   loadWeekSchedule();
   loadStagedMessages();
+  loadOpsPage();
   loadHomepageDrawing();
   await store.loadData();
   await store.loadLocations();
@@ -1630,7 +1885,6 @@ onMounted(async () => {
     await fetchCloudInvites();
     await fetchAnnounceHistory();
   }
-  probeAllDatabases();
 });
 </script>
 
@@ -1809,6 +2063,104 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Email invite ── */
+.invite-email-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 2px solid var(--wb-border-mid);
+}
+.invite-email-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  color: var(--wb-accent);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.invite-code-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* ── Info Page editor ── */
+.info-link-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  background: var(--wb-surface-alt);
+}
+.info-link-url {
+  flex: 1;
+  font-family: var(--wb-font);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--wb-info);
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ops-sections-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  color: var(--wb-accent);
+  padding: 14px 0 6px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  margin-bottom: 8px;
+}
+.ops-empty-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.ops-section-editor {
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: var(--wb-surface-alt);
+}
+.ops-section-header {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.ops-section-title-input { flex: 1; }
+.ops-section-btns { display: flex; gap: 2px; flex-shrink: 0; }
+.ops-del-btn { color: var(--wb-negative) !important; opacity: 0.6; }
+.ops-del-btn:hover { opacity: 1 !important; }
+.ops-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+.ops-add-btn {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
 }
 
 .role-select {
@@ -2541,6 +2893,54 @@ onMounted(async () => {
   letter-spacing: 2px;
   cursor: pointer;
   transition: background 0.15s;
+}
+
+.drawing-filters {
+  margin: 8px 0 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+}
+
+.drawing-filters-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.42rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  margin-bottom: 8px;
+}
+
+.drawing-filters-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.df-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  color: var(--wb-accent);
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.48rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex: 1;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.df-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--wb-accent);
 }
 
 .drawing-clear-btn:hover {

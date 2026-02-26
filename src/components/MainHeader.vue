@@ -45,21 +45,85 @@
           @keyup.escape="closeSearch"
         />
       </div>
+
+      <!-- Profile -->
+      <button v-if="store.isLoggedIn" class="header-profile-btn" @click="router.push('/profile')">
+        <q-icon name="account_circle" size="16px" />
+      </button>
+    </div>
+
+    <!-- Search results dropdown -->
+    <div v-if="showResults" class="search-results-panel" @mousedown.prevent>
+      <template v-if="hasResults">
+
+        <template v-if="store.searchResults.contacts.length">
+          <div class="sr-section-label"><q-icon name="people" size="11px" />CONTACTS</div>
+          <div v-for="r in store.searchResults.contacts" :key="r.id" class="sr-item" @click="navigateResult(r)">
+            <q-icon name="person" size="13px" class="sr-item-icon" />
+            <div class="sr-item-text">
+              <div class="sr-item-title">{{ r.title }}</div>
+              <div v-if="r.subtitle" class="sr-item-sub">{{ r.subtitle }}</div>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="store.searchResults.entries.length">
+          <div class="sr-section-label"><q-icon name="article" size="11px" />ENTRIES</div>
+          <div v-for="r in store.searchResults.entries" :key="r.id" class="sr-item" @click="navigateResult(r)">
+            <q-icon :name="entrySearchIcon(r.entryType)" size="13px" class="sr-item-icon" />
+            <div class="sr-item-text">
+              <div class="sr-item-title">{{ r.title }}</div>
+              <div v-if="r.subtitle" class="sr-item-sub">{{ r.subtitle }}</div>
+            </div>
+            <span class="sr-type-chip">{{ entrySearchLabel(r.entryType) }}</span>
+          </div>
+        </template>
+
+        <template v-if="store.searchResults.locations.length">
+          <div class="sr-section-label"><q-icon name="location_on" size="11px" />LOCATIONS</div>
+          <div v-for="r in store.searchResults.locations" :key="r.id" class="sr-item" @click="navigateResult(r)">
+            <q-icon name="location_on" size="13px" class="sr-item-icon" />
+            <div class="sr-item-text">
+              <div class="sr-item-title">{{ r.title }}</div>
+              <div v-if="r.subtitle" class="sr-item-sub">{{ r.subtitle }}</div>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="store.searchResults.ops.length">
+          <div class="sr-section-label"><q-icon name="info" size="11px" />INFO PAGE</div>
+          <div v-for="r in store.searchResults.ops" :key="r.id" class="sr-item" @click="navigateResult(r)">
+            <q-icon name="description" size="13px" class="sr-item-icon" />
+            <div class="sr-item-text">
+              <div class="sr-item-title">{{ r.title }}</div>
+              <div v-if="r.subtitle" class="sr-item-sub">{{ r.subtitle }}</div>
+            </div>
+          </div>
+        </template>
+
+      </template>
+      <div v-else class="sr-empty">
+        <q-icon name="search_off" size="18px" />
+        <span>No results</span>
+      </div>
     </div>
   </q-header>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useAddressStore } from '../store/store';
+import type { SearchResult } from '../store/store';
 import { useNotificationStore } from 'src/store/notifications';
 import { useI18n } from 'src/i18n';
+import { useRouter } from 'vue-router';
 import NotificationPanel from './NotificationDrawer.vue';
 
 defineEmits(['toggleDrawer']);
 
 const store = useAddressStore();
 const notifStore = useNotificationStore();
+const router = useRouter();
 const { t } = useI18n();
 const search = ref('');
 const searchOpen = ref(false);
@@ -89,6 +153,44 @@ function onSearchBlur() {
 watch(search, (value) => {
   store.search(value);
 });
+
+const showResults = computed(() => searchOpen.value && search.value.trim().length >= 2);
+const hasResults = computed(() => {
+  const r = store.searchResults;
+  return r.contacts.length > 0 || r.entries.length > 0 || r.locations.length > 0 || r.ops.length > 0;
+});
+
+function navigateResult(result: SearchResult) {
+  closeSearch();
+  if (result.kind === 'contact') {
+    router.push({ path: '/', query: { filter: 'contacts' } });
+  } else if (result.kind === 'entry') {
+    if (result.entryType === 'pickup_queue') {
+      router.push({ path: '/', query: { view: 'queue' } });
+    } else {
+      router.push({ path: '/', query: { filter: result.entryType } });
+    }
+  } else if (result.kind === 'location') {
+    router.push('/');
+  } else if (result.kind === 'ops') {
+    router.push('/info');
+  }
+}
+
+function entrySearchIcon(type?: string): string {
+  const map: Record<string, string> = {
+    need: 'volunteer_activism', offering: 'card_giftcard',
+    looking_for: 'search', upcoming_need: 'event', pickup_queue: 'local_shipping',
+  };
+  return map[type || ''] || 'article';
+}
+
+function entrySearchLabel(type?: string): string {
+  const map: Record<string, string> = {
+    need: 'NEED', offering: 'OFFER', looking_for: 'SEEK', upcoming_need: 'UPCOMING', pickup_queue: 'QUEUE',
+  };
+  return map[type || ''] || (type || '').toUpperCase();
+}
 </script>
 
 <style scoped>
@@ -196,6 +298,119 @@ watch(search, (value) => {
   color: var(--wb-text-faint);
   font-weight: 800;
   letter-spacing: 3px;
+}
+
+/* ── Search results panel ── */
+.search-results-panel {
+  position: fixed;
+  top: 55px;
+  right: 0;
+  width: min(340px, 100vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--wb-surface);
+  border: 2px solid var(--wb-border-mid);
+  border-top: none;
+  z-index: 2100;
+  box-shadow: -4px 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.sr-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px 5px;
+  font-family: var(--wb-font);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  background: var(--wb-surface-alt);
+  border-bottom: 1px solid var(--wb-border-subtle);
+  text-transform: uppercase;
+}
+
+.sr-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.sr-item:hover { background: var(--wb-surface-hover); }
+
+.sr-item-icon { color: var(--wb-text-faint); flex-shrink: 0; }
+
+.sr-item-text { flex: 1; min-width: 0; }
+
+.sr-item-title {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--wb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-item-sub {
+  font-family: var(--wb-font);
+  font-size: 0.62rem;
+  color: var(--wb-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.sr-type-chip {
+  flex-shrink: 0;
+  font-family: var(--wb-font);
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--wb-accent);
+  border: 1px solid var(--wb-accent);
+  border-radius: 2px;
+  padding: 1px 4px;
+  opacity: 0.8;
+}
+
+.sr-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* ── Profile ── */
+.header-profile-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-left: 2px solid var(--wb-border-mid);
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.header-profile-btn:hover {
+  color: var(--wb-accent);
+  background: var(--wb-surface-hover);
 }
 
 /* ── Notification bell ── */

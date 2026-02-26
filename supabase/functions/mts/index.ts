@@ -6,7 +6,7 @@ const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY') || '';
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN') || '';
 const FROM_EMAIL = Deno.env.get('NOTIFY_FROM_EMAIL') || `notify@${MAILGUN_DOMAIN}`;
 
-type MtsType = 'welcome' | 'admin-join' | 'pickup-claimed' | 'pickup-delivered' | 'pickup-stocked' | 'daily-digest' | 'custom' | 'test';
+type MtsType = 'welcome' | 'admin-join' | 'pickup-claimed' | 'pickup-delivered' | 'pickup-stocked' | 'daily-digest' | 'custom' | 'test' | 'driver-invite';
 
 interface MtsRequest {
   type: MtsType;
@@ -30,7 +30,8 @@ interface RenderedMessage {
   bodyHtml: string;
   bodyText: string;
   bodyJson: Record<string, unknown>;
-  orgName?: string; // Added this for transport helpers
+  orgName?: string;
+  rawHtml?: string; // override full email HTML (bypasses buildEmailHtml wrapper)
 }
 
 interface TransportResult {
@@ -231,6 +232,23 @@ function renderMessage(
         bodyJson: { type, orgName, sentAt: new Date().toISOString(), ...data },
       };
 
+    case 'driver-invite': {
+      const recipientName = String(data.recipientName || 'there');
+      const inviteCode    = String(data.inviteCode || '');
+      const inviteUrl     = String(data.inviteUrl || 'https://ward.funkypony.space/#/join');
+      const siteUrl       = String(data.siteUrl    || 'https://ward.funkypony.space');
+      const pName         = String(data.pantryName || orgName);
+      return {
+        type, orgName,
+        subject: `${pName} — Your Driver Portal Invite`,
+        heading: 'Driver Portal Access',
+        bodyHtml: '',
+        bodyText: `Hi ${recipientName}, you've been invited to join ${pName} at ${siteUrl}. Invite code: ${inviteCode}. Join at: ${inviteUrl}`,
+        bodyJson: { type, orgName, recipientName, inviteCode, inviteUrl, ...data },
+        rawHtml: buildDriverInviteHtml(esc(recipientName), esc(pName), esc(inviteCode), esc(inviteUrl)),
+      };
+    }
+
     default:
       return {
         type, orgName,
@@ -259,7 +277,7 @@ async function emailTransport(
   let sent = 0, errors = 0;
   const emailRecipients = recipients.filter(r => r.email && r.email.includes('@'));
 
-  const html = buildEmailHtml(message.orgName || '', message.heading, message.bodyHtml);
+  const html = message.rawHtml ?? buildEmailHtml(message.orgName || '', message.heading, message.bodyHtml);
 
   for (const r of emailRecipients) {
     try {
@@ -442,6 +460,138 @@ function defaultRolesForType(type: string): string[] {
 }
 
 
+
+// ── Funky Pony driver-invite HTML email ─────────────────────────
+
+function buildDriverInviteHtml(
+  recipientName: string,
+  pantryName: string,
+  inviteCode: string,
+  inviteUrl: string,
+): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Driver Portal Access</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:'Courier New','Lucida Console',Courier,monospace;">
+<div style="max-width:560px;margin:0 auto;background:#0a0a0a;">
+
+  <!-- Mondrian header bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
+    <tr>
+      <td style="width:15%;height:9px;background:#E2725B;"></td>
+      <td style="width:9%;height:9px;background:#FDD835;"></td>
+      <td style="width:26%;height:9px;background:#4A5D66;"></td>
+      <td style="width:10%;height:9px;background:#69F0AE;"></td>
+      <td style="height:9px;background:#141414;"></td>
+    </tr>
+    <tr>
+      <td style="width:15%;height:3px;background:#FDD835;"></td>
+      <td style="width:9%;height:3px;background:#0a0a0a;"></td>
+      <td style="width:26%;height:3px;background:#E2725B;"></td>
+      <td style="width:10%;height:3px;background:#4A5D66;"></td>
+      <td style="height:3px;background:#69F0AE;"></td>
+    </tr>
+  </table>
+
+  <!-- Brand + title -->
+  <div style="padding:28px 28px 0;">
+    <div style="font-size:9px;letter-spacing:5px;color:#FDD835;font-weight:800;text-transform:uppercase;margin-bottom:8px;">FUNKY PONY</div>
+    <div style="font-size:23px;letter-spacing:2px;color:#e8e8e8;font-weight:900;line-height:1.15;text-transform:uppercase;">${pantryName}</div>
+    <div style="margin-top:10px;display:inline-block;padding:3px 10px;border:1px solid #4A5D66;font-size:9px;letter-spacing:3px;color:#4A5D66;font-weight:800;text-transform:uppercase;">DRIVER PORTAL ACCESS</div>
+  </div>
+
+  <!-- Rule -->
+  <div style="margin:22px 28px 0;height:2px;background:linear-gradient(to right,#FDD835,#333,#0a0a0a);"></div>
+
+  <!-- Body copy -->
+  <div style="padding:18px 28px 0;font-size:14px;line-height:1.75;color:#e8e8e8;">
+    <p style="margin:0 0 14px;">Hi ${recipientName},</p>
+    <p style="margin:0 0 14px;">You're invited to join the <strong style="color:#FDD835;">${pantryName}</strong> coordination platform — a lightweight web tool for managing pickups, community needs, and pantry operations. No app install, works on any device.</p>
+  </div>
+
+  <!-- Rule -->
+  <div style="margin:18px 28px 0;height:1px;background:#222;"></div>
+
+  <!-- Feature list -->
+  <div style="padding:16px 28px 0;">
+    <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;text-transform:uppercase;margin-bottom:12px;">WHAT IT PROVIDES</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td>
+        <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Task Queue</strong> &mdash; claim pickups, mark in-transit, log delivery</td>
+      </tr>
+      <tr>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#69F0AE;font-weight:900;line-height:1;">&#183;</td>
+        <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Locations &amp; Schedule</strong> &mdash; pickup points with transport requirements and pantry hours</td>
+      </tr>
+      <tr>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#82B1FF;font-weight:900;line-height:1;">&#183;</td>
+        <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Notifications</strong> &mdash; broadcast alerts for available pickups and pantry announcements</td>
+      </tr>
+      <tr>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#E2725B;font-weight:900;line-height:1;">&#183;</td>
+        <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Availability</strong> &mdash; set your typical weekly schedule from your profile so the team routes tasks your way</td>
+      </tr>
+      <tr>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td>
+        <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Community Board</strong> &mdash; needs and offerings across the neighborhood</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Rule -->
+  <div style="margin:18px 28px 0;height:1px;background:#222;"></div>
+
+  <!-- In active proof note -->
+  <div style="padding:14px 28px 0;">
+    <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:6px;">IN ACTIVE PROOF</div>
+    <div style="font-size:11px;color:#666;line-height:1.6;">Driver role access, pickup broadcast notifications, availability-based routing, and the public pantry info page. Your testing and feedback shape these flows directly.</div>
+  </div>
+
+  <!-- Rule -->
+  <div style="margin:22px 28px 0;height:2px;background:#222;"></div>
+
+  <!-- Invite code -->
+  <div style="padding:0 28px;">
+    <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;text-transform:uppercase;margin-bottom:10px;">YOUR INVITE CODE</div>
+    <div style="background:#141414;border:2px solid #FDD835;padding:14px 18px;letter-spacing:6px;font-size:22px;font-weight:900;color:#FDD835;text-align:center;">${inviteCode}</div>
+  </div>
+
+  <!-- CTA -->
+  <div style="padding:14px 28px 0;">
+    <a href="${inviteUrl}" style="display:block;background:#FDD835;color:#000000;text-align:center;padding:15px 24px;font-size:12px;font-weight:900;letter-spacing:3px;text-decoration:none;text-transform:uppercase;font-family:'Courier New',monospace;">JOIN AT WARD.FUNKYPONY.SPACE &rarr;</a>
+  </div>
+  <div style="padding:8px 28px 0;font-size:11px;color:#555;line-height:1.6;">
+    Enter the code above, add your email, and follow the sign-in link. You'll land directly in the pantry.
+  </div>
+
+  <!-- Rule -->
+  <div style="margin:22px 28px 0;height:1px;background:#222;"></div>
+
+  <!-- Footer -->
+  <div style="padding:14px 28px 22px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">
+    FUNKY PONY &mdash; <span style="color:#4A5D66;">COMMUNITY TOOLING</span> &mdash; ward.funkypony.space
+  </div>
+
+  <!-- Mondrian footer bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
+    <tr>
+      <td style="height:4px;background:#141414;"></td>
+      <td style="width:10%;height:4px;background:#69F0AE;"></td>
+      <td style="width:26%;height:4px;background:#FDD835;"></td>
+      <td style="width:9%;height:4px;background:#E2725B;"></td>
+      <td style="width:15%;height:4px;background:#4A5D66;"></td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>`;
+}
 
 function esc(str: string): string {
   return str

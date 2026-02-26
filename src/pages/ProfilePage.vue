@@ -359,9 +359,18 @@ const myEntries = computed(() =>
   ([...store.getEntries] as Entry[]).reverse()
 );
 
-const roleBadge = computed(() =>
-  (store.canEdit ? 'EDITOR' : 'MEMBER').toUpperCase()
-);
+const ROLE_LABELS: Record<string, string> = {
+  admin:   'ADMIN',
+  editor:  'EDITOR',
+  driver:  'DRIVER',
+  stocker: 'STOCKER',
+  viewer:  'MEMBER',
+};
+const roleBadge = computed(() => {
+  if (store.localMode) return 'LOCAL ADMIN';
+  if (store.demoMode)  return 'DEMO';
+  return ROLE_LABELS[store.userRole] ?? store.userRole.toUpperCase();
+});
 
 // ── Lifecycle ─────────────────────────────────────────────────────
 onMounted(async () => {
@@ -452,8 +461,8 @@ async function saveProfile() {
 
     if (error) throw error;
     $q.notify({ type: 'positive', message: 'Profile saved!' });
-  } catch (err: any) {
-    $q.notify({ type: 'negative', message: err.message ?? 'Save failed' });
+  } catch (err: unknown) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Save failed' });
   } finally {
     saving.value = false;
   }

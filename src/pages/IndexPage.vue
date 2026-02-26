@@ -401,7 +401,14 @@ const seedContacts = [
 ];
 
 const userContacts = computed(() => store.getData as Address[]);
-const userLocations = computed(() => store.getLocations as Location[]);
+const userLocations = computed(() => {
+  const locs = store.getLocations as Location[];
+  const q = store.getSearchStr.trim().toLowerCase();
+  if (q.length < 2) return locs;
+  return locs.filter(l =>
+    `${l.name} ${l.contact} ${l.phone} ${l.resources.join(' ')} ${l.notes || ''}`.toLowerCase().includes(q)
+  );
+});
 
 const allContacts = computed(() => {
   const users = userContacts.value.map((c: Address) => ({
@@ -478,8 +485,14 @@ async function doDelete() {
 const activeEntries = computed(() => store.getActiveEntries);
 const filteredEntries = computed(() => {
   const all = activeEntries.value as Entry[];
-  if (isCommunityFilter.value) return all.filter(e => e.type === activeFilter.value);
-  return all;
+  const q = store.getSearchStr.trim().toLowerCase();
+  let result = isCommunityFilter.value ? all.filter(e => e.type === activeFilter.value) : all;
+  if (q.length >= 2) {
+    result = result.filter(e =>
+      `${e.description} ${e.location || ''} ${e.requesterEmail || ''}`.toLowerCase().includes(q)
+    );
+  }
+  return result;
 });
 
 function timeAgo(iso: string): string {

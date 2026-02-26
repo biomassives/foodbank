@@ -54,12 +54,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { supabase } from 'src/dbManagement'
 import { useQuasar } from 'quasar'
+import { useRoute } from 'vue-router'
 
 const $q = useQuasar()
+const route = useRoute()
 const inviteCode = ref('')
+
+onMounted(() => {
+  const code = route.query.code
+  if (typeof code === 'string' && code.trim()) {
+    inviteCode.value = code.trim().toUpperCase()
+  }
+})
 const email = ref('')
 const loading = ref(false)
 const magicSent = ref(false)

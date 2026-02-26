@@ -104,6 +104,12 @@
               </div>
             </router-link>
 
+            <router-link to="/info" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="info" /><span>Pantry Info</span>
+              </div>
+            </router-link>
+
             <router-link to="/settings" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
                 <q-icon name="tune" /><span>{{ t.nav.settings }}</span>
@@ -124,7 +130,7 @@
                 <q-icon name="account_circle" />
                 <div class="profile-nav-text">
                   <span class="profile-nav-name">{{ store.userEmail?.split('@')[0] || 'Profile' }}</span>
-                  <span class="profile-nav-sub">MY PROFILE</span>
+                  <span class="profile-nav-sub">{{ drawerRoleLabel }}</span>
                 </div>
               </div>
             </router-link>
@@ -255,6 +261,19 @@ const statusLabel = computed(() => {
 });
 
 const pantryName = computed(() => localStorage.getItem('pantryName') || '');
+
+const DRAWER_ROLE_LABELS: Record<string, string> = {
+  admin:   'ADMIN',
+  editor:  'EDITOR',
+  driver:  'DRIVER',
+  stocker: 'STOCKER',
+  viewer:  'MEMBER',
+};
+const drawerRoleLabel = computed(() => {
+  if (store.localMode) return 'LOCAL ADMIN';
+  if (store.demoMode)  return 'DEMO';
+  return DRAWER_ROLE_LABELS[store.userRole] ?? store.userRole.toUpperCase();
+});
 
 function handleEntrySaved(payload: { type: string }) {
   const view = payload.type === 'pickup_queue' ? 'queue' : 'directory';

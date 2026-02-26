@@ -33,6 +33,14 @@ import { demoContacts, allDemoEntries, demoLocations } from 'src/data/demo';
 
 const pinia = createPinia();
 
+export interface SearchResult {
+  id: string;
+  kind: 'contact' | 'entry' | 'location' | 'ops';
+  title: string;
+  subtitle: string;
+  entryType?: string;
+}
+
 export const useAddressStore = defineStore('address', () => {
   const state = reactive<AddressState>({
     searchStr: '',
@@ -76,6 +84,14 @@ export const useAddressStore = defineStore('address', () => {
               is_used: true,
               used_by: user.id,
             }).eq('id', invite.id);
+            // Fire welcome + admin-join notifications (fire-and-forget)
+            const memberEmail = user.email ?? undefined;
+            supabase.functions.invoke('mts', {
+              body: { type: 'welcome', orgId: pending.orgId, recipientEmail: memberEmail, data: { memberEmail } },
+            }).catch(() => { /* ignore */ });
+            supabase.functions.invoke('mts', {
+              body: { type: 'admin-join', orgId: pending.orgId, recipientRole: ['admin'], data: { memberName: memberEmail ?? user.phone } },
+            }).catch(() => { /* ignore */ });
           }
         } catch {
           // Silently ignore redeem errors — user can retry via invite UI
@@ -98,7 +114,8 @@ export const useAddressStore = defineStore('address', () => {
   const localMode = computed(() => !!localStorage.getItem('localMode'));
   const canSync = computed(() => !!state.userOrgId);
   const demoMode = computed(() => !!localStorage.getItem('demoMode'));
-  const canEdit = computed(() => state.role === 'admin' || state.role === 'editor' || localMode.value || demoMode.value);
+  const canEdit = computed(() => state.role === 'admin' || state.role === 'editor' || state.role === 'driver' || state.role === 'stocker' || localMode.value || demoMode.value);
+  const userRole = computed(() => state.role);
 
   function search(payload: string) {
     state.searchStr = payload;
@@ -269,6 +286,47 @@ export const useAddressStore = defineStore('address', () => {
     state.entryList.filter(e => e.type === 'calendar_event' && e.status === 'active')
   );
 
+  const searchResults = computed(() => {
+    const q = state.searchStr.trim().toLowerCase();
+    if (q.length < 2) return { contacts: [] as SearchResult[], entries: [] as SearchResult[], locations: [] as SearchResult[], ops: [] as SearchResult[] };
+
+    const contacts: SearchResult[] = state.addressList
+      .filter(c => `${c.name.first} ${c.name.last} ${c.email} ${c.phone}`.toLowerCase().includes(q))
+      .slice(0, 4)
+      .map(c => ({ id: c.id, kind: 'contact' as const, title: `${c.name.first} ${c.name.last}`, subtitle: c.email || c.phone || '' }));
+
+    const entries: SearchResult[] = state.entryList
+      .filter(e => e.type !== 'calendar_event' && e.status === 'active' &&
+        `${e.description} ${e.location || ''} ${e.requesterEmail || ''}`.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map(e => ({ id: e.id, kind: 'entry' as const, title: e.description.slice(0, 80), subtitle: e.location || e.requesterEmail || '', entryType: e.type }));
+
+    const locations: SearchResult[] = state.locationList
+      .filter(l => `${l.name} ${l.contact} ${l.phone} ${l.resources.join(' ')} ${l.notes || ''}`.toLowerCase().includes(q))
+      .slice(0, 3)
+      .map(l => ({ id: l.id, kind: 'location' as const, title: l.name, subtitle: l.contact || l.phone || '' }));
+
+    const ops: SearchResult[] = [];
+    try {
+      const raw = localStorage.getItem('pantry-ops-page');
+      if (raw) {
+        const page = JSON.parse(raw) as { pageTitle?: string; intro?: string; sections?: Array<{ id: string; title: string; body: string }> };
+        const toSearch = [
+          { id: 'intro', title: page.pageTitle || 'Pantry Info', body: page.intro || '' },
+          ...(page.sections || []),
+        ];
+        for (const s of toSearch) {
+          if (`${s.title} ${s.body}`.toLowerCase().includes(q)) {
+            ops.push({ id: `ops-${s.id}`, kind: 'ops' as const, title: s.title, subtitle: s.body.slice(0, 70) });
+            if (ops.length >= 2) break;
+          }
+        }
+      }
+    } catch { /* skip */ }
+
+    return { contacts, entries, locations, ops };
+  });
+
   async function claimEntry(id: string, claimer: string) {
     const entry = state.entryList.find(e => e.id === id);
     if (!entry) return;
@@ -342,6 +400,7 @@ export const useAddressStore = defineStore('address', () => {
     canEdit,
     canSync,
     isLoggedIn,
+    userRole,
     userEmail,
     localMode,
     userOrgId,
@@ -368,6 +427,7 @@ export const useAddressStore = defineStore('address', () => {
     completeEntry,
     stockEntry,
     hasCustomConnection,
+    searchResults,
     exportData,
     syncAllData,
     clearSingleStore,
