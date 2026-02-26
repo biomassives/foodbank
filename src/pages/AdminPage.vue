@@ -466,6 +466,20 @@
             @click="sendDriverInvite"
           />
         </div>
+
+        <!-- ── Email preview ── -->
+        <div class="invite-preview-section">
+          <div class="invite-preview-header">
+            <span class="invite-preview-label">EMAIL PREVIEW</span>
+            <span class="invite-preview-age">{{ previewAge }}</span>
+            <q-btn flat dense round icon="refresh" size="xs" class="invite-preview-refresh" title="Refresh preview" @click="refreshPreview" />
+          </div>
+          <iframe
+            class="invite-preview-frame"
+            sandbox="allow-same-origin"
+            :srcdoc="emailPreviewHtml"
+          />
+        </div>
       </div>
 
       <!-- DATA STORES -->
@@ -847,7 +861,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import { useRouter } from 'vue-router';
 import { generateLocationEntries } from 'src/utils/calendar';
@@ -1445,6 +1459,124 @@ async function sendDriverInvite() {
   }
 }
 
+// ── Email preview ───────────────────────────────────────────────
+
+const previewPantryName   = ref('Ward Food Pantry');
+const previewGeneratedAt  = ref<Date>(new Date());
+let previewTimer: ReturnType<typeof setInterval> | null = null;
+
+const previewAge = computed(() => {
+  const diff = Math.floor((Date.now() - previewGeneratedAt.value.getTime()) / 1000);
+  if (diff < 10) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  return `${Math.floor(diff / 60)}m ago`;
+});
+
+function refreshPreview() {
+  try {
+    const w = localStorage.getItem('pantry-welcome');
+    if (w) {
+      const parsed = JSON.parse(w);
+      previewPantryName.value = parsed.name || 'Ward Food Pantry';
+    }
+  } catch { /* skip */ }
+  previewGeneratedAt.value = new Date();
+}
+
+const emailPreviewHtml = computed(() => {
+  const name    = inviteEmailName.value.trim() || 'Recipient';
+  const code    = inviteEmailCode.value || 'XXXX-XXXX';
+  const siteUrl = 'https://ward.funkypony.space';
+  const url     = inviteEmailCode.value
+    ? `${siteUrl}/#/join?code=${encodeURIComponent(inviteEmailCode.value)}`
+    : `${siteUrl}/#/join`;
+  // touch previewGeneratedAt to make this reactive to refreshes
+  void previewGeneratedAt.value;
+  return buildDriverInviteHtmlClient(name, previewPantryName.value, code, url);
+});
+
+function buildDriverInviteHtmlClient(
+  recipientName: string,
+  pantryName: string,
+  inviteCode: string,
+  inviteUrl: string,
+): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Driver Portal Access</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:'Courier New','Lucida Console',Courier,monospace;">
+<div style="max-width:560px;margin:0 auto;background:#0a0a0a;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
+    <tr>
+      <td style="width:15%;height:9px;background:#E2725B;"></td>
+      <td style="width:9%;height:9px;background:#FDD835;"></td>
+      <td style="width:26%;height:9px;background:#4A5D66;"></td>
+      <td style="width:10%;height:9px;background:#69F0AE;"></td>
+      <td style="height:9px;background:#141414;"></td>
+    </tr>
+    <tr>
+      <td style="width:15%;height:3px;background:#FDD835;"></td>
+      <td style="width:9%;height:3px;background:#0a0a0a;"></td>
+      <td style="width:26%;height:3px;background:#E2725B;"></td>
+      <td style="width:10%;height:3px;background:#4A5D66;"></td>
+      <td style="height:3px;background:#69F0AE;"></td>
+    </tr>
+  </table>
+  <div style="padding:28px 28px 0;">
+    <div style="font-size:9px;letter-spacing:5px;color:#FDD835;font-weight:800;text-transform:uppercase;margin-bottom:8px;">FUNKY PONY</div>
+    <div style="font-size:23px;letter-spacing:2px;color:#e8e8e8;font-weight:900;line-height:1.15;text-transform:uppercase;">${pantryName}</div>
+    <div style="margin-top:10px;display:inline-block;padding:3px 10px;border:1px solid #4A5D66;font-size:9px;letter-spacing:3px;color:#4A5D66;font-weight:800;text-transform:uppercase;">DRIVER PORTAL ACCESS</div>
+  </div>
+  <div style="margin:22px 28px 0;height:2px;background:linear-gradient(to right,#FDD835,#333,#0a0a0a);"></div>
+  <div style="padding:18px 28px 0;font-size:14px;line-height:1.75;color:#e8e8e8;">
+    <p style="margin:0 0 14px;">Hi ${recipientName},</p>
+    <p style="margin:0 0 14px;">You're invited to join the <strong style="color:#FDD835;">${pantryName}</strong> coordination platform — a lightweight web tool for managing pickups, community needs, and pantry operations. No app install, works on any device.</p>
+  </div>
+  <div style="margin:18px 28px 0;height:1px;background:#222;"></div>
+  <div style="padding:16px 28px 0;">
+    <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;text-transform:uppercase;margin-bottom:12px;">WHAT IT PROVIDES</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Task Queue</strong> &mdash; claim pickups, mark in-transit, log delivery</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#69F0AE;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Locations &amp; Schedule</strong> &mdash; pickup points with transport requirements and pantry hours</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#82B1FF;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Notifications</strong> &mdash; broadcast alerts for available pickups and pantry announcements</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#E2725B;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Availability</strong> &mdash; set your typical weekly schedule from your profile so the team routes tasks your way</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Community Board</strong> &mdash; needs and offerings across the neighborhood</td></tr>
+    </table>
+  </div>
+  <div style="margin:18px 28px 0;height:1px;background:#222;"></div>
+  <div style="padding:14px 28px 0;">
+    <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:6px;">IN ACTIVE PROOF</div>
+    <div style="font-size:11px;color:#666;line-height:1.6;">Driver role access, pickup broadcast notifications, availability-based routing, and the public pantry info page. Your testing and feedback shape these flows directly.</div>
+  </div>
+  <div style="margin:22px 28px 0;height:2px;background:#222;"></div>
+  <div style="padding:0 28px;">
+    <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;text-transform:uppercase;margin-bottom:10px;">YOUR INVITE CODE</div>
+    <div style="background:#141414;border:2px solid #FDD835;padding:14px 18px;letter-spacing:6px;font-size:22px;font-weight:900;color:#FDD835;text-align:center;">${inviteCode}</div>
+  </div>
+  <div style="padding:14px 28px 0;">
+    <a href="${inviteUrl}" style="display:block;background:#FDD835;color:#000000;text-align:center;padding:15px 24px;font-size:12px;font-weight:900;letter-spacing:3px;text-decoration:none;text-transform:uppercase;font-family:'Courier New',monospace;">JOIN AT WARD.FUNKYPONY.SPACE &rarr;</a>
+  </div>
+  <div style="padding:8px 28px 0;font-size:11px;color:#555;line-height:1.6;">Enter the code above, add your email, and follow the sign-in link. You'll land directly in the pantry.</div>
+  <div style="margin:22px 28px 0;height:1px;background:#222;"></div>
+  <div style="padding:14px 28px 22px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">FUNKY PONY &mdash; <span style="color:#4A5D66;">COMMUNITY TOOLING</span> &mdash; ward.funkypony.space</div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
+    <tr>
+      <td style="height:4px;background:#141414;"></td>
+      <td style="width:10%;height:4px;background:#69F0AE;"></td>
+      <td style="width:26%;height:4px;background:#FDD835;"></td>
+      <td style="width:9%;height:4px;background:#E2725B;"></td>
+      <td style="width:15%;height:4px;background:#4A5D66;"></td>
+    </tr>
+  </table>
+</div>
+</body>
+</html>`;
+}
+
 async function fetchCloudInvites() {
   if (!store.canSync) return;
   try {
@@ -1877,6 +2009,8 @@ onMounted(async () => {
   loadStagedMessages();
   loadOpsPage();
   loadHomepageDrawing();
+  refreshPreview();
+  previewTimer = setInterval(refreshPreview, 30_000);
   await store.loadData();
   await store.loadLocations();
   await store.loadEntries();
@@ -1885,6 +2019,10 @@ onMounted(async () => {
     await fetchCloudInvites();
     await fetchAnnounceHistory();
   }
+});
+
+onUnmounted(() => {
+  if (previewTimer) clearInterval(previewTimer);
 });
 </script>
 
@@ -2145,6 +2283,68 @@ onMounted(async () => {
 }
 .ops-section-title-input { flex: 1; }
 .ops-section-btns { display: flex; gap: 2px; flex-shrink: 0; }
+
+/* Fix textarea text colour in dark mode — Quasar filled fields default to black */
+.ops-section-editor :deep(.q-field__native),
+.ops-section-editor :deep(.q-field__input),
+.welcome-input :deep(.q-field__native),
+.welcome-input :deep(.q-field__input) {
+  color: var(--wb-text) !important;
+  caret-color: var(--wb-accent);
+}
+.ops-section-editor :deep(.q-field--filled .q-field__control),
+.welcome-input :deep(.q-field--filled .q-field__control) {
+  background: var(--wb-surface-hover) !important;
+}
+.ops-section-editor :deep(.q-field__label),
+.welcome-input :deep(.q-field__label) {
+  color: var(--wb-text-muted) !important;
+}
+/* ── Email preview ── */
+.invite-preview-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+.invite-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.invite-preview-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  text-transform: uppercase;
+}
+.invite-preview-age {
+  flex: 1;
+  font-family: var(--wb-font);
+  font-size: 0.45rem;
+  font-weight: 600;
+  color: var(--wb-text-faint);
+  letter-spacing: 1px;
+}
+.invite-preview-refresh {
+  color: var(--wb-text-faint) !important;
+  opacity: 0.6;
+}
+.invite-preview-refresh:hover {
+  opacity: 1 !important;
+  color: var(--wb-accent) !important;
+}
+.invite-preview-frame {
+  width: 100%;
+  height: 680px;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 2px;
+  background: #0a0a0a;
+  display: block;
+}
+
 .ops-del-btn { color: var(--wb-negative) !important; opacity: 0.6; }
 .ops-del-btn:hover { opacity: 1 !important; }
 .ops-actions-row {

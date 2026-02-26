@@ -83,8 +83,8 @@
 
         <q-carousel
           v-model="slide"
-          transition-prev="fade"
-          transition-next="fade"
+          transition-prev="slide-right"
+          transition-next="slide-left"
           swipeable
           animated
           control-color="accent"
@@ -92,17 +92,90 @@
           padding
           arrows
           height="160px"
-          class="bg-transparent"
+          class="bg-transparent tour-carousel"
         >
-          <q-carousel-slide name="welcome" class="column no-wrap flex-center">
-            <div class="welcome-title text-shadow">{{ t.welcome.title }}</div>
-            <div class="welcome-subtitle">{{ t.welcome.subtitle }}</div>
+          <q-carousel-slide name="s01" class="column no-wrap flex-center">
+            <div class="tour-label">01 / 12</div>
+            <div class="welcome-title text-shadow">FUNKY PONY</div>
+            <div class="tour-sub">Open-source food pantry platform</div>
+            <div class="tour-body">GPL-licensed, community-driven, built test-first. Your data, your community, your fork.</div>
           </q-carousel-slide>
 
-          <q-carousel-slide name="mission" class="column no-wrap flex-center">
-             <div class="welcome-blurb q-px-md text-weight-bold">
-               {{ t.welcome.body }}
-             </div>
+          <q-carousel-slide name="s02" class="column no-wrap flex-center">
+            <div class="tour-label">02 / 12</div>
+            <q-icon name="contacts" size="28px" color="accent" class="q-mb-xs" />
+            <div class="tour-head">DIRECTORY</div>
+            <div class="tour-body">Your community address book. Add neighbors, track who needs what, and stay connected.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s03" class="column no-wrap flex-center">
+            <div class="tour-label">03 / 12</div>
+            <q-icon name="post_add" size="28px" color="accent" class="q-mb-xs" />
+            <div class="tour-head">ENTRIES</div>
+            <div class="tour-body">Post needs, offerings, and lookouts — the living bulletin board of your pantry.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s04" class="column no-wrap flex-center">
+            <div class="tour-label">04 / 12</div>
+            <q-icon name="local_shipping" size="28px" color="positive" class="q-mb-xs" />
+            <div class="tour-head">QUEUE</div>
+            <div class="tour-body">Track pickups from request to doorstep. Assign, stage, and mark deliveries complete.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s05" class="column no-wrap flex-center">
+            <div class="tour-label">05 / 12</div>
+            <q-icon name="location_on" size="28px" color="accent" class="q-mb-xs" />
+            <div class="tour-head">LOCATIONS</div>
+            <div class="tour-body">Add pickup spots with hours and recurring schedules. Calendar events auto-generate.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s06" class="column no-wrap flex-center">
+            <div class="tour-label">06 / 12</div>
+            <q-icon name="calendar_month" size="28px" color="accent" class="q-mb-xs" />
+            <div class="tour-head">CALENDAR</div>
+            <div class="tour-body">12-week master view of pantry hours, deliveries, and team tasks — all in one place.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s07" class="column no-wrap flex-center">
+            <div class="tour-label">07 / 12</div>
+            <q-icon name="campaign" size="28px" color="warning" class="q-mb-xs" />
+            <div class="tour-head">ANNOUNCE</div>
+            <div class="tour-body">Send targeted messages to drivers, stock team, logistics, or all members at once.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s08" class="column no-wrap flex-center">
+            <div class="tour-label">08 / 12</div>
+            <q-icon name="info" size="28px" color="info" class="q-mb-xs" />
+            <div class="tour-head">INFO PAGE</div>
+            <div class="tour-body">A public-facing page for your pantry's hours, programs, and directions — shareable link.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s09" class="column no-wrap flex-center">
+            <div class="tour-label">09 / 12</div>
+            <q-icon name="admin_panel_settings" size="28px" color="accent" class="q-mb-xs" />
+            <div class="tour-head">ADMIN HUB</div>
+            <div class="tour-body">Manage members, schedules, announcements, locations, and content from one dashboard.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s10" class="column no-wrap flex-center">
+            <div class="tour-label">10 / 12</div>
+            <q-icon name="vpn_key" size="28px" color="accent" class="q-mb-xs" />
+            <div class="tour-head">INVITES</div>
+            <div class="tour-body">Generate a short code and share it. Neighbors join your pantry in seconds, no email required.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s11" class="column no-wrap flex-center">
+            <div class="tour-label">11 / 12</div>
+            <q-icon name="storage" size="28px" color="positive" class="q-mb-xs" />
+            <div class="tour-head">LOCAL MODE</div>
+            <div class="tour-body">No account needed. All data lives in your browser. Export as JSON any time you like.</div>
+          </q-carousel-slide>
+
+          <q-carousel-slide name="s12" class="column no-wrap flex-center">
+            <div class="tour-label">12 / 12</div>
+            <q-icon name="cloud_sync" size="28px" color="info" class="q-mb-xs" />
+            <div class="tour-head">CLOUD SYNC</div>
+            <div class="tour-body">Connect your own Supabase to sync across devices and collaborate with your whole team.</div>
           </q-carousel-slide>
         </q-carousel>
       </q-card-section>
@@ -205,7 +278,7 @@ const router = useRouter();
 const { t } = useI18n();
 const { isDark } = useTheme();
 
-const slide = ref('welcome');
+const slide = ref('s01');
 const testStats = ref<{ tests: number; suites: number } | null>(null);
 
 onMounted(async () => {
@@ -266,6 +339,50 @@ function goCreate() {
 /* Ensure the carousel doesn't hide the SVG petals */
 :deep(.q-carousel__control) {
   opacity: 0.7;
+}
+
+/* Tour carousel slide typography */
+.tour-carousel :deep(.q-carousel__slide) {
+  padding: 6px 12px 28px;
+}
+
+.tour-label {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--wb-text-faint);
+  opacity: 0.6;
+}
+
+.tour-head {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  color: var(--wb-accent);
+  margin-bottom: 4px;
+}
+
+.tour-sub {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.5px;
+  color: var(--wb-text-muted);
+  margin-bottom: 4px;
+}
+
+.tour-body {
+  font-family: var(--wb-font);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  text-align: center;
+  line-height: 1.55;
+  max-width: 280px;
 }
 
 .welcome-card {
