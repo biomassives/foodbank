@@ -520,7 +520,7 @@ async function saveEdit() {
       };
       await store.updateEntry(editItem.value.id, updated);
       if (editNotify.value) {
-        mts.send({ type: 'logistics-update', data: { taskDescription: updated.description, taskLocation: updated.location ?? '', status: updated.queueStatus } }).catch(() => {});
+        mts.send({ type: 'logistics-update', data: { taskDescription: updated.description, taskLocation: updated.location ?? '', status: updated.queueStatus } }).catch(() => { /* offline — mts queues for later */ });
       }
       $q.notify({ color: 'positive', icon: 'edit', message: 'Entry updated', timeout: 2500 });
     } else {
@@ -538,7 +538,7 @@ async function saveEdit() {
       };
       await store.addEntry(newEntry);
       if (editNotify.value) {
-        mts.send({ type: 'logistics-update', data: { taskDescription: newEntry.description, taskLocation: newEntry.location ?? '', status: newEntry.queueStatus } }).catch(() => {});
+        mts.send({ type: 'logistics-update', data: { taskDescription: newEntry.description, taskLocation: newEntry.location ?? '', status: newEntry.queueStatus } }).catch(() => { /* offline — mts queues for later */ });
       }
       $q.notify({ color: 'positive', icon: 'add_circle', message: 'Entry added', timeout: 2500 });
     }
@@ -656,7 +656,7 @@ async function claimItem(item: Entry) {
     type: 'pickup-claimed',
     ...(item.requesterEmail ? { recipientEmail: item.requesterEmail } : {}),
     data: { taskDescription: item.description, taskLocation: item.location ?? '', claimedBy: name },
-  }).catch((_err: unknown) => { /* offline — mts queues for later */ });
+  }).catch(() => { /* offline — mts queues for later */ });
   $q.notify({ color: 'info', icon: 'pan_tool', message: `Claimed: ${item.description.slice(0, 40)}`, timeout: 3000 });
   expandedId.value = null;
 }
@@ -679,7 +679,7 @@ async function deliverItem(item: Entry) {
     type: 'pickup-delivered',
     ...(item.requesterEmail ? { recipientEmail: item.requesterEmail } : {}),
     data: { taskDescription: item.description, taskLocation: item.location ?? '' },
-  }).catch((_err: unknown) => { /* offline — mts queues for later */ });
+  }).catch(() => { /* offline — mts queues for later */ });
   $q.notify({ color: 'positive', icon: 'verified', message: 'Delivered!', timeout: 3000 });
   expandedId.value = null;
 }
