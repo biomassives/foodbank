@@ -78,8 +78,9 @@ async function generate() {
       existing.unshift({ code, is_used: false, created_at: new Date().toISOString() });
       localStorage.setItem('localInvites', JSON.stringify(existing));
     }
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to generate code' });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Failed to generate code';
+    $q.notify({ color: 'negative', message: msg });
   } finally {
     loading.value = false;
   }

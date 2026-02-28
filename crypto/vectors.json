@@ -1,0 +1,74 @@
+[
+  {
+    "password": "correct-horse-battery",
+    "roots": ["3feabd31b0078b3e","3fe2f5e20b64c2c3","3fab5d233d224e40","3fc62c3d2e177748","3fe27504f70fac68","3fe75f3d90f25cba","3fbfaaf07dc797a8","3fd14696b0876186"],
+    "theta1": ["bfe95ff5c0e27196","bfd0a409bb4e167b","3fecd14359638ab8","3fe8f61a2117a06d","bfcbbd41f3b64410","bfe34729863fa4fd","3feb068f4cd0dc59","3fe341b213afc510"],
+    "theta2": ["3fee952f6d7350af","3ff127f7068d656c","3fed6361d61788dd","3feeb76d68f57923","3ff139b665d96163","3ff02b86c069bfc3","3fee0725cf92c2a1","3ff02c35a4e3db1c"],
+    "theta3": ["3ff0b5627b40a7fb","3fedb01fe03e03ed","3ff14e5bb1b46f33","3ff0a4421bad72e4","3fed8ca62eccf3e9","3fefa8d8681bbe62","3ff0fc6e7c3a6674","3fefa77aa652f5e4"],
+    "commitment_hex": "3fefcd3df5848c93",
+    "commitment_val": 9.93803958441633716880e-01
+  },
+  {
+    "password": "staple-pony-lattice",
+    "roots": ["3fd79b7a98a5b212","3fb5722abcec5700","3fe506a78b707cbe","3fdbb7f5ffdfa080","3fd96dae019b6520","3fe02d860694a2f3","3fec9b509387bc34","3fe2eda0456b0911"],
+    "theta1": ["3fd743f8686d23cb","3fec36b32e6f70e4","bfdb888f73575f30","3fc838b5edf7a516","3fd269481750e3c2","bf9035a3094f55b1","bfeb9af0d1e10343","bfd076dd437d100c"],
+    "theta2": ["3ff0f08f1e5d3261","3fed9bac6cd99388","3ff0c33850be0b20","3ff1434f70d2426f","3ff11af26157c43a","3ff161ed60e485df","3fedd342d21ffe23","3ff12930d462ad6e"],
+    "theta3": ["3fee1ee1cfb912b1","3ff132323064c637","3fee7986314ff00e","3fed7976f38a1a72","3fedca25a5f42d9c","3fed3c44c15533bb","3ff1166332515bbe","3fedadac9b790ffe"],
+    "commitment_hex": "3ff043fd2bee7c22",
+    "commitment_val": 1.01659886513494557292e+00
+  },
+  {
+    "password": "wrong-password",
+    "roots": ["3fe627a5a811d108","3fccb6aeb7ac14fc","3fefbd0a2efa7516","3fe75014c024cf5e","3fe51179428fae79","3fdf820dbdb05376","3fefc45948bd3df2","3fec212eb1956364"],
+    "theta1": ["bfe08690f2009dab","3fe6335c54e1b5f1","bfed398a4c60fb87","bfe32666b85eb7ec","bfdbbf1072245a03","3f966bfac134705d","bfed3a0e9a9a01df","bfeb1f1c022cab84"],
+    "theta2": ["3ff07d7bf088ef0c","3fef8e31a5fbc5ce","3fed3cc54341444f","3ff02f9c0c54149c","3ff0c0c2e30d2e6d","3ff161bae53f96c4","3fed3c93f298b727","3fedfea296c8970c"],
+    "theta3": ["3fef04f4802ae712","3ff038da717a1eaf","3ff161ad155013b0","3fefa0adfcc9e8b3","3fee7e709aaa3828","3fed3ca9a7f1e2cf","3ff161c5c1b75284","3ff100b09a2effb5"],
+    "commitment_hex": "3fefa27a961d401c",
+    "commitment_val": 9.88583844367898034733e-01
+  },
+  {
+    "password": "a",
+    "roots": ["3fecad1bbb6749a9","3fe89c2e04ee3f4c","3fd05e13b1697934","3fcf9510ddb9afac","3fe22ea0cb7d764d","3fcf357e31342064","3fe32686ffda89a7","3fed55e8398eac9e"],
+    "theta1": ["bfebabaf11a0e829","bfe5ccea8dda2405","3fe437a047b4e630","3fe4ce77b2a81c0e","bfc8aeffe2ed6e85","3fe4fe6d5e3e14af","bfd1ad5326061ab8","bfec39da18313cb8"],
+    "theta2": ["3fedcd5738319139","3fefab508a603530","3ff00cbf23df316d","3feff16d3b3fd370","3ff1421fa06f8622","3fefe474303793dd","3ff12081084ab5e2","3fed9a896d4af464"],
+    "theta3": ["3ff1195962592f29","3ff02a4aa8f11e96","3fefe666d1ef3d75","3ff0073be89cf6b4","3fed7bd638c4f372","3ff00db8764640d9","3fedbf09d399aa20","3ff132c3c500669d"],
+    "commitment_hex": "3fef894e0af09e02",
+    "commitment_val": 9.85510846488012015598e-01
+  },
+  {
+    "password": "the quick brown fox",
+    "roots": ["3fe06073a28fb36f","3fd4113a7db44690","3fd0e128956f9270","3fe8a1ded52f55ac","3fe8ee461d4aef57","3fe931f620524439","3fd1b43c5d83c4c4","3fe834a8cb0b5d91"],
+    "theta1": ["bfa12b37ede61e6f","3fe013e802b85218","3fe3ae31207faf8e","bfe5d7cb84473e19","bfe667483d7fd377","bfe6e254b95870f7","3fe2ca5a5dd45b7d","bfe5027c944c37a5"],
+    "theta2": ["3ff1612ca056ad43","3ff089a75e6d43d5","3ff01e834123255a","3fefa83f1b996fd8","3fef7f3d589453ab","3fef5b46a8f9098e","3ff03af0b62f10d8","3fefe359c379ae74"],
+    "theta3": ["3fed3dc602d14196","3feeec9f233af843","3fefc2def364ce08","3ff02bd3683b6139","3ff04054ce5e28f0","3ff05250c3dc23ee","3fef8a053978b07e","3ff00e45ad91efaf"],
+    "commitment_hex": "3feff538852eddb8",
+    "commitment_val": 9.98684177516159898857e-01
+  },
+  {
+    "password": "E8×E8",
+    "roots": ["3fc5ed1c344ddf90","3fd9a701db1c4fa6","3fc9878054ba1a10","3feccb68be5da1d4","3fc59ff661ca4d00","3fdd748e9c6934ba","3fd7c55aa7d8f2a8","3fec8ebfa3a473ed"],
+    "theta1": ["3fe90da54f9bf149","3fd1cdc66e56ac99","3fe79ecbfd6a7140","bfebc76e00979ca9","3fe92a1951175d15","3fbcec9c3bbba23d","3fd6d615160ae9fe","bfeb8eea9712f061"],
+    "theta2": ["3feeafdbaf121844","3ff11f8f865e31be","3fef22c4d1b377b4","3fedc3802d30bb60","3feea6accd72cdb3","3ff157257fa15159","3ff0f4b3ac1d375b","3fedd7812d1346f9"],
+    "theta3": ["3ff0a80b43d0c1e5","3fedc0ec967f4389","3ff06e92f55da7f1","3ff11e458ed296a3","3ff0aca312272a26","3fed51d101ca1a59","3fee1699a481dc08","3ff11443be7ad2c8"],
+    "commitment_hex": "3fef9d7478ae3a54",
+    "commitment_val": 9.87970576957943880103e-01
+  },
+  {
+    "password": "",
+    "roots": ["3fccd769fa0ec004","3f8ef6c0eacc1700","3fd2be9dd909acee","3fe71696a94f7334","3fe5bb77402a1d86","3fe2aaef03a6181d","3fe2ba472cc5f030","3fea30ace1b8c9ef"],
+    "theta1": ["3fe62408bd432e2c","3fed337a627f5846","3fe19fd8bfa88bec","bfe2a8afe6e33487","bfdf0749086be16a","bfce1114e575d88d","bfceba175b88f9fc","bfe88d959bdcc1e0"],
+    "theta2": ["3fef92954a14d38d","3fed3f077a55976d","3ff05e3e2f245f5a","3ff03f083897428e","3ff0987fc680ab2e","3ff132a689ab6798","3ff1308b542379f2","3feed8b5423ffb48"],
+    "theta3": ["3ff036a890cace0c","3ff1608bca1661d0","3fef436cce36fb78","3fef81d67058603a","3feecef0560721a6","3fed9ac3db95f5e4","3fed9ef9accb4f9b","3ff0939cf8be367d"],
+    "commitment_hex": "3fefb464f0653404",
+    "commitment_val": 9.90770787737006219942e-01
+  },
+  {
+    "password": "1234567890",
+    "roots": ["3fef5c93b7a5e198","3fd57660c6e462f2","3fdb383fe732610e","3fee66ed9af723aa","3fe3e2e6ebc60adc","3fda18e0b6ccce2e","3fc97116aa45b974","3fc691b50993f260"],
+    "theta1": ["bfed2d22047c6e4b","3fdcc00e4fa54916","3fcaff2b86e331da","bfecdecb6e57e676","bfd5a191b5e6ebe0","3fd09756d0146cb3","3fe7a847f2a3d5ce","3fe8cfc5318c613f"],
+    "theta2": ["3fed416437352245","3ff0b4eaacbf4006","3ff13bd8a48fe0cc","3fed5e66897f73f6","3ff0ffec9938add7","3ff1284f938431ec","3fef1fe137ccb9f9","3feec3b1ab082b4e"],
+    "theta3": ["3ff15f5d39f0ebd1","3fee961ef631655b","3fed886251eaa0ab","3ff150d9bbf62961","3fee002a69cc5d28","3fedaf6edecc7a20","3ff07004d58ae0de","3ff09e1f846ba52c"],
+    "commitment_hex": "3fef6a0360ebe2da",
+    "commitment_val": 9.81691064166706484073e-01
+  }
+]

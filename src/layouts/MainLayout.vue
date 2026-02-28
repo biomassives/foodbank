@@ -118,6 +118,12 @@
               </div>
             </router-link>
 
+            <router-link to="/docs" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="auto_awesome" /><span>E8 Docs</span>
+              </div>
+            </router-link>
+
             <router-link to="/settings" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
                 <q-icon name="tune" /><span>{{ t.nav.settings }}</span>

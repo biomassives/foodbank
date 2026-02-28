@@ -1120,6 +1120,15 @@
         </q-card>
       </q-dialog>
 
+      <!-- ── Oracle ──────────────────────────────────────── -->
+      <div v-if="tab === 'oracle'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">ORACLE</span>
+          <span class="panel-count">E8 lattice · 3 architectural layers</span>
+        </div>
+        <AdminOraclePanel />
+      </div>
+
     </div>
 
     <!-- Help FAB -->
@@ -1139,6 +1148,7 @@ import { supabase, openIndexedDB } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
 import type { Location, Entry } from 'src/models';
 import SketchPad from 'src/components/SketchPad.vue';
+import AdminOraclePanel from 'src/components/AdminOraclePanel.vue';
 import { buildInviteCode } from 'src/utils/inviteCode';
 
 const store  = useAddressStore();
@@ -1163,6 +1173,7 @@ const tabs = [
   { key: 'data',     icon: 'storage',        label: 'DATA' },
   { key: 'launch',   icon: 'rocket_launch',  label: 'LAUNCH' },
   { key: 'calendar', icon: 'calendar_month', label: 'CALENDAR' },
+  { key: 'oracle',   icon: 'auto_awesome',   label: 'ORACLE' },
 ];
 
 // ── Members ──────────────────────────────────────────────────────
