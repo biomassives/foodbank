@@ -95,6 +95,90 @@
           />
         </section>
 
+        <!-- 3-Week Schedule section -->
+        <section class="logi-section logi-schedule-section">
+          <div class="logi-section-hd">
+            <span class="logi-section-title">SCHEDULE</span>
+            <span class="logi-section-sub">Current + 2 weeks ahead</span>
+          </div>
+
+          <div
+            v-for="(week, wi) in threeWeeks"
+            :key="wi"
+            class="logi-week-row"
+          >
+            <!-- Week header -->
+            <div
+              class="logi-week-hd"
+              :class="{ 'logi-week-hd--current': wi === 0 }"
+              @click="toggleWeekCollapse(wi)"
+            >
+              <div class="logi-week-hd-left">
+                <span class="logi-week-title">{{ weekTitle(wi) }}</span>
+                <span class="logi-week-range">{{ weekRangeLabel(week) }}</span>
+              </div>
+              <div class="logi-week-hd-right">
+                <span class="logi-week-item-count">
+                  {{ week.reduce((n, d) => n + itemsForDay(d).length, 0) }} items
+                </span>
+                <q-icon :name="collapsedWeeks.has(wi) ? 'expand_more' : 'expand_less'" size="14px" />
+              </div>
+            </div>
+
+            <!-- Day columns -->
+            <div v-if="!collapsedWeeks.has(wi)" class="logi-week-days-grid">
+              <div
+                v-for="(day, di) in week"
+                :key="di"
+                class="logi-wday-col"
+                :class="{
+                  'logi-wday-col--today':     isToday(day),
+                  'logi-wday-col--has-items': itemsForDay(day).length > 0,
+                }"
+              >
+                <!-- Day header -->
+                <div class="logi-wday-hd">
+                  <span class="logi-wday-name">{{ DAY_ABBR[di] }}</span>
+                  <span class="logi-wday-num" :class="{ 'logi-wday-num--today': isToday(day) }">{{ day.getDate() }}</span>
+                  <div class="logi-wday-dots">
+                    <span
+                      v-for="loc in locationsScheduledOn(day)"
+                      :key="loc.id"
+                      class="week-dot"
+                      :title="loc.name"
+                    />
+                  </div>
+                </div>
+
+                <!-- Items -->
+                <div class="logi-wday-items">
+                  <div
+                    v-for="item in itemsForDay(day)"
+                    :key="item.id"
+                    class="logi-wday-item"
+                    :title="item.description"
+                    @click="openEdit(item)"
+                  >
+                    <div class="logi-wday-item-bar" :class="`logi-item-bar--${item.queueStatus ?? 'pending'}`" />
+                    <div class="logi-wday-item-desc">{{ item.description }}</div>
+                    <q-icon name="edit" size="8px" class="logi-wday-edit-icon" />
+                  </div>
+                </div>
+
+                <!-- Add button (admin) -->
+                <button
+                  v-if="store.canEdit"
+                  class="logi-wday-add"
+                  :title="`Add for ${DAY_ABBR[di]} ${day.getDate()}`"
+                  @click="openAdd(day)"
+                >
+                  <q-icon name="add" size="10px" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Active Now section -->
         <section class="logi-section logi-active-section">
           <div class="logi-section-hd">
@@ -155,6 +239,13 @@
 
                     <!-- Expanded action buttons -->
                     <div v-if="expandedId === item.id" class="logi-item-actions" @click.stop>
+                      <q-btn
+                        flat no-caps dense
+                        label="EDIT"
+                        icon="edit"
+                        class="logi-act-btn logi-act-btn--edit"
+                        @click="openEdit(item)"
+                      />
                       <q-btn
                         v-if="item.queueStatus === 'pending'"
                         flat no-caps dense
@@ -219,17 +310,102 @@
       </main>
     </div>
 
+    <!-- ── Edit / Add modal ─────────────────────────────────────── -->
+    <q-dialog v-model="editDialog" backdrop-filter="blur(2px)">
+      <q-card class="logi-modal-card">
+        <q-card-section class="logi-modal-hd">
+          <div class="logi-modal-title">{{ editItem ? 'EDIT ENTRY' : 'ADD ENTRY' }}</div>
+          <q-btn flat round dense icon="close" class="logi-modal-close" @click="editDialog = false" />
+        </q-card-section>
+
+        <q-card-section class="logi-modal-body">
+          <div class="logi-modal-field">
+            <label class="logi-modal-label">DESCRIPTION</label>
+            <q-input
+              v-model="editForm.description"
+              outlined dense
+              class="logi-modal-input"
+              placeholder="What needs to be picked up or delivered?"
+              autofocus
+            />
+          </div>
+
+          <div class="logi-modal-field">
+            <label class="logi-modal-label">LOCATION HUB</label>
+            <q-select
+              v-model="editForm.location"
+              outlined dense
+              :options="store.getLocations.map((l: Location) => l.name)"
+              class="logi-modal-input"
+              clearable
+              emit-value
+              placeholder="Select hub"
+            />
+          </div>
+
+          <div class="logi-modal-row">
+            <div class="logi-modal-field logi-modal-field--half">
+              <label class="logi-modal-label">DATE</label>
+              <q-input
+                v-model="editForm.calendarDate"
+                type="date"
+                outlined dense
+                class="logi-modal-input"
+              />
+            </div>
+            <div class="logi-modal-field logi-modal-field--half">
+              <label class="logi-modal-label">STATUS</label>
+              <q-select
+                v-model="editForm.queueStatus"
+                outlined dense
+                :options="STATUSES.map(s => ({ label: s.label, value: s.key }))"
+                emit-value map-options
+                class="logi-modal-input"
+              />
+            </div>
+          </div>
+
+          <div class="logi-modal-field">
+            <label class="logi-modal-label">CLAIMED BY</label>
+            <q-input
+              v-model="editForm.claimedBy"
+              outlined dense
+              class="logi-modal-input"
+              placeholder="Person handling this item"
+            />
+          </div>
+
+          <div class="logi-modal-notify">
+            <q-toggle v-model="editNotify" color="positive" dense />
+            <span class="logi-modal-notify-label">Notify group via MTS</span>
+          </div>
+        </q-card-section>
+
+        <q-card-actions class="logi-modal-actions">
+          <q-btn flat no-caps label="Cancel" class="logi-modal-cancel" @click="editDialog = false" />
+          <q-btn
+            unelevated no-caps
+            :label="editSaving ? 'SAVING…' : (editItem ? 'SAVE CHANGES' : 'ADD ENTRY')"
+            :loading="editSaving"
+            :disable="!editForm.description.trim()"
+            class="logi-modal-save"
+            @click="saveEdit"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import { useMts } from 'src/composables/useMts';
 import LogisticsHubDiagram from 'src/components/LogisticsHubDiagram.vue';
 import { buildWeeks, toDateStr } from 'src/utils/calendar';
-import type { Entry, Location } from 'src/models';
+import type { Entry, Location, QueueStatus } from 'src/models';
 
 const store = useAddressStore();
 const $q    = useQuasar();
@@ -263,6 +439,114 @@ const ROLE_FILTERS = [
 const today             = new Date();
 const activeRoleFilter  = ref<string>('all');
 const expandedId        = ref<string | null>(null);
+
+// ── Three-week schedule ───────────────────────────────────────────
+
+const threeWeeks = computed<Date[][]>(() => buildWeeks(today, 3));
+const collapsedWeeks = ref<Set<number>>(new Set([1, 2]));
+
+function toggleWeekCollapse(wi: number) {
+  const s = new Set(collapsedWeeks.value);
+  if (s.has(wi)) s.delete(wi); else s.add(wi);
+  collapsedWeeks.value = s;
+}
+
+function itemsForDay(day: Date): Entry[] {
+  const ds = toDateStr(day);
+  return (store.getQueueEntries as Entry[]).filter(e =>
+    e.calendarDate && e.calendarDate.slice(0, 10) === ds
+  );
+}
+
+function weekRangeLabel(week: Date[]): string {
+  if (!week.length) return '';
+  const sm = week[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const em = week[week.length - 1].toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${sm} – ${em}`;
+}
+
+function weekTitle(wi: number): string {
+  if (wi === 0) return 'THIS WEEK';
+  if (wi === 1) return 'NEXT WEEK';
+  return `WEEK ${wi + 1}`;
+}
+
+// ── Edit modal ────────────────────────────────────────────────────
+
+const editDialog = ref(false);
+const editItem   = ref<Entry | null>(null);
+const editSaving = ref(false);
+const editNotify = ref(true);
+const editForm   = reactive({
+  description:  '',
+  location:     '',
+  calendarDate: '',
+  queueStatus:  'pending' as QueueStatus,
+  claimedBy:    '',
+});
+
+function openEdit(item: Entry) {
+  editItem.value        = item;
+  editForm.description  = item.description;
+  editForm.location     = item.location ?? '';
+  editForm.calendarDate = item.calendarDate?.slice(0, 10) ?? '';
+  editForm.queueStatus  = (item.queueStatus ?? 'pending') as QueueStatus;
+  editForm.claimedBy    = item.claimedBy ?? '';
+  editDialog.value = true;
+}
+
+function openAdd(day: Date) {
+  editItem.value        = null;
+  editForm.description  = '';
+  editForm.location     = '';
+  editForm.calendarDate = toDateStr(day);
+  editForm.queueStatus  = 'pending';
+  editForm.claimedBy    = '';
+  editDialog.value = true;
+}
+
+async function saveEdit() {
+  if (!editForm.description.trim()) return;
+  editSaving.value = true;
+  try {
+    if (editItem.value) {
+      const updated: Entry = {
+        ...editItem.value,
+        description:  editForm.description.trim(),
+        location:     editForm.location || undefined,
+        calendarDate: editForm.calendarDate || undefined,
+        queueStatus:  editForm.queueStatus,
+        claimedBy:    editForm.claimedBy || undefined,
+      };
+      await store.updateEntry(editItem.value.id, updated);
+      if (editNotify.value) {
+        mts.send({ type: 'logistics-update', data: { taskDescription: updated.description, taskLocation: updated.location ?? '', status: updated.queueStatus } }).catch(() => {});
+      }
+      $q.notify({ color: 'positive', icon: 'edit', message: 'Entry updated', timeout: 2500 });
+    } else {
+      const newEntry: Entry = {
+        id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        type: 'pickup_queue',
+        description:  editForm.description.trim(),
+        location:     editForm.location || undefined,
+        calendarDate: editForm.calendarDate || undefined,
+        queueStatus:  editForm.queueStatus,
+        claimedBy:    editForm.claimedBy || undefined,
+        status: 'active',
+        syncedToCloud: false,
+        createdAt: new Date().toISOString(),
+      };
+      await store.addEntry(newEntry);
+      if (editNotify.value) {
+        mts.send({ type: 'logistics-update', data: { taskDescription: newEntry.description, taskLocation: newEntry.location ?? '', status: newEntry.queueStatus } }).catch(() => {});
+      }
+      $q.notify({ color: 'positive', icon: 'add_circle', message: 'Entry added', timeout: 2500 });
+    }
+    editDialog.value = false;
+  } finally {
+    editSaving.value = false;
+  }
+}
 
 // ── Week strip ────────────────────────────────────────────────────
 
@@ -932,5 +1216,298 @@ async function deliverItem(item: Entry) {
   font-size: 0.6rem;
   color: var(--wb-text-faint);
   letter-spacing: 0.5px;
+}
+
+/* ── 3-Week Schedule ─────────────────────────────────────────────  */
+
+.logi-week-row {
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.logi-week-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+  background: var(--wb-surface);
+  border-bottom: 1px solid var(--wb-border-subtle);
+  transition: background 0.12s;
+}
+
+.logi-week-hd:hover { background: var(--wb-surface-hover); }
+
+.logi-week-hd--current .logi-week-title {
+  color: var(--wb-accent);
+}
+
+.logi-week-hd-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.logi-week-title {
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-muted);
+}
+
+.logi-week-range {
+  font-weight: 600;
+  font-size: 0.58rem;
+  color: var(--wb-text-faint);
+}
+
+.logi-week-hd-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--wb-text-faint);
+}
+
+.logi-week-item-count {
+  font-weight: 700;
+  font-size: 0.52rem;
+  letter-spacing: 1px;
+}
+
+/* Day columns grid */
+.logi-week-days-grid {
+  display: flex;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.logi-wday-col {
+  flex: 1;
+  min-width: 80px;
+  border-right: 1px solid var(--wb-border-subtle);
+  display: flex;
+  flex-direction: column;
+  background: var(--wb-bg);
+}
+
+.logi-wday-col:last-child { border-right: none; }
+
+.logi-wday-col--today { background: rgba(253, 216, 53, 0.04); }
+
+.logi-wday-hd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px 4px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  background: var(--wb-surface);
+  gap: 1px;
+}
+
+.logi-wday-name {
+  font-weight: 800;
+  font-size: 0.38rem;
+  letter-spacing: 1px;
+  color: var(--wb-text-faint);
+}
+
+.logi-wday-num {
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--wb-text-mid);
+  line-height: 1.1;
+}
+
+.logi-wday-num--today {
+  color: var(--wb-accent);
+}
+
+.logi-wday-dots {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 4px;
+}
+
+.logi-wday-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 3px;
+  min-height: 32px;
+}
+
+.logi-wday-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 2px;
+  padding: 2px 4px 2px 0;
+  cursor: pointer;
+  transition: background 0.1s;
+  overflow: hidden;
+}
+
+.logi-wday-item:hover { background: var(--wb-surface-hover); }
+
+.logi-wday-item-bar {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  border-radius: 1px 0 0 1px;
+}
+
+.logi-wday-item-desc {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.55rem;
+  color: var(--wb-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.logi-wday-edit-icon {
+  color: var(--wb-text-faint);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.logi-wday-add {
+  width: 100%;
+  padding: 3px 0;
+  border: none;
+  border-top: 1px dashed var(--wb-border-subtle);
+  background: transparent;
+  color: var(--wb-text-faint);
+  cursor: pointer;
+  font-size: 0.45rem;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.logi-wday-add:hover {
+  background: var(--wb-surface-hover);
+  color: var(--wb-accent);
+}
+
+/* edit button in active list */
+.logi-act-btn--edit {
+  color: var(--wb-info) !important;
+  border-color: var(--wb-info);
+}
+
+/* ── Edit modal ──────────────────────────────────────────────────  */
+
+.logi-modal-card {
+  background: var(--wb-surface);
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 4px;
+  min-width: 320px;
+  max-width: 480px;
+  width: 92vw;
+}
+
+.logi-modal-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.logi-modal-title {
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 4px;
+  color: var(--wb-accent);
+}
+
+.logi-modal-close {
+  color: var(--wb-text-faint) !important;
+}
+
+.logi-modal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logi-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.logi-modal-label {
+  font-weight: 800;
+  font-size: 0.46rem;
+  letter-spacing: 2.5px;
+  color: var(--wb-text-faint);
+}
+
+.logi-modal-input {
+  font-family: var(--wb-font);
+}
+
+.logi-modal-row {
+  display: flex;
+  gap: 12px;
+}
+
+.logi-modal-field--half {
+  flex: 1;
+  min-width: 0;
+}
+
+.logi-modal-notify {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+
+.logi-modal-notify-label {
+  font-weight: 700;
+  font-size: 0.6rem;
+  color: var(--wb-text-muted);
+}
+
+.logi-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+
+.logi-modal-cancel {
+  color: var(--wb-text-faint) !important;
+  font-weight: 700;
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+}
+
+.logi-modal-save {
+  background: var(--wb-accent) !important;
+  color: #000 !important;
+  font-weight: 800;
+  font-size: 0.58rem;
+  letter-spacing: 2px;
+  border-radius: 2px;
 }
 </style>
