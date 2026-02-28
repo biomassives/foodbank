@@ -120,7 +120,7 @@
 
             <router-link to="/docs" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
-                <q-icon name="auto_awesome" /><span>E8 Docs</span>
+                <q-icon name="menu_book" /><span>Docs</span>
               </div>
             </router-link>
 
