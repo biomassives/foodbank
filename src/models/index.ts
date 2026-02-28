@@ -80,6 +80,22 @@ export interface ParamsType {
 export type DaySlot = 'morning' | 'afternoon' | 'evening';
 export type WeekAvailability = Record<DayOfWeek, Record<DaySlot, boolean>>;
 
+export type NeedBinType = 'available' | 'expected' | 'offered' | 'need';
+export type NeedItemStatus = 'active' | 'fulfilled' | 'paused' | 'cancelled';
+
+export interface NeedItem {
+  id: string;
+  user_id?: string;
+  org_id: string;
+  bin_type: NeedBinType;
+  title: string;
+  quantity?: string;
+  category?: string;
+  anonymous: boolean;
+  sort_order: number;
+  status: NeedItemStatus;
+}
+
 export interface UserProfile {
   id: string;
   org_id: string | null;

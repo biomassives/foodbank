@@ -24,13 +24,23 @@
 
       <!-- === SCHEDULE cell (desktop top-left, row 1) === -->
       <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--schedule">
-        <div class="mondrian-cell-header">THIS WEEK</div>
+        <div class="mondrian-cell-header">
+          SCHEDULE
+          <router-link to="/calendar" class="cell-header-link" title="Full calendar">
+            <q-icon name="calendar_month" size="12px" />
+          </router-link>
+        </div>
         <pantry-schedule-cell />
       </div>
 
       <!-- === WELCOME cell (desktop top-right, row 1) === -->
       <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--welcome">
-        <div class="mondrian-cell-header">ABOUT THE PANTRY</div>
+        <div class="mondrian-cell-header">
+          ABOUT THE PANTRY
+          <router-link v-if="store.canEdit" to="/admin?tab=welcome" class="cell-header-link" title="Edit pantry info">
+            <q-icon name="edit" size="12px" />
+          </router-link>
+        </div>
         <pantry-welcome-cell />
       </div>
 

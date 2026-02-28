@@ -29,7 +29,7 @@ import {
 import type { Address, Entry, Location, AddressState } from 'src/models';
 import { isObject } from 'src/utils/functions';
 import { supabase } from 'src/dbManagement';
-import { demoContacts, allDemoEntries, demoLocations } from 'src/data/demo';
+import { SIMULATIONS, getSimulation } from 'src/data/simulations/index';
 
 const pinia = createPinia();
 
@@ -114,6 +114,7 @@ export const useAddressStore = defineStore('address', () => {
   const localMode = computed(() => !!localStorage.getItem('localMode'));
   const canSync = computed(() => !!state.userOrgId);
   const demoMode = computed(() => !!localStorage.getItem('demoMode'));
+  const activeSimulationId = computed(() => localStorage.getItem('activeSimulationId') ?? '');
   const canEdit = computed(() => state.role === 'admin' || state.role === 'editor' || state.role === 'driver' || state.role === 'stocker' || localMode.value || demoMode.value);
   const userRole = computed(() => state.role);
 
@@ -227,24 +228,59 @@ export const useAddressStore = defineStore('address', () => {
   const getLocations = computed(() => state.locationList);
 
   // ---- Demo mode ----
-  async function loadDemo() {
+  async function loadSimulation(id: string) {
+    const sim = getSimulation(id);
+    if (!sim) return;
     await openIndexedDB();
-    await bulkAddContacts(demoContacts);
-    await bulkAddEntries(allDemoEntries);
-    await bulkAddLocations(demoLocations);
+    await bulkAddContacts(sim.contacts);
+    await bulkAddEntries(sim.entries);
+    await bulkAddLocations(sim.locations);
+    // Save existing localStorage content so we can restore it later
+    const lsContent = sim.localStorageContent ?? {};
+    const saved: Record<string, string | null> = {};
+    for (const key of Object.keys(lsContent)) {
+      saved[key] = localStorage.getItem(key);
+    }
+    localStorage.setItem('demo-saved-content', JSON.stringify(saved));
+    for (const [key, value] of Object.entries(lsContent)) {
+      localStorage.setItem(key, value);
+    }
     localStorage.setItem('demoMode', 'true');
+    localStorage.setItem('activeSimulationId', id);
     await loadData();
     await loadEntries();
     await loadLocations();
   }
 
-  async function clearDemoMode() {
+  async function clearSimulation() {
     await clearDemoData();
+    // Restore localStorage content that existed before simulation was loaded
+    const savedStr = localStorage.getItem('demo-saved-content');
+    if (savedStr) {
+      const saved = JSON.parse(savedStr) as Record<string, string | null>;
+      for (const [key, value] of Object.entries(saved)) {
+        if (value !== null) localStorage.setItem(key, value);
+        else localStorage.removeItem(key);
+      }
+      localStorage.removeItem('demo-saved-content');
+    } else {
+      // Fallback: remove all simulation localStorage keys
+      for (const sim of SIMULATIONS) {
+        for (const key of Object.keys(sim.localStorageContent ?? {})) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
     localStorage.removeItem('demoMode');
+    localStorage.removeItem('activeSimulationId');
     await loadData();
     await loadEntries();
     await loadLocations();
   }
+
+  // Backward-compat aliases used by SettingsPage
+  const loadDemo = () => loadSimulation('basic-demo');
+  const clearDemoMode = clearSimulation;
 
   // ---- Export / Sync / Clear ----
   const hasCustomConnection = computed(() =>
@@ -416,6 +452,9 @@ export const useAddressStore = defineStore('address', () => {
     loadLocations,
     getLocations,
     demoMode,
+    activeSimulationId,
+    loadSimulation,
+    clearSimulation,
     loadDemo,
     clearDemoMode,
     getActiveEntries,

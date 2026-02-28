@@ -22,8 +22,10 @@
 
       <div class="drawer-content-relative">
         <div class="drawer-header-block q-pa-md">
-          <div class="brand-text-main">{{ t.app.brand }}</div>
-          <div class="brand-text-sub">{{ t.app.brandSub }}</div>
+          <router-link to="/" class="brand-home-link" @click="drawer = false">
+            <div class="brand-text-main">{{ t.app.brand }}</div>
+          </router-link>
+          <div class="brand-text-sub">{{ drawerTagline }}</div>
         </div>
 
         <div class="status-strip-container row items-center justify-between">
@@ -107,6 +109,12 @@
             <router-link to="/info" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
                 <q-icon name="info" /><span>Pantry Info</span>
+              </div>
+            </router-link>
+
+            <router-link to="/logistics" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="hub" /><span>Logistics</span>
               </div>
             </router-link>
 
@@ -262,6 +270,35 @@ const statusLabel = computed(() => {
 
 const pantryName = computed(() => localStorage.getItem('pantryName') || '');
 
+// Drawer tagline: pantry name if configured, otherwise a rotating Funky Pony quip
+const PONY_QUIPS = [
+  'feeding the neighborhood',
+  'one pickup at a time',
+  'neighbors helping neighbors',
+  'fresh routes daily',
+  'stocking up on joy',
+  'food is love · love is data',
+  'community powered · openly licensed',
+  'your friendly local hub',
+  'routes and roots',
+  'keeping the shelves full',
+  'showing up so nobody goes without',
+  'forklift optional · heart required',
+];
+const drawerTagline = computed(() => {
+  try {
+    const raw = localStorage.getItem('pantry-welcome');
+    if (raw) {
+      const w = JSON.parse(raw) as { name?: string; tagline?: string };
+      if (w.tagline) return w.tagline;
+      if (w.name) return w.name;
+    }
+  } catch { /* ignore */ }
+  // Rotate quip daily so it feels fresh but stays stable during a session
+  const dayIndex = Math.floor(Date.now() / 86_400_000);
+  return PONY_QUIPS[dayIndex % PONY_QUIPS.length];
+});
+
 const DRAWER_ROLE_LABELS: Record<string, string> = {
   admin:   'ADMIN',
   editor:  'EDITOR',
@@ -316,6 +353,11 @@ async function handleLogout() {
   border-bottom: 2px solid var(--wb-border-mid);
 }
 
+.brand-home-link {
+  text-decoration: none;
+  display: block;
+}
+
 .brand-text-main {
   font-family: var(--wb-font);
   font-weight: 900;
@@ -323,15 +365,21 @@ async function handleLogout() {
   color: var(--wb-text);
   letter-spacing: 4px;
   line-height: 1.1;
+  transition: color 0.15s;
+}
+
+.brand-home-link:hover .brand-text-main {
+  color: var(--wb-accent);
 }
 
 .brand-text-sub {
   font-family: var(--wb-font);
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   color: var(--wb-accent);
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  margin-top: 3px;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+  line-height: 1.4;
+  opacity: 0.85;
 }
 
 .status-strip-container {

@@ -135,23 +135,94 @@
           <span>No members yet</span>
         </div>
 
-        <div v-for="m in members" :key="m.id" class="member-row">
-          <div class="member-dot" :style="{ background: roleColor(m.role) }" />
-          <div class="member-info">
-            <div class="member-name">{{ m.name }}</div>
-            <div class="member-detail">{{ m.email || m.phone || m.id }}</div>
+        <div v-for="m in members" :key="m.id" class="member-wrap">
+
+          <!-- ── Row ── -->
+          <div class="member-row">
+            <div class="member-dot" :style="{ background: roleColor(m.role) }" />
+            <div class="member-info">
+              <div class="member-name">{{ m.name }}</div>
+              <div class="member-detail">{{ m.phone || m.email || m.id }}</div>
+            </div>
+              <!-- Alias indicator -->
+            <span v-if="m.hasAlias && !isAdmin" class="mep-alias-dot" title="Local alias active">A</span>
+            <!-- Edit / alias button — all users -->
+            <button
+              class="member-edit-btn"
+              :class="{
+                'member-edit-btn--active': editingMemberId === m.id,
+                'member-edit-btn--alias':  !isAdmin && !editingMemberId,
+              }"
+              :title="editingMemberId === m.id ? 'Close' : (isAdmin ? 'Edit profile' : 'Set local alias')"
+              @click="editingMemberId === m.id ? closeMemberEdit() : openMemberEdit(m)"
+            >
+              <q-icon :name="editingMemberId === m.id ? 'expand_less' : (isAdmin ? 'manage_accounts' : 'person_pin')" size="13px" />
+            </button>
+            <select
+              class="role-select"
+              :value="m.role"
+              @change="changeRole(m.id, ($event.target as HTMLSelectElement).value)"
+            >
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+              <option value="driver">Driver</option>
+              <option value="stocker">Stocker</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
-          <select
-            class="role-select"
-            :value="m.role"
-            @change="changeRole(m.id, ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="viewer">Viewer</option>
-            <option value="editor">Editor</option>
-            <option value="driver">Driver</option>
-            <option value="stocker">Stocker</option>
-            <option value="admin">Admin</option>
-          </select>
+
+          <!-- ── Inline contact editor / alias panel ── -->
+          <div v-if="editingMemberId === m.id" class="member-edit-panel">
+            <!-- Context header -->
+            <div class="mep-mode-bar" :class="isAdmin ? 'mep-mode-bar--admin' : 'mep-mode-bar--alias'">
+              <q-icon :name="isAdmin ? 'shield' : 'person_pin'" size="11px" />
+              <span>{{ isAdmin ? 'EDIT ORG PROFILE' : 'LOCAL ALIAS — DEVICE ONLY' }}</span>
+              <span v-if="!isAdmin" class="mep-mode-note">Overrides display for group comms on this device</span>
+            </div>
+            <div class="mep-grid">
+              <span class="mep-label">NAME</span>
+              <input
+                v-model="memberEditForm.display_name"
+                class="mep-input"
+                :placeholder="isAdmin ? 'Display name in org directory' : 'Your local name for this person'"
+                maxlength="80"
+              />
+              <span class="mep-label">PHONE</span>
+              <input
+                v-model="memberEditForm.phone"
+                class="mep-input"
+                placeholder="Phone number"
+                type="tel"
+                maxlength="40"
+              />
+              <span class="mep-label">BIO</span>
+              <input
+                v-model="memberEditForm.bio"
+                class="mep-input"
+                :placeholder="isAdmin ? 'Short note about this member' : 'Your notes about this person'"
+                maxlength="200"
+              />
+              <span class="mep-label">LOCATION</span>
+              <input
+                v-model="memberEditForm.location_label"
+                class="mep-input"
+                placeholder="Neighbourhood or area"
+                maxlength="80"
+              />
+            </div>
+            <div class="mep-actions">
+              <button
+                v-if="!isAdmin && m.hasAlias"
+                class="mep-clear"
+                @click="clearMemberAlias(m.id)"
+              >CLEAR ALIAS</button>
+              <button class="mep-cancel" @click="closeMemberEdit">CANCEL</button>
+              <button class="mep-save" @click="saveMemberContact(m.id)">
+                {{ isAdmin ? 'SAVE PROFILE' : 'SAVE ALIAS' }}
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -163,6 +234,13 @@
         </div>
         <div class="sched-edit-hint">
           Compose messages and stage them offline. Schedule a message to add it to the calendar queue. When cloud is connected, staged messages can be sent instantly.
+        </div>
+
+        <!-- Edit mode banner -->
+        <div v-if="editingMsgId" class="announce-editing-banner">
+          <q-icon name="edit" size="13px" />
+          <span>Editing: <strong>{{ editingMsg?.title }}</strong></span>
+          <button class="announce-cancel-edit" @click="clearAnnounceForm">✕ Cancel</button>
         </div>
 
         <div class="announce-form">
@@ -201,23 +279,62 @@
             </button>
           </div>
 
-          <!-- Schedule datetime -->
+          <!-- Schedule datetime — calendar + time popups -->
           <div class="announce-sched-row">
             <q-input
-              v-model="announceScheduledFor"
-              type="datetime-local"
+              :model-value="schedDisplayVal"
               dense filled
               label="Schedule for (optional)"
+              placeholder="Pick a date & time"
               class="announce-sched-input"
-            />
+              readonly
+            >
+              <template #append>
+                <q-icon
+                  v-if="announceScheduledFor"
+                  name="close"
+                  size="14px"
+                  class="cursor-pointer announce-sched-clear"
+                  @click.stop="announceScheduledFor = ''"
+                />
+                <q-icon name="event" size="16px" class="cursor-pointer q-ml-xs">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date
+                      v-model="announceScheduledFor"
+                      mask="YYYY-MM-DD HH:mm"
+                      color="accent"
+                      :options="dateOptionsFromToday"
+                    >
+                      <div class="row items-center justify-end q-pa-sm">
+                        <q-btn v-close-popup flat dense no-caps label="Done" color="accent" />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+                <q-icon name="access_time" size="16px" class="cursor-pointer q-ml-xs">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-time
+                      v-model="announceScheduledFor"
+                      mask="YYYY-MM-DD HH:mm"
+                      color="accent"
+                      format24h
+                    >
+                      <div class="row items-center justify-end q-pa-sm">
+                        <q-btn v-close-popup flat dense no-caps label="Done" color="accent" />
+                      </div>
+                    </q-time>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
           </div>
 
           <!-- Action buttons -->
           <div class="announce-actions">
             <q-btn
               flat no-caps
-              icon="save"
-              label="Stage Draft"
+              :icon="editingMsgId ? 'update' : 'save'"
+              :label="editingMsgId ? 'Update Draft' : 'Stage Draft'"
               class="announce-stage-btn"
               :disable="!announceTitle.trim()"
               @click="stageMessage"
@@ -225,7 +342,7 @@
             <q-btn
               unelevated no-caps
               icon="event"
-              label="Schedule & Queue"
+              :label="editingMsgId ? 'Update & Schedule' : 'Schedule & Queue'"
               class="announce-queue-btn"
               :disable="!announceTitle.trim() || !announceScheduledFor"
               @click="scheduleMessage"
@@ -246,7 +363,12 @@
         <!-- Staged & Scheduled messages -->
         <div v-if="stagedMessages.length > 0" class="staged-list">
           <div class="staged-list-label">STAGED &amp; SCHEDULED</div>
-          <div v-for="msg in stagedMessages" :key="msg.id" class="staged-row">
+          <div
+            v-for="msg in stagedMessages"
+            :key="msg.id"
+            class="staged-row"
+            :class="{ 'staged-row--editing': editingMsgId === msg.id }"
+          >
             <div class="staged-status-dot" :class="'staged-dot--' + msg.status" />
             <div class="staged-info">
               <div class="staged-title">{{ msg.title }}</div>
@@ -256,17 +378,31 @@
                 <span v-if="msg.recipientRoles.length" class="staged-roles"> · {{ msg.recipientRoles.map(r => roleTypeOptions.find(o => o.value === r)?.label || r).join(', ') }}</span>
               </div>
             </div>
-            <q-btn
-              v-if="store.userOrgId && msg.status !== 'sent'"
-              flat dense round icon="send" size="xs"
-              class="staged-send-btn"
-              @click="sendStagedMessage(msg)"
-            />
-            <q-btn
-              flat dense round icon="delete_outline" size="xs"
-              class="staged-del-btn"
-              @click="deleteStagedMessage(msg.id)"
-            />
+            <div class="staged-actions">
+              <button
+                v-if="msg.status !== 'sent'"
+                class="staged-act-btn"
+                title="Edit"
+                @click="loadEditMsg(msg)"
+              >
+                <q-icon name="edit" size="13px" />
+              </button>
+              <button
+                v-if="store.userOrgId && msg.status !== 'sent'"
+                class="staged-act-btn staged-act-btn--send"
+                title="Send now"
+                @click="sendStagedMessage(msg)"
+              >
+                <q-icon name="send" size="13px" />
+              </button>
+              <button
+                class="staged-act-btn staged-act-btn--del"
+                title="Delete"
+                @click="deleteStagedMessage(msg.id)"
+              >
+                <q-icon name="delete_outline" size="13px" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -284,6 +420,131 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div v-if="tab === 'messages'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">MESSAGE LOG</span>
+          <span class="panel-count">{{ store.userOrgId ? 'LIVE DATA' : 'CLOUD ONLY' }}</span>
+        </div>
+
+        <div v-if="!store.userOrgId" class="sched-edit-hint">
+          Connect to a cloud pantry to view message delivery history.
+        </div>
+
+        <template v-else>
+          <!-- Time range + refresh -->
+          <div class="msglog-toolbar">
+            <div class="msglog-range-btns">
+              <button
+                class="msglog-range-btn"
+                :class="{ active: msgLogDays === 7 }"
+                @click="msgLogDays = 7; fetchMsgLog()"
+              >7 DAYS</button>
+              <button
+                class="msglog-range-btn"
+                :class="{ active: msgLogDays === 30 }"
+                @click="msgLogDays = 30; fetchMsgLog()"
+              >30 DAYS</button>
+            </div>
+            <button class="msglog-refresh-btn" :class="{ spinning: msgLogLoading }" @click="fetchMsgLog">
+              <q-icon name="refresh" size="14px" />
+            </button>
+            <span v-if="msgLogFetchedAt" class="msglog-fetched-at">
+              {{ msgLogFetchedAt }}
+            </span>
+          </div>
+
+          <!-- Stats chips -->
+          <div class="msglog-stats">
+            <div class="msglog-stat msglog-stat--sent">
+              <span class="msglog-stat-num">{{ msgStats.sent }}</span>
+              <span class="msglog-stat-label">SENT</span>
+            </div>
+            <div class="msglog-stat msglog-stat--delivered">
+              <span class="msglog-stat-num">{{ msgStats.delivered }}</span>
+              <span class="msglog-stat-label">DELIVERED</span>
+            </div>
+            <div class="msglog-stat msglog-stat--bounced">
+              <span class="msglog-stat-num">{{ msgStats.bounced }}</span>
+              <span class="msglog-stat-label">BOUNCED</span>
+            </div>
+            <div class="msglog-stat msglog-stat--spam">
+              <span class="msglog-stat-num">{{ msgStats.complained }}</span>
+              <span class="msglog-stat-label">SPAM</span>
+            </div>
+          </div>
+
+          <!-- Delivery rate bar -->
+          <div v-if="msgStats.sent > 0" class="msglog-rate-wrap">
+            <div class="msglog-rate-bar">
+              <div
+                class="msglog-rate-seg msglog-rate-seg--delivered"
+                :style="{ width: msgStats.deliveryRate + '%' }"
+              />
+              <div
+                class="msglog-rate-seg msglog-rate-seg--bounced"
+                :style="{ width: msgStats.bounceRate + '%' }"
+              />
+            </div>
+            <span class="msglog-rate-label">{{ msgStats.deliveryRate }}% delivery rate</span>
+          </div>
+
+          <!-- Bounced members -->
+          <div v-if="bouncedProfiles.length" class="msglog-bounced-section">
+            <div class="msglog-section-label">
+              <q-icon name="error_outline" size="11px" />
+              BOUNCED ADDRESSES ({{ bouncedProfiles.length }})
+            </div>
+            <div v-for="p in bouncedProfiles" :key="p.id" class="msglog-bounced-row">
+              <q-icon name="mail_lock" size="12px" class="msglog-bounced-icon" />
+              <span class="msglog-bounced-email">{{ p.email }}</span>
+              <span class="msglog-bounced-role">{{ p.role }}</span>
+              <button class="msglog-bounce-clear-btn" @click="clearBounce(p.id)" title="Clear bounce flag">
+                <q-icon name="restart_alt" size="12px" />
+                CLEAR
+              </button>
+            </div>
+          </div>
+
+          <!-- Event log table -->
+          <div class="msglog-section-label" style="margin-top:16px;">
+            <q-icon name="history" size="11px" />
+            RECENT EVENTS
+          </div>
+          <div v-if="msgLogLoading" class="msglog-loading">
+            <q-icon name="hourglass_empty" size="16px" />
+            Loading…
+          </div>
+          <div v-else-if="msgLog.length === 0" class="msglog-empty">
+            <q-icon name="inbox" size="18px" />
+            <span>No events in this period</span>
+          </div>
+          <div v-else class="msglog-table">
+            <div class="msglog-table-head">
+              <span>TIME</span>
+              <span>TYPE</span>
+              <span>RECIPIENT</span>
+              <span>SUBJECT</span>
+            </div>
+            <div
+              v-for="row in msgLog"
+              :key="row.id"
+              class="msglog-table-row"
+              :class="'msglog-row--' + row.event_type"
+            >
+              <span class="msglog-cell-time">{{ fmtLogTime(row.created_at) }}</span>
+              <span class="msglog-event-chip" :class="'msglog-chip--' + row.event_type">
+                {{ msgEventLabel(row.event_type) }}
+              </span>
+              <span class="msglog-cell-recip">{{ row.recipient || '—' }}</span>
+              <span class="msglog-cell-subject" :title="row.error_reason || row.subject">
+                {{ row.subject || row.error_reason || '—' }}
+              </span>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- SCHEDULE -->
@@ -394,26 +655,70 @@
           <span class="panel-count">{{ invites.length }}</span>
         </div>
 
-        <div class="invite-gen">
+        <!-- ── Create & Send form ── -->
+        <div class="invite-form">
+          <div class="invite-form-label">CREATE & SEND INVITE</div>
+          <div class="sched-edit-hint">Generates a personal code, stores it to the invite table, and sends the onboarding email in one step.</div>
+          <q-input
+            v-model="inviteNewName"
+            dense filled
+            label="Recipient name"
+            placeholder="e.g. Dan Freeman"
+            class="welcome-input"
+          />
+          <q-input
+            v-model="inviteNewEmail"
+            dense filled
+            type="email"
+            label="Recipient email"
+            placeholder="dan@example.com"
+            class="welcome-input"
+          />
+          <div class="invite-role-row">
+            <label class="invite-role-label">Role</label>
+            <select v-model="inviteNewRole" class="role-select" style="flex:1;">
+              <option value="member">member</option>
+              <option value="driver">driver</option>
+              <option value="stocker">stocker</option>
+              <option value="editor">editor</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
           <q-btn
             unelevated no-caps
-            icon="vpn_key"
-            label="Generate Code"
-            class="invite-gen-btn"
+            icon="send"
+            label="Create & Send"
+            class="sched-save-btn"
             :loading="genLoading"
-            @click="generateInvite"
+            :disable="!inviteNewEmail.trim()"
+            @click="createAndSendInvite"
           />
         </div>
 
         <div v-if="invites.length === 0" class="panel-empty">
           <q-icon name="mail_outline" size="24px" />
-          <span>No invites yet — generate one to share</span>
+          <span>No invites yet</span>
         </div>
 
         <div v-for="inv in invites" :key="inv.code" class="invite-row">
-          <div class="invite-code">{{ inv.code }}</div>
-          <div class="invite-status" :class="inv.is_used ? 'invite-status--used' : 'invite-status--open'">
-            {{ inv.is_used ? 'USED' : 'OPEN' }}
+          <div class="invite-row-main">
+            <div class="invite-code">{{ inv.code }}</div>
+            <div class="invite-row-meta" v-if="inv.display_name || inv.email">
+              <span v-if="inv.display_name" class="invite-meta-name">{{ inv.display_name }}</span>
+              <span v-if="inv.email" class="invite-meta-email">{{ inv.email }}</span>
+            </div>
+          </div>
+          <div class="invite-row-badges">
+            <span v-if="inv.role" class="invite-role-badge">{{ inv.role }}</span>
+            <span class="invite-status" :class="inv.is_used ? 'invite-status--used' : 'invite-status--open'">
+              {{ inv.accepted_at ? 'ACCEPTED' : inv.is_used ? 'USED' : 'OPEN' }}
+            </span>
+            <q-icon
+              v-if="inv.notified_at && !inv.is_used"
+              name="mark_email_read" size="12px"
+              class="invite-notified-icon"
+              title="Invitation email sent"
+            />
           </div>
           <template v-if="!inv.is_used">
             <q-btn
@@ -429,42 +734,6 @@
               @click="copyLink(inv.code)"
             />
           </template>
-        </div>
-
-        <!-- ── Send Email Invite ── -->
-        <div class="invite-email-section">
-          <div class="invite-email-label">SEND EMAIL INVITE</div>
-          <div class="sched-edit-hint">Send the Funky Pony driver onboarding email with a one-click join link.</div>
-          <q-input
-            v-model="inviteEmailName"
-            dense filled
-            label="Recipient name"
-            placeholder="e.g. Dan Freeman"
-            class="welcome-input"
-          />
-          <q-input
-            v-model="inviteEmailAddr"
-            dense filled
-            type="email"
-            label="Recipient email"
-            placeholder="dan@example.com"
-            class="welcome-input"
-          />
-          <div class="invite-code-row">
-            <select v-model="inviteEmailCode" class="role-select" style="flex:1;">
-              <option value="">— Select invite code —</option>
-              <option v-for="inv in openInvites" :key="inv.code" :value="inv.code">{{ inv.code }}</option>
-            </select>
-          </div>
-          <q-btn
-            unelevated no-caps
-            icon="send"
-            label="Send Invite Email"
-            class="sched-save-btn"
-            :loading="inviteEmailLoading"
-            :disable="!inviteEmailAddr.trim() || !inviteEmailCode"
-            @click="sendDriverInvite"
-          />
         </div>
 
         <!-- ── Email preview ── -->
@@ -863,7 +1132,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useAddressStore } from 'src/store/store';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { generateLocationEntries } from 'src/utils/calendar';
 import type { Location as LocType } from 'src/models';
 import { supabase, openIndexedDB } from 'src/dbManagement';
@@ -872,9 +1141,10 @@ import type { Location, Entry } from 'src/models';
 import SketchPad from 'src/components/SketchPad.vue';
 import { buildInviteCode } from 'src/utils/inviteCode';
 
-const store = useAddressStore();
-const $q = useQuasar();
+const store  = useAddressStore();
+const $q     = useQuasar();
 const router = useRouter();
+const route  = useRoute();
 
 const tab = ref('members');
 const showHelp = ref(false);
@@ -886,6 +1156,7 @@ const tabs = [
   { key: 'infopage', icon: 'description',    label: 'INFO PAGE' },
   { key: 'members',  icon: 'group',          label: 'MEMBERS' },
   { key: 'announce', icon: 'campaign',       label: 'ANNOUNCE' },
+  { key: 'messages', icon: 'mark_email_read', label: 'MESSAGES' },
   { key: 'schedule', icon: 'event',          label: 'SCHEDULE' },
   { key: 'locations',icon: 'map',            label: 'LOCATIONS' },
   { key: 'invites',  icon: 'vpn_key',        label: 'INVITES' },
@@ -898,22 +1169,83 @@ const tabs = [
 
 interface Member {
   id: string;
-  name: string;
+  name: string;         // display_name || phone || id — for display
   email: string;
   phone: string;
   role: string;
+  display_name: string;
+  bio: string;
+  location_label: string;
+  hasAlias: boolean;    // true when a local alias overlays this member's data
 }
+
+// ── Member alias helpers (local overrides for group-comms display) ─────────
+
+const ALIAS_KEY = 'member-aliases';
+
+interface MemberAlias {
+  display_name: string;
+  phone: string;
+  bio: string;
+  location_label: string;
+}
+
+function getAlias(id: string): MemberAlias | null {
+  try {
+    const aliases = JSON.parse(localStorage.getItem(ALIAS_KEY) || '{}');
+    return aliases[id] || null;
+  } catch { return null; }
+}
+
+function saveAlias(id: string, data: Partial<MemberAlias>) {
+  try {
+    const aliases = JSON.parse(localStorage.getItem(ALIAS_KEY) || '{}');
+    aliases[id] = { ...(aliases[id] || {}), ...data };
+    localStorage.setItem(ALIAS_KEY, JSON.stringify(aliases));
+  } catch { /* skip */ }
+}
+
+function clearAlias(id: string) {
+  try {
+    const aliases = JSON.parse(localStorage.getItem(ALIAS_KEY) || '{}');
+    delete aliases[id];
+    localStorage.setItem(ALIAS_KEY, JSON.stringify(aliases));
+  } catch { /* skip */ }
+}
+
+function applyAlias(base: Omit<Member, 'hasAlias'>, alias: MemberAlias | null): Member {
+  if (!alias) return { ...base, hasAlias: false };
+  return {
+    ...base,
+    name:           alias.display_name || base.display_name || base.name,
+    display_name:   alias.display_name || base.display_name,
+    phone:          alias.phone        || base.phone,
+    bio:            alias.bio          || base.bio,
+    location_label: alias.location_label || base.location_label,
+    hasAlias: true,
+  };
+}
+
+// ── Admin check ──────────────────────────────────────────────────
+
+const isAdmin = computed(() => store.userRole === 'admin');
 
 const cloudProfiles = ref<Member[]>([]);
 
 const localMembers = computed<Member[]>(() => {
-  return (store.getData as any[]).map(c => ({
-    id: c.id,
-    name: `${c.name.first} ${c.name.last}`,
-    email: c.email,
-    phone: c.phone,
-    role: getLocalRole(c.id),
-  }));
+  return (store.getData as any[]).map(c => {
+    const base: Omit<Member, 'hasAlias'> = {
+      id:             c.id,
+      name:           `${c.name.first} ${c.name.last}`.trim() || c.id,
+      email:          c.email || '',
+      phone:          c.phone || '',
+      role:           getLocalRole(c.id),
+      display_name:   `${c.name.first} ${c.name.last}`.trim(),
+      bio:            '',
+      location_label: '',
+    };
+    return applyAlias(base, getAlias(c.id));
+  });
 });
 
 const members = computed<Member[]>(() => {
@@ -960,15 +1292,104 @@ async function changeRole(id: string, newRole: string) {
 async function fetchCloudProfiles() {
   if (!store.canSync) return;
   try {
-    const { data } = await supabase.from('profiles').select('*');
-    cloudProfiles.value = (data || []).map((p: any) => ({
-      id: p.id,
-      name: p.phone || 'Anonymous',
-      email: '',
-      phone: p.phone || '',
-      role: p.role || 'viewer',
-    }));
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, display_name, bio, location_label, phone, role, avatar_url')
+      .eq('org_id', store.userOrgId);
+    cloudProfiles.value = (data || []).map((p: any) => {
+      const base: Omit<Member, 'hasAlias'> = {
+        id:             p.id,
+        name:           p.display_name || p.phone || 'Anonymous',
+        email:          '',
+        phone:          p.phone          || '',
+        role:           p.role           || 'viewer',
+        display_name:   p.display_name   || '',
+        bio:            p.bio            || '',
+        location_label: p.location_label || '',
+      };
+      return applyAlias(base, getAlias(p.id));
+    });
   } catch { /* offline */ }
+}
+
+// ── Member contact editing ────────────────────────────────────────
+
+const editingMemberId = ref<string | null>(null);
+const memberEditForm  = reactive({
+  display_name:   '',
+  phone:          '',
+  bio:            '',
+  location_label: '',
+});
+
+function openMemberEdit(m: Member) {
+  editingMemberId.value       = m.id;
+  memberEditForm.display_name   = m.display_name;
+  memberEditForm.phone          = m.phone;
+  memberEditForm.bio            = m.bio;
+  memberEditForm.location_label = m.location_label;
+}
+
+function closeMemberEdit() {
+  editingMemberId.value = null;
+}
+
+async function saveMemberContact(id: string) {
+  const form = {
+    display_name:   memberEditForm.display_name.trim(),
+    phone:          memberEditForm.phone.trim(),
+    bio:            memberEditForm.bio.trim(),
+    location_label: memberEditForm.location_label.trim(),
+  };
+
+  // Admin with cloud connection → save authoritative profile to Supabase
+  if (isAdmin.value && store.canSync) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        display_name:   form.display_name   || null,
+        phone:          form.phone          || null,
+        bio:            form.bio            || null,
+        location_label: form.location_label || null,
+      })
+      .eq('id', id);
+
+    if (error) {
+      $q.notify({ color: 'negative', message: `Save failed: ${error.message}` });
+      return;
+    }
+    // Keep alias in sync so display is consistent before next fetch
+    saveAlias(id, form);
+    $q.notify({ color: 'positive', message: 'Profile saved to org directory' });
+    closeMemberEdit();
+    await fetchCloudProfiles();
+    return;
+  }
+
+  // Non-admin or offline → save as local alias for group comms
+  saveAlias(id, form);
+  // Patch the in-memory list immediately so UI reflects the alias without re-fetch
+  const target = cloudProfiles.value.find(m => m.id === id);
+  if (target) {
+    target.display_name   = form.display_name   || target.display_name;
+    target.name           = form.display_name   || target.name;
+    target.phone          = form.phone          || target.phone;
+    target.bio            = form.bio            || target.bio;
+    target.location_label = form.location_label || target.location_label;
+    target.hasAlias       = true;
+  }
+  $q.notify({ color: 'positive', message: 'Local alias saved — used for group comms on this device' });
+  closeMemberEdit();
+}
+
+function clearMemberAlias(id: string) {
+  clearAlias(id);
+  // Re-apply base data from cloud profile
+  const target = cloudProfiles.value.find(m => m.id === id);
+  if (target) target.hasAlias = false;
+  // Trigger re-fetch to restore canonical values
+  fetchCloudProfiles();
+  $q.notify({ color: 'info', message: 'Local alias cleared' });
 }
 
 // ── Announcements ────────────────────────────────────────────────
@@ -1000,6 +1421,39 @@ const announceScheduledFor = ref('');
 const announceSending = ref(false);
 const stagedMessages = ref<StagedMessage[]>([]);
 const announceHistory = ref<{ title: string; created_at: string; role: string; roles?: string[] }[]>([]);
+const editingMsgId = ref<string | null>(null);
+const editingMsg = computed(() => stagedMessages.value.find(m => m.id === editingMsgId.value) ?? null);
+
+const schedDisplayVal = computed(() => {
+  const v = announceScheduledFor.value;
+  if (!v) return '';
+  try {
+    const d = new Date(v.replace(' ', 'T'));
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+           ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch { return v; }
+});
+
+function loadEditMsg(msg: StagedMessage) {
+  editingMsgId.value = msg.id;
+  announceTitle.value = msg.title;
+  announceBody.value = msg.body || '';
+  announceTargetRoles.value = [...msg.recipientRoles];
+  if (msg.scheduledFor) {
+    const d = new Date(msg.scheduledFor);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    announceScheduledFor.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } else {
+    announceScheduledFor.value = '';
+  }
+}
+
+function clearAnnounceForm() {
+  editingMsgId.value = null;
+  announceTitle.value = '';
+  announceBody.value = '';
+  announceScheduledFor.value = '';
+}
 
 function loadStagedMessages() {
   try {
@@ -1028,6 +1482,23 @@ function formatScheduledFor(iso: string): string {
 
 function stageMessage() {
   if (!announceTitle.value.trim()) return;
+  if (editingMsgId.value) {
+    const idx = stagedMessages.value.findIndex(m => m.id === editingMsgId.value);
+    if (idx >= 0) {
+      stagedMessages.value[idx] = {
+        ...stagedMessages.value[idx],
+        title: announceTitle.value.trim(),
+        body: announceBody.value.trim(),
+        recipientRoles: [...announceTargetRoles.value],
+        scheduledFor: null,
+        status: 'staged',
+      };
+      saveStagedMessages();
+      clearAnnounceForm();
+      $q.notify({ color: 'positive', icon: 'update', message: 'Draft updated', timeout: 1500 });
+      return;
+    }
+  }
   const msg: StagedMessage = {
     id: crypto.randomUUID(),
     title: announceTitle.value.trim(),
@@ -1039,14 +1510,32 @@ function stageMessage() {
   };
   stagedMessages.value.unshift(msg);
   saveStagedMessages();
-  announceTitle.value = '';
-  announceBody.value = '';
+  clearAnnounceForm();
   $q.notify({ color: 'positive', icon: 'save', message: 'Message staged as draft', timeout: 1500 });
 }
 
 async function scheduleMessage() {
   if (!announceTitle.value.trim() || !announceScheduledFor.value) return;
-  const scheduledAt = new Date(announceScheduledFor.value).toISOString();
+  const scheduledAt = new Date(announceScheduledFor.value.replace(' ', 'T')).toISOString();
+
+  if (editingMsgId.value) {
+    const idx = stagedMessages.value.findIndex(m => m.id === editingMsgId.value);
+    if (idx >= 0) {
+      stagedMessages.value[idx] = {
+        ...stagedMessages.value[idx],
+        title: announceTitle.value.trim(),
+        body: announceBody.value.trim(),
+        recipientRoles: [...announceTargetRoles.value],
+        scheduledFor: scheduledAt,
+        status: 'scheduled',
+      };
+      saveStagedMessages();
+      clearAnnounceForm();
+      $q.notify({ color: 'positive', icon: 'update', message: `Updated & scheduled for ${formatScheduledFor(scheduledAt)}`, timeout: 2000 });
+      return;
+    }
+  }
+
   const msg: StagedMessage = {
     id: crypto.randomUUID(),
     title: announceTitle.value.trim(),
@@ -1071,9 +1560,7 @@ async function scheduleMessage() {
   };
   await store.addEntry(calEntry, false);
 
-  announceTitle.value = '';
-  announceBody.value = '';
-  announceScheduledFor.value = '';
+  clearAnnounceForm();
   $q.notify({ color: 'positive', icon: 'event', message: `Scheduled for ${formatScheduledFor(scheduledAt)} · Added to calendar queue`, timeout: 2500 });
 }
 
@@ -1165,6 +1652,102 @@ async function fetchAnnounceHistory() {
       roles: r.data?.targetRoles || [],
     }));
   } catch { /* offline */ }
+}
+
+// ── Message Log ───────────────────────────────────────────────────
+
+interface MsgLogRow {
+  id: string;
+  event_type: string;
+  transport: string | null;
+  recipient: string | null;
+  subject: string | null;
+  error_code: string | null;
+  error_reason: string | null;
+  created_at: string;
+}
+
+interface BouncedProfile { id: string; email: string; role: string; }
+
+const msgLog        = ref<MsgLogRow[]>([]);
+const bouncedProfiles = ref<BouncedProfile[]>([]);
+const msgLogLoading = ref(false);
+const msgLogDays    = ref(7);
+const msgLogFetchedAt = ref('');
+
+const msgStats = computed(() => {
+  const rows = msgLog.value;
+  const sent      = rows.filter(r => r.event_type === 'sent').length;
+  const delivered = rows.filter(r => r.event_type === 'delivered').length;
+  const bounced   = rows.filter(r => r.event_type === 'bounced_perm' || r.event_type === 'bounced_temp').length;
+  const complained = rows.filter(r => r.event_type === 'complained').length;
+  const base = Math.max(sent, delivered + bounced + complained, 1);
+  return {
+    sent,
+    delivered,
+    bounced,
+    complained,
+    deliveryRate: Math.round((delivered / base) * 100),
+    bounceRate:   Math.round((bounced   / base) * 100),
+  };
+});
+
+async function fetchMsgLog() {
+  if (!store.userOrgId) return;
+  msgLogLoading.value = true;
+  try {
+    const since = new Date(Date.now() - msgLogDays.value * 86_400_000).toISOString();
+    const [logRes, bouncedRes] = await Promise.all([
+      supabase
+        .from('message_log')
+        .select('id, event_type, transport, recipient, subject, error_code, error_reason, created_at')
+        .eq('org_id', store.userOrgId)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(100),
+      supabase
+        .from('profiles')
+        .select('id, email, role')
+        .eq('org_id', store.userOrgId)
+        .eq('email_bounced', true),
+    ]);
+    msgLog.value = logRes.data || [];
+    bouncedProfiles.value = (bouncedRes.data || []) as BouncedProfile[];
+    msgLogFetchedAt.value = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch { /* offline */ } finally {
+    msgLogLoading.value = false;
+  }
+}
+
+async function clearBounce(profileId: string) {
+  const { error } = await supabase.from('profiles').update({ email_bounced: false }).eq('id', profileId);
+  if (error) {
+    $q.notify({ color: 'negative', message: 'Failed to clear bounce flag' });
+  } else {
+    bouncedProfiles.value = bouncedProfiles.value.filter(p => p.id !== profileId);
+    $q.notify({ color: 'positive', message: 'Bounce flag cleared — address will receive emails again', timeout: 2500 });
+  }
+}
+
+function fmtLogTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+           d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+function msgEventLabel(type: string): string {
+  const map: Record<string, string> = {
+    sent:        'SENT',
+    delivered:   'DELIV',
+    bounced_perm:'HARD ✗',
+    bounced_temp:'SOFT ~',
+    complained:  'SPAM ⚠',
+    opened:      'OPENED',
+    clicked:     'CLICK',
+  };
+  return map[type] ?? type.toUpperCase();
 }
 
 // ── Welcome ───────────────────────────────────────────────────────
@@ -1357,6 +1940,11 @@ interface Invite {
   code: string;
   is_used: boolean;
   created_at: string;
+  email?: string;
+  display_name?: string;
+  role?: string;
+  notified_at?: string;
+  accepted_at?: string;
 }
 
 const cloudInvites = ref<Invite[]>([]);
@@ -1372,10 +1960,16 @@ const invites = computed<Invite[]>(() => {
   return localInvites.value;
 });
 
-async function generateInvite() {
+async function createAndSendInvite() {
+  if (!inviteNewEmail.value.trim()) {
+    $q.notify({ type: 'warning', message: 'Recipient email is required' });
+    return;
+  }
   genLoading.value = true;
   try {
     const code = await buildInviteCode();
+    const name = inviteNewName.value.trim() || inviteNewEmail.value.split('@')[0];
+    const role = inviteNewRole.value;
 
     if (store.canSync) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1383,18 +1977,39 @@ async function generateInvite() {
         code,
         org_id: store.userOrgId,
         created_by: user?.id,
+        email: inviteNewEmail.value.trim(),
+        display_name: name,
+        role,
       }]);
       if (error) throw new Error(error.message);
+
+      // Send invitation email, then stamp notified_at
+      const pantryName = localStorage.getItem('pantryName') || 'Ward Food Pantry';
+      const siteUrl    = 'https://ward.funkypony.space';
+      const inviteUrl  = `${siteUrl}/#/join?code=${encodeURIComponent(code)}`;
+      const { status: sendStatus } = await fnProbe('mts', {
+        type: 'driver-invite',
+        orgId: store.userOrgId || '__local__',
+        recipientEmail: inviteNewEmail.value.trim(),
+        transports: ['email'],
+        data: { recipientName: name, inviteCode: code, inviteUrl, pantryName, siteUrl },
+      }).catch(() => ({ status: 0, data: null }));
+      if (sendStatus >= 200 && sendStatus < 300) {
+        await supabase.from('invites').update({ notified_at: new Date().toISOString() }).eq('code', code);
+      }
       await fetchCloudInvites();
     } else {
       const list = [...localInvites.value];
-      list.unshift({ code, is_used: false, created_at: new Date().toISOString() });
+      list.unshift({ code, is_used: false, created_at: new Date().toISOString(), email: inviteNewEmail.value.trim(), display_name: name, role });
       localStorage.setItem('localInvites', JSON.stringify(list));
     }
 
-    $q.notify({ color: 'positive', icon: 'vpn_key', message: `Invite: ${code}` });
+    $q.notify({ color: 'positive', icon: 'vpn_key', message: `Invite created for ${name}` });
+    inviteNewName.value  = '';
+    inviteNewEmail.value = '';
+    inviteNewRole.value  = 'member';
   } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to generate invite' });
+    $q.notify({ color: 'negative', message: e.message || 'Failed to create invite' });
   } finally {
     genLoading.value = false;
   }
@@ -1413,51 +2028,11 @@ function copyLink(code: string) {
   });
 }
 
-// ── Email invite sender ─────────────────────────────────────────
+// ── Invite form refs ────────────────────────────────────────────
 
-const inviteEmailName    = ref('');
-const inviteEmailAddr    = ref('');
-const inviteEmailCode    = ref('');
-const inviteEmailLoading = ref(false);
-
-const openInvites = computed(() => invites.value.filter(inv => !inv.is_used));
-
-async function sendDriverInvite() {
-  if (!inviteEmailAddr.value.trim() || !inviteEmailCode.value) {
-    $q.notify({ type: 'warning', message: 'Please enter an email and select an invite code' });
-    return;
-  }
-  inviteEmailLoading.value = true;
-  try {
-    const pantryName = localStorage.getItem('pantryName') || 'Ward Food Pantry';
-    const siteUrl    = 'https://ward.funkypony.space';
-    const inviteUrl  = `${siteUrl}/#/join?code=${encodeURIComponent(inviteEmailCode.value)}`;
-    const { data, error } = await supabase.functions.invoke('mts', {
-      body: {
-        type: 'driver-invite',
-        orgId: store.userOrgId || '__local__',
-        recipientEmail: inviteEmailAddr.value.trim(),
-        transports: ['email'],
-        data: {
-          recipientName: inviteEmailName.value.trim() || inviteEmailAddr.value.split('@')[0],
-          inviteCode: inviteEmailCode.value,
-          inviteUrl,
-          pantryName,
-          siteUrl,
-        },
-      },
-    });
-    if (error || (data as any)?.error) throw new Error((error as any)?.message || (data as any)?.error);
-    $q.notify({ type: 'positive', message: 'Invite email sent!' });
-    inviteEmailName.value = '';
-    inviteEmailAddr.value = '';
-    inviteEmailCode.value = '';
-  } catch (err: unknown) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Failed to send' });
-  } finally {
-    inviteEmailLoading.value = false;
-  }
-}
+const inviteNewName  = ref('');
+const inviteNewEmail = ref('');
+const inviteNewRole  = ref('member');
 
 // ── Email preview ───────────────────────────────────────────────
 
@@ -1484,12 +2059,10 @@ function refreshPreview() {
 }
 
 const emailPreviewHtml = computed(() => {
-  const name    = inviteEmailName.value.trim() || 'Recipient';
-  const code    = inviteEmailCode.value || 'XXXX-XXXX';
+  const name    = inviteNewName.value.trim() || 'Recipient';
+  const code    = 'XXXXXX';
   const siteUrl = 'https://ward.funkypony.space';
-  const url     = inviteEmailCode.value
-    ? `${siteUrl}/#/join?code=${encodeURIComponent(inviteEmailCode.value)}`
-    : `${siteUrl}/#/join`;
+  const url     = `${siteUrl}/#/join`;
   // touch previewGeneratedAt to make this reactive to refreshes
   void previewGeneratedAt.value;
   return buildDriverInviteHtmlClient(name, previewPantryName.value, code, url);
@@ -1585,6 +2158,11 @@ async function fetchCloudInvites() {
       code: inv.code,
       is_used: inv.is_used,
       created_at: inv.created_at,
+      email: inv.email ?? undefined,
+      display_name: inv.display_name ?? undefined,
+      role: inv.role ?? undefined,
+      notified_at: inv.notified_at ?? undefined,
+      accepted_at: inv.accepted_at ?? undefined,
     }));
   } catch { /* offline */ }
 }
@@ -1665,61 +2243,75 @@ const setupOverallLabel = computed(() => {
   return `${okCount}/${items.length}`;
 });
 
+// Raw fetch probe — avoids supabase-js console.error on non-2xx responses.
+// Returns { status, data } or throws on network failure.
+async function fnProbe(fnName: string, body: Record<string, unknown>) {
+  const base = import.meta.env.VITE_SUPABASE_URL as string;
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || anon || '';
+  const res = await fetch(`${base}/functions/v1/${fnName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: anon || '',
+    },
+    body: JSON.stringify(body),
+  });
+  let data: unknown = null;
+  try { data = await res.json(); } catch { /* no JSON body */ }
+  return { status: res.status, data };
+}
+
 async function probeEdgeFunction(name: string, checkKey: string) {
-  // Helper: supabase-js returns FunctionsFetchError for network failures (not deployed),
-  // and FunctionsHttpError for any HTTP response (deployed, even if 4xx/5xx).
-  const isNetworkFailure = (err: unknown) =>
-    !!err && typeof err === 'object' && (err as { name?: string }).name === 'FunctionsFetchError';
+  if (name === 'mailgun-webhook') {
+    // Server-to-server only — Mailgun calls it, not the browser.
+    updateCheckItem(checkKey, 'ok', 'Deployed (Mailgun calls this server-side)');
+    return;
+  }
 
   try {
-    if (name === 'mts') {
-      const { data, error } = await supabase.functions.invoke('mts', {
-        body: { type: 'test', orgId: '__setup_test__' },
-      });
-      if (isNetworkFailure(error)) {
-        updateCheckItem(checkKey, 'fail', 'Unreachable or not deployed');
-      } else if (data?.error?.includes('Mailgun not configured')) {
+    const body = name === 'mts'
+      ? { type: 'test', orgId: '__setup_test__' }
+      : {};
+    const { status, data } = await fnProbe(name, body);
+
+    if (status === 401) {
+      updateCheckItem(checkKey, 'warn', 'Deployed — JWT auth failed (check anon key)');
+    } else if (status === 0 || status >= 500) {
+      updateCheckItem(checkKey, 'fail', `Unreachable (${status || 'network error'})`);
+    } else if (name === 'mts') {
+      const d = data as Record<string, unknown> | null;
+      if (typeof d?.error === 'string' && d.error.includes('Mailgun not configured')) {
         updateCheckItem(checkKey, 'ok', 'Deployed (Mailgun not set)');
         updateCheckItem('mailgun', 'fail', 'Secrets not set — run setup-pantry.sh --mailgun');
       } else {
-        // Any HTTP response (200 with error body, or 4xx) means the function is running
         updateCheckItem(checkKey, 'ok', 'Deployed and responding');
       }
-    } else if (name === 'mailgun-webhook') {
-      // Server-to-server webhook — Mailgun calls it, not the browser.
-      // Cannot probe from browser; mark deployed if Supabase is reachable.
-      updateCheckItem(checkKey, 'ok', 'Deployed (Mailgun calls this server-side)');
     } else {
-      const { error } = await supabase.functions.invoke(name, { body: {} });
-      // Only a network-level failure (FunctionsFetchError) means not deployed.
-      // 401/400/500 all mean the function exists and responded.
-      if (isNetworkFailure(error)) {
-        updateCheckItem(checkKey, 'fail', 'Not deployed or unreachable');
-      } else {
-        updateCheckItem(checkKey, 'ok', 'Deployed');
-      }
+      updateCheckItem(checkKey, 'ok', 'Deployed');
     }
   } catch {
-    updateCheckItem(checkKey, 'fail', 'Network error');
+    updateCheckItem(checkKey, 'fail', 'Network error — not reachable');
   }
 }
 
 async function probeMailgunViaTest() {
   try {
-    const { data, error } = await supabase.functions.invoke('mts', {
-      body: {
-        type: 'test', orgId: '__setup_test__',
-        recipientEmail: 'setup-probe@test.invalid',
-        transports: ['email'],
-      },
+    const { status, data } = await fnProbe('mts', {
+      type: 'test', orgId: '__setup_test__',
+      recipientEmail: 'setup-probe@test.invalid',
+      transports: ['email'],
     });
-    if (data?.error?.includes('Mailgun not configured') || data?.error?.includes('not configured')) {
+    const d = data as Record<string, unknown> | null;
+    if (status === 401) {
+      updateCheckItem('mailgun', 'warn', 'Could not verify — JWT auth failed');
+    } else if (typeof d?.error === 'string' && (d.error.includes('Mailgun not configured') || d.error.includes('not configured'))) {
       updateCheckItem('mailgun', 'fail', 'Secrets not set');
-    } else if (error?.name === 'FunctionsFetchError') {
-      updateCheckItem('mailgun', 'warn', 'Could not verify — MTS unreachable');
     } else {
-      // Any response (ok, or SMTP rejection of test.invalid) means Mailgun is configured
-      updateCheckItem('mailgun', 'ok', `Configured (${data?.mailgun?.domain || 'active'})`);
+      // Any non-401 response (ok, or SMTP rejection of test.invalid) means Mailgun is configured
+      updateCheckItem('mailgun', 'ok', `Configured (${(d as any)?.mailgun?.domain || 'active'})`);
     }
   } catch {
     updateCheckItem('mailgun', 'warn', 'Could not verify — MTS unreachable');
@@ -1793,16 +2385,15 @@ async function sendTestEmail() {
   testEmailSending.value = true;
   testEmailResult.value = null;
   try {
-    const { data, error } = await supabase.functions.invoke('mts', {
-      body: {
-        type: 'test',
-        orgId: store.userOrgId || '__setup_test__',
-        recipientEmail: testEmailAddress.value,
-        transports: ['email'],
-      },
+    const { status, data } = await fnProbe('mts', {
+      type: 'test',
+      orgId: store.userOrgId || '__setup_test__',
+      recipientEmail: testEmailAddress.value,
+      transports: ['email'],
     });
-    if (error) throw new Error(error.message);
-    if (data?.ok) {
+    if (status === 401) throw new Error('JWT auth failed — check your Supabase anon key');
+    if (status >= 400) throw new Error(`MTS returned ${status}`);
+    if ((data as any)?.ok) {
       testEmailResult.value = {
         status: 'ok',
         message: `Test email sent to ${testEmailAddress.value}`,
@@ -1811,7 +2402,7 @@ async function sendTestEmail() {
     } else {
       testEmailResult.value = {
         status: 'fail',
-        message: data?.error || 'Unknown error',
+        message: (data as any)?.error || 'Unknown error',
         timestamp: new Date().toLocaleTimeString(),
       };
     }
@@ -2003,7 +2594,15 @@ function copyInfoLink() {
 
 // ── Init ─────────────────────────────────────────────────────────
 
+watch(tab, (t) => {
+  if (t === 'messages') fetchMsgLog();
+});
+
 onMounted(async () => {
+  // Honor ?tab= query from flyout shortcuts (case-insensitive)
+  const qtab = String(route.query.tab || '').toLowerCase();
+  if (qtab && tabs.some(t => t.key === qtab)) tab.value = qtab;
+
   loadWelcome();
   loadWeekSchedule();
   loadStagedMessages();
@@ -2166,13 +2765,160 @@ onUnmounted(() => {
 }
 
 /* ── Members ── */
+.member-wrap {
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
 .member-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
-  border-bottom: 1px solid var(--wb-border-subtle);
 }
+
+.member-edit-btn {
+  background: none;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  padding: 3px 5px;
+  cursor: pointer;
+  color: var(--wb-text-faint);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.member-edit-btn:hover,
+.member-edit-btn--active {
+  color: var(--wb-accent);
+  border-color: var(--wb-accent);
+  background: rgba(253, 216, 53, 0.06);
+}
+
+.member-edit-btn--alias {
+  color: var(--wb-info);
+  border-color: var(--wb-info);
+}
+
+.mep-alias-dot {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.4rem;
+  letter-spacing: 1px;
+  color: var(--wb-info);
+  border: 1px solid var(--wb-info);
+  border-radius: 3px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.member-edit-panel {
+  padding: 12px 10px 14px;
+  background: var(--wb-surface);
+  border-top: 1px dashed var(--wb-border-subtle);
+}
+
+.mep-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.42rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.mep-mode-bar--admin { color: var(--wb-accent); }
+.mep-mode-bar--alias { color: var(--wb-info); }
+
+.mep-mode-bar .mep-mode-note {
+  font-weight: 600;
+  font-size: 0.4rem;
+  letter-spacing: 0.5px;
+  color: var(--wb-text-faint);
+  text-transform: none;
+  margin-left: 4px;
+}
+
+.mep-grid {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 7px 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mep-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.42rem;
+  letter-spacing: 2.5px;
+  color: var(--wb-text-faint);
+  white-space: nowrap;
+}
+
+.mep-input {
+  background: var(--wb-bg);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  padding: 5px 8px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--wb-text);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.mep-input:focus { border-color: var(--wb-accent); }
+.mep-input::placeholder { color: var(--wb-text-faint); }
+
+.mep-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mep-cancel,
+.mep-clear {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  background: none;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.mep-cancel:hover { color: var(--wb-text); }
+.mep-clear {
+  margin-right: auto;
+  color: var(--wb-negative);
+  border-color: var(--wb-negative);
+  opacity: 0.7;
+}
+.mep-clear:hover { opacity: 1; }
+
+.mep-save {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  padding: 5px 12px;
+  border-radius: 3px;
+  background: var(--wb-accent);
+  color: var(--wb-accent-text, #1a1a1a);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mep-save:hover { opacity: 0.85; }
 
 .member-dot {
   width: 8px;
@@ -2203,27 +2949,6 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* ── Email invite ── */
-.invite-email-section {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 2px solid var(--wb-border-mid);
-}
-.invite-email-label {
-  font-family: var(--wb-font);
-  font-weight: 800;
-  font-size: 0.52rem;
-  letter-spacing: 3px;
-  color: var(--wb-accent);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-.invite-code-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
-}
 
 /* ── Info Page editor ── */
 .info-link-row {
@@ -2463,35 +3188,96 @@ onUnmounted(() => {
 }
 
 /* ── Invites ── */
-.invite-gen {
-  padding: 0 4px 10px;
+.invite-form {
+  padding: 0 4px 14px;
 }
 
-.invite-gen-btn {
-  background: var(--wb-accent) !important;
-  color: var(--wb-accent-text) !important;
+.invite-form-label {
   font-family: var(--wb-font);
   font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 2px;
-  border-radius: 3px;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-muted);
+  margin-bottom: 8px;
+}
+
+.invite-role-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.invite-role-label {
+  font-family: var(--wb-font);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--wb-text-muted);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .invite-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 8px;
+  gap: 8px;
+  padding: 8px 8px;
   border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.invite-row-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .invite-code {
   font-family: 'Courier New', monospace;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--wb-text);
   letter-spacing: 3px;
-  flex: 1;
+}
+
+.invite-row-meta {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+  gap: 1px;
+}
+
+.invite-meta-name {
+  font-family: var(--wb-font);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--wb-text);
+  letter-spacing: 0.3px;
+}
+
+.invite-meta-email {
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--wb-text-faint);
+  letter-spacing: 0.2px;
+}
+
+.invite-row-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.invite-role-badge {
+  padding: 1px 6px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
 }
 
 .invite-status {
@@ -2500,7 +3286,7 @@ onUnmounted(() => {
   border-radius: 2px;
   font-family: var(--wb-font);
   font-weight: 800;
-  font-size: 0.5rem;
+  font-size: 0.48rem;
   letter-spacing: 2px;
 }
 
@@ -2513,6 +3299,11 @@ onUnmounted(() => {
 .invite-status--used {
   color: var(--wb-text-faint);
   border-color: var(--wb-border-mid);
+}
+
+.invite-notified-icon {
+  color: var(--wb-info);
+  opacity: 0.7;
 }
 
 .invite-copy {
@@ -3159,6 +3950,22 @@ onUnmounted(() => {
   font-family: var(--wb-font);
 }
 
+.announce-input :deep(.q-field__control) {
+  background: var(--wb-surface-hover) !important;
+}
+
+.announce-input :deep(.q-field__native),
+.announce-input :deep(.q-field__input) {
+  color: var(--wb-text) !important;
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+}
+
+.announce-input :deep(.q-field__label) {
+  color: var(--wb-text-muted) !important;
+  font-family: var(--wb-font);
+}
+
 /* Role chips */
 .announce-roles-label {
   font-family: var(--wb-font);
@@ -3368,6 +4175,101 @@ onUnmounted(() => {
   opacity: 1;
 }
 
+.staged-row--editing {
+  background: color-mix(in srgb, var(--wb-accent) 8%, transparent);
+  border-left: 3px solid var(--wb-accent);
+  padding-left: 9px;
+}
+
+.staged-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.staged-act-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 2px;
+  color: var(--wb-text-faint);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.staged-act-btn:hover {
+  color: var(--wb-text);
+  border-color: var(--wb-border-mid);
+  background: var(--wb-surface-hover);
+}
+
+.staged-act-btn--send {
+  color: var(--wb-accent);
+  border-color: var(--wb-accent);
+  opacity: 0.75;
+}
+
+.staged-act-btn--send:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--wb-accent) 12%, transparent);
+}
+
+.staged-act-btn--del {
+  color: var(--wb-negative);
+  opacity: 0.4;
+}
+
+.staged-act-btn--del:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--wb-negative) 10%, transparent);
+}
+
+/* Editing banner */
+.announce-editing-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--wb-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wb-accent) 40%, transparent);
+  border-radius: 2px;
+  margin-bottom: 10px;
+  font-family: var(--wb-font);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+}
+
+.announce-editing-banner strong {
+  color: var(--wb-text);
+  font-weight: 700;
+}
+
+.announce-cancel-edit {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.announce-cancel-edit:hover {
+  color: var(--wb-text);
+  border-color: var(--wb-text-muted);
+}
+
 /* Announce cloud history */
 .announce-history {
   border-top: 1px solid var(--wb-border-subtle);
@@ -3507,4 +4409,284 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .cal-ev-del:hover { opacity: 1; }
+
+/* ── Message Log ────────────────────────────────────────────────── */
+
+.msglog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.msglog-range-btns {
+  display: flex;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.msglog-range-btn {
+  padding: 4px 12px;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--wb-border-mid);
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.msglog-range-btn:last-child { border-right: none; }
+.msglog-range-btn.active { background: var(--wb-surface-hover); color: var(--wb-accent); }
+.msglog-range-btn:hover { background: var(--wb-surface-hover); }
+
+.msglog-refresh-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 2px;
+  color: var(--wb-text-faint);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, transform 0.6s;
+}
+
+.msglog-refresh-btn:hover { color: var(--wb-text); border-color: var(--wb-border-mid); }
+.msglog-refresh-btn.spinning { animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.msglog-fetched-at {
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
+  color: var(--wb-text-faint);
+  letter-spacing: 1px;
+}
+
+/* Stats row */
+.msglog-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.msglog-stat {
+  flex: 1;
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  background: var(--wb-surface);
+}
+
+.msglog-stat-num {
+  font-family: var(--wb-font);
+  font-weight: 900;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.msglog-stat-label {
+  font-family: var(--wb-font);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+  margin-top: 4px;
+}
+
+.msglog-stat--sent      .msglog-stat-num { color: var(--wb-text-muted); }
+.msglog-stat--delivered .msglog-stat-num { color: var(--wb-positive); }
+.msglog-stat--bounced   .msglog-stat-num { color: var(--wb-negative); }
+.msglog-stat--spam      .msglog-stat-num { color: var(--wb-warning); }
+
+/* Delivery rate bar */
+.msglog-rate-wrap {
+  margin-bottom: 14px;
+}
+
+.msglog-rate-bar {
+  height: 6px;
+  background: var(--wb-surface-hover);
+  border-radius: 3px;
+  display: flex;
+  overflow: hidden;
+}
+
+.msglog-rate-seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.msglog-rate-seg--delivered { background: var(--wb-positive); }
+.msglog-rate-seg--bounced   { background: var(--wb-negative); }
+
+.msglog-rate-label {
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--wb-text-faint);
+  margin-top: 4px;
+  display: block;
+  letter-spacing: 1px;
+}
+
+/* Section label */
+.msglog-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wb-font);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  padding: 6px 0 5px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  margin-bottom: 8px;
+}
+
+/* Bounced members */
+.msglog-bounced-section {
+  margin-bottom: 14px;
+}
+
+.msglog-bounced-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.msglog-bounced-icon { color: var(--wb-negative); flex-shrink: 0; }
+
+.msglog-bounced-email {
+  font-family: var(--wb-font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--wb-text);
+  flex: 1;
+}
+
+.msglog-bounced-role {
+  font-family: var(--wb-font);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--wb-text-faint);
+  text-transform: uppercase;
+}
+
+.msglog-bounce-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: none;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.msglog-bounce-clear-btn:hover {
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+}
+
+/* Event log table */
+.msglog-loading,
+.msglog-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  justify-content: center;
+}
+
+.msglog-table {
+  font-family: var(--wb-font);
+  font-size: 0.68rem;
+}
+
+.msglog-table-head {
+  display: grid;
+  grid-template-columns: 90px 72px 1fr 1fr;
+  gap: 6px;
+  padding: 4px 6px;
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+  border-bottom: 1px solid var(--wb-border-mid);
+  margin-bottom: 2px;
+}
+
+.msglog-table-row {
+  display: grid;
+  grid-template-columns: 90px 72px 1fr 1fr;
+  gap: 6px;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  align-items: center;
+}
+
+.msglog-table-row:hover { background: var(--wb-surface-hover); }
+
+.msglog-cell-time {
+  color: var(--wb-text-faint);
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.msglog-cell-recip,
+.msglog-cell-subject {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--wb-text-muted);
+}
+
+.msglog-cell-recip { color: var(--wb-text); }
+
+/* Event type chips */
+.msglog-event-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 5px;
+  border-radius: 2px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border: 1px solid;
+}
+
+.msglog-chip--sent         { color: var(--wb-text-muted);   border-color: var(--wb-border-mid); }
+.msglog-chip--delivered    { color: var(--wb-positive);      border-color: var(--wb-positive); }
+.msglog-chip--bounced_perm { color: var(--wb-negative);      border-color: var(--wb-negative); }
+.msglog-chip--bounced_temp { color: var(--wb-warning);       border-color: var(--wb-warning); }
+.msglog-chip--complained   { color: var(--wb-warning);       border-color: var(--wb-warning); }
+.msglog-chip--opened       { color: var(--wb-info);          border-color: var(--wb-info); }
+.msglog-chip--clicked      { color: var(--wb-accent);        border-color: var(--wb-accent); }
 </style>

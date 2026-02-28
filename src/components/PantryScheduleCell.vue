@@ -5,9 +5,16 @@
     <div class="sched-header">
       <div class="sched-header-left">
         <q-icon name="calendar_today" size="14px" class="sched-header-icon" />
-        <span class="sched-header-title">PANTRY THIS WEEK</span>
+        <span class="sched-header-title">PANTRY SCHEDULE</span>
       </div>
-      <span class="sched-week-range">{{ weekRange }}</span>
+      <div class="sched-nav">
+        <button class="sched-nav-btn" title="Previous week" @click="prevWeek">‹</button>
+        <span class="sched-week-range" :class="{ 'sched-week-range--current': isCurrentWeek }">{{ weekRange }}</span>
+        <button class="sched-nav-btn" title="Next week" @click="nextWeek">›</button>
+        <router-link to="/calendar" class="sched-cal-link" title="Full calendar">
+          <q-icon name="open_in_full" size="11px" />
+        </router-link>
+      </div>
     </div>
 
     <!-- Day columns -->
@@ -68,7 +75,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAddressStore } from 'src/store/store';
-import { supabase } from 'src/dbManagement';
 
 const SCHEDULE_KEY = 'pantry-weekly-schedule';
 
@@ -76,8 +82,8 @@ interface DaySchedule {
   open: boolean;
   openTime: string;
   closeTime: string;
-  locationName: string;
-  notes: string;
+  locationName?: string;
+  notes?: string;
 }
 
 type WeekSchedule = Record<number, DaySchedule>; // 0=Sun … 6=Sat
@@ -89,7 +95,6 @@ interface PickupRow {
 }
 
 const store = useAddressStore();
-const userPickupsByDay = ref<Record<number, PickupRow[]>>({});
 
 // Load admin-managed schedule from localStorage
 const schedule = ref<WeekSchedule>({});
@@ -101,26 +106,53 @@ function loadSchedule() {
   } catch { /* ignore */ }
 }
 
-// Current week Mon–Sun
+// Week navigation
 const today = new Date();
-const todayDow = today.getDay(); // 0=Sun
+const weekOffset = ref(0);
 
-function startOfWeek(): Date {
+function startOfWeek(offset: number): Date {
   const d = new Date(today);
+  const todayDow = today.getDay();
   const diff = (todayDow === 0 ? -6 : 1) - todayDow;
-  d.setDate(d.getDate() + diff);
+  d.setDate(d.getDate() + diff + offset * 7);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-const weekStart = startOfWeek();
+const weekStart = computed(() => startOfWeek(weekOffset.value));
+const isCurrentWeek = computed(() => weekOffset.value === 0);
+
+function prevWeek() { weekOffset.value--; }
+function nextWeek() { weekOffset.value++; }
 
 const DAY_ABBR = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
+// Computed pickup map — auto-updates when weekStart or queue changes
+const userPickupsByDay = computed<Record<number, PickupRow[]>>(() => {
+  if (!store.isLoggedIn) return {};
+  const ws = weekStart.value;
+  const weekEnd = new Date(ws);
+  weekEnd.setDate(ws.getDate() + 7);
+  const startStr = ws.toISOString().slice(0, 10);
+  const endStr = weekEnd.toISOString().slice(0, 10);
+
+  const byDay: Record<number, PickupRow[]> = {};
+  for (const e of store.getQueueEntries) {
+    if (!e.claimedBy) continue;
+    const dateStr = e.calendarDate || e.createdAt.slice(0, 10);
+    if (dateStr < startStr || dateStr >= endStr) continue;
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    if (!byDay[dow]) byDay[dow] = [];
+    byDay[dow].push({ id: e.id, description: e.description, scheduled_date: dateStr });
+  }
+  return byDay;
+});
+
 const weekDays = computed(() => {
+  const ws = weekStart.value;
   return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + i);
+    const date = new Date(ws);
+    date.setDate(ws.getDate() + i);
     const dow = date.getDay();
     return {
       index: i,
@@ -135,10 +167,11 @@ const weekDays = computed(() => {
 });
 
 const weekRange = computed(() => {
-  const end = new Date(weekStart);
-  end.setDate(weekStart.getDate() + 6);
+  const ws = weekStart.value;
+  const end = new Date(ws);
+  end.setDate(ws.getDate() + 6);
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${fmt(weekStart)} – ${fmt(end)}`;
+  return `${fmt(ws)} – ${fmt(end)}`;
 });
 
 const locationName = computed(() => {
@@ -163,35 +196,8 @@ function formatTime(t: string): string {
   return m ? `${hour}:${String(m).padStart(2, '0')}${ampm}` : `${hour}${ampm}`;
 }
 
-async function fetchUserPickups() {
-  if (!store.isLoggedIn) return;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const weekEndDate = new Date(weekStart);
-    weekEndDate.setDate(weekStart.getDate() + 7);
-
-    const { data } = await supabase
-      .from('boulder_pickups')
-      .select('id, description, scheduled_date')
-      .eq('claimed_by', user.id)
-      .gte('scheduled_date', weekStart.toISOString().slice(0, 10))
-      .lt('scheduled_date', weekEndDate.toISOString().slice(0, 10));
-
-    const byDay: Record<number, PickupRow[]> = {};
-    for (const p of (data || []) as PickupRow[]) {
-      const dow = new Date(p.scheduled_date + 'T00:00:00').getDay();
-      if (!byDay[dow]) byDay[dow] = [];
-      byDay[dow].push(p);
-    }
-    userPickupsByDay.value = byDay;
-  } catch { /* offline */ }
-}
-
 onMounted(() => {
   loadSchedule();
-  fetchUserPickups();
 });
 </script>
 
@@ -231,12 +237,60 @@ onMounted(() => {
   color: var(--wb-text);
 }
 
+/* Week navigation */
+.sched-nav {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sched-nav-btn {
+  background: none;
+  border: none;
+  padding: 1px 4px;
+  cursor: pointer;
+  color: var(--wb-text-faint);
+  font-size: 1rem;
+  line-height: 1;
+  font-family: monospace;
+  border-radius: 2px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.sched-nav-btn:hover {
+  color: var(--wb-accent);
+  background: var(--wb-surface-hover);
+}
+
 .sched-week-range {
   font-family: var(--wb-font);
   font-weight: 600;
   font-size: 0.58rem;
   color: var(--wb-text-faint);
   letter-spacing: 0.5px;
+  min-width: 72px;
+  text-align: center;
+  transition: color 0.15s;
+}
+
+.sched-week-range--current {
+  color: var(--wb-accent);
+}
+
+.sched-cal-link {
+  display: flex;
+  align-items: center;
+  color: var(--wb-text-faint);
+  text-decoration: none;
+  padding: 2px 3px;
+  border-radius: 2px;
+  margin-left: 2px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.sched-cal-link:hover {
+  color: var(--wb-accent);
+  background: var(--wb-surface-hover);
 }
 
 /* Day grid */

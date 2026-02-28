@@ -6,8 +6,10 @@
         <q-icon name="menu" size="20px" />
       </button>
 
-      <!-- Title -->
-      <div class="header-title">{{ t.app.name }}</div>
+      <!-- Title (links home) -->
+      <router-link to="/" class="header-title-link">
+        <div class="header-title">{{ t.app.brand }}</div>
+      </router-link>
 
       <div class="header-spacer" />
 
@@ -231,6 +233,11 @@ function entrySearchLabel(type?: string): string {
   background: var(--wb-border-mid);
 }
 
+.header-title-link {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
 .header-title {
   font-family: var(--wb-font);
   font-weight: 800;
@@ -241,6 +248,11 @@ function entrySearchLabel(type?: string): string {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.header-title-link:hover .header-title {
+  color: var(--wb-accent);
 }
 
 .header-spacer {

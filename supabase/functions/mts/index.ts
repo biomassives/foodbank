@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     const transportPromises: Promise<void>[] = [];
 
     if (activeTransports.includes('email') && MAILGUN_API_KEY) {
-      transportPromises.push(emailTransport(recipients, message).then(r => { results.email = r; }));
+      transportPromises.push(emailTransport(supabase, orgId, recipients, message).then(r => { results.email = r; }));
     }
     if (activeTransports.includes('site')) {
       transportPromises.push(siteTransport(supabase, recipients, message).then(r => { results.site = r; }));
@@ -271,6 +271,8 @@ function taskBlock(desc: string, loc: string, color: string): string {
 // ── Email Transport (Mailgun) ───────────────────────────────────
 
 async function emailTransport(
+  supabase: ReturnType<typeof createClient>,
+  orgId: string,
   recipients: Recipient[],
   message: RenderedMessage,
 ): Promise<TransportResult> {
@@ -283,6 +285,11 @@ async function emailTransport(
     try {
       await sendMailgun(r.email!, message.subject, html);
       sent++;
+      // Fire-and-forget log — don't let logging failure block delivery
+      supabase.from('message_log').insert({
+        org_id: orgId, event_type: 'sent', transport: 'email',
+        recipient: r.email, subject: message.subject,
+      }).then(({ error }) => { if (error) console.error('message_log sent insert failed:', error.message); });
     } catch (e) {
       console.error(`Email failed for ${r.email}:`, e);
       errors++;

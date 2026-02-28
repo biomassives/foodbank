@@ -3,6 +3,17 @@
 
     <!-- ── HERO: avatar + name ── -->
     <div class="profile-hero">
+
+      <!-- Quick-settings trigger -->
+      <button
+        class="flyout-trigger"
+        :class="{ 'flyout-trigger--open': flyoutOpen }"
+        aria-label="Quick settings"
+        @click.stop="toggleFlyout"
+      >
+        <q-icon name="tune" size="14px" />
+      </button>
+
       <div class="avatar-zone" @click="triggerAvatarPick" title="Change photo">
         <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="Profile photo" />
         <div v-else class="avatar-placeholder">
@@ -16,6 +27,70 @@
 
       <div class="hero-name">{{ form.display_name || 'Your Name' }}</div>
       <div class="hero-role">{{ roleBadge }}</div>
+
+      <!-- Quick-settings flyout panel -->
+      <transition name="flyout-slide">
+        <div v-if="flyoutOpen" class="profile-flyout" @click.stop>
+
+          <!-- Status row -->
+          <div class="flyout-hd">
+            <span class="flyout-role-text">{{ roleBadge }}</span>
+            <span class="flyout-mode" :class="`flyout-mode--${flyoutMode}`">{{ flyoutMode }}</span>
+          </div>
+          <div v-if="orgId" class="flyout-org-name">{{ pantryName || 'My Pantry' }}</div>
+
+          <div class="flyout-sep" />
+
+          <!-- Quick display-name edit -->
+          <div class="flyout-field-lbl">DISPLAY NAME</div>
+          <div class="flyout-name-row">
+            <input
+              v-model="flyoutName"
+              class="flyout-input"
+              placeholder="Your name"
+              maxlength="60"
+              @keydown.enter.prevent="flyoutSaveName"
+              @keydown.escape="flyoutOpen = false"
+            />
+            <button class="flyout-ok-btn" @click="flyoutSaveName">SAVE</button>
+          </div>
+
+          <!-- Admin shortcuts — shown for admin role or localMode -->
+          <template v-if="isAdmin">
+            <div class="flyout-sep" />
+            <div class="flyout-field-lbl">ADMIN</div>
+            <div class="flyout-chips">
+              <button
+                v-for="s in ADMIN_SHORTCUTS"
+                :key="s.key"
+                class="flyout-chip"
+                @click="goAdmin(s.key)"
+              >
+                <q-icon :name="s.icon" size="10px" />
+                {{ s.label }}
+              </button>
+            </div>
+          </template>
+
+          <div class="flyout-sep" />
+
+          <!-- Footer actions -->
+          <div class="flyout-foot">
+            <button v-if="orgId" class="flyout-foot-btn" @click="copyUrlAndClose">
+              <q-icon name="link" size="11px" /> INVITE LINK
+            </button>
+            <button
+              v-if="store.isLoggedIn && !store.localMode && !store.demoMode"
+              class="flyout-foot-btn flyout-foot-btn--out"
+              @click="doSignOut"
+            >
+              <q-icon name="logout" size="11px" /> SIGN OUT
+            </button>
+          </div>
+
+        </div>
+      </transition>
+
     </div>
 
     <div class="profile-body">
@@ -144,6 +219,11 @@
         />
       </section>
 
+      <!-- ── NEEDS & ITEMS ── -->
+      <section class="profile-section">
+        <needs-bin-board />
+      </section>
+
       <!-- ── MY ENTRIES ── -->
       <section class="profile-section">
         <div class="section-hd">MY ENTRIES</div>
@@ -212,16 +292,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { supabase } from 'src/boot/supabase';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import EntryModal from 'src/components/childcomponents/EntryModal.vue';
+import NeedsBinBoard from 'src/components/NeedsBinBoard.vue';
 import type { Entry, DayOfWeek } from 'src/models';
 import { useTheme } from 'src/composables/useTheme';
 
-const store = useAddressStore();
-const $q = useQuasar();
+const store  = useAddressStore();
+const $q     = useQuasar();
+const router = useRouter();
 const { theme } = useTheme();
 const isDarkTheme = computed(() => theme.value === 'dark');
 
@@ -244,6 +327,9 @@ const COMMON_TAGS = [
   'household items', 'clothing', 'tools', 'furniture', 'books', 'toys',
   'languages', 'social media', 'counseling', 'videography',
 ];
+
+// localStorage key — mirrors pantry-welcome / pantry-ops-page pattern
+const PROFILE_KEY = 'profile-local';
 
 // ── Form state ────────────────────────────────────────────────────
 const form = ref({
@@ -354,6 +440,65 @@ function copyUrl() {
   });
 }
 
+// ── Flyout quick-settings panel ───────────────────────────────────
+const flyoutOpen = ref(false);
+const flyoutName = ref('');
+
+const isAdmin = computed(() => store.userRole === 'admin' || store.localMode);
+
+const flyoutMode = computed(() => {
+  if (store.localMode)  return 'LOCAL';
+  if (store.demoMode)   return 'DEMO';
+  if (store.isLoggedIn) return 'LIVE';
+  return 'OFFLINE';
+});
+
+const ADMIN_SHORTCUTS = [
+  { label: 'MEMBERS',  key: 'MEMBERS',  icon: 'group'        },
+  { label: 'INVITES',  key: 'INVITES',  icon: 'mail_outline'  },
+  { label: 'ANNOUNCE', key: 'ANNOUNCE', icon: 'campaign'      },
+  { label: 'SCHEDULE', key: 'SCHEDULE', icon: 'event_note'    },
+  { label: 'DATA',     key: 'DATA',     icon: 'storage'       },
+  { label: 'SETTINGS', key: 'WELCOME',  icon: 'settings'      },
+] as const;
+
+function toggleFlyout() {
+  flyoutOpen.value = !flyoutOpen.value;
+  if (flyoutOpen.value) flyoutName.value = form.value.display_name;
+}
+
+async function flyoutSaveName() {
+  const n = flyoutName.value.trim();
+  if (!n) return;
+  form.value.display_name = n;
+  flyoutOpen.value = false;
+  await saveProfile();
+}
+
+function goAdmin(tab: string) {
+  flyoutOpen.value = false;
+  void router.push({ path: '/admin', query: { tab } });
+}
+
+function copyUrlAndClose() {
+  copyUrl();
+  flyoutOpen.value = false;
+}
+
+async function doSignOut() {
+  flyoutOpen.value = false;
+  await supabase.auth.signOut();
+  void router.push('/');
+}
+
+function handleOutsideClick() {
+  if (flyoutOpen.value) flyoutOpen.value = false;
+}
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick);
+});
+
 // ── Computed ──────────────────────────────────────────────────────
 const myEntries = computed(() =>
   ([...store.getEntries] as Entry[]).reverse()
@@ -374,7 +519,17 @@ const roleBadge = computed(() => {
 
 // ── Lifecycle ─────────────────────────────────────────────────────
 onMounted(async () => {
+  document.addEventListener('click', handleOutsideClick);
   await store.loadEntries();
+
+  // Pre-populate from local cache instantly — visible before any async call
+  loadLocalProfile();
+
+  // Local / demo mode: local cache is all we use
+  if (store.localMode || store.demoMode) {
+    loading.value = false;
+    return;
+  }
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { loading.value = false; return; }
@@ -396,6 +551,8 @@ onMounted(async () => {
       availability.value = { ...makeDefaultAvailability(), ...data.availability };
     }
     if (data.avatar_url) avatarPreview.value = data.avatar_url;
+
+    saveLocalProfile(); // refresh local cache with server data
   }
 
   loading.value = false;
@@ -415,6 +572,40 @@ function onAvatarPicked(e: Event) {
   reader.readAsDataURL(file);
 }
 
+// ── Local profile persistence ─────────────────────────────────────
+function saveLocalProfile() {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify({
+      display_name:   form.value.display_name,
+      bio:            form.value.bio,
+      location_label: form.value.location_label,
+      interests:      form.value.interests,
+      availability:   availability.value,
+      off_week_notes: form.value.off_week_notes,
+    }));
+  } catch { /* storage quota */ }
+}
+
+function loadLocalProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return;
+    const local = JSON.parse(raw) as {
+      display_name?: string; bio?: string; location_label?: string;
+      interests?: string[]; availability?: Record<string, Record<string, boolean>>;
+      off_week_notes?: string;
+    };
+    form.value.display_name   = local.display_name   ?? '';
+    form.value.bio            = local.bio            ?? '';
+    form.value.location_label = local.location_label ?? '';
+    form.value.interests      = local.interests      ?? [];
+    form.value.off_week_notes = local.off_week_notes ?? '';
+    if (local.availability) {
+      availability.value = { ...makeDefaultAvailability(), ...local.availability };
+    }
+  } catch { /* ignore malformed cache */ }
+}
+
 // ── Availability ──────────────────────────────────────────────────
 function makeDefaultAvailability(): Record<string, Record<string, boolean>> {
   const avail: Record<string, Record<string, boolean>> = {};
@@ -432,8 +623,16 @@ function toggleAvail(day: string, slot: string) {
 async function saveProfile() {
   saving.value = true;
   try {
+    // Always persist locally first — works offline / local mode / demo mode
+    saveLocalProfile();
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+
+    // Local / demo mode or not authenticated — local save is sufficient
+    if (store.localMode || store.demoMode || !user) {
+      $q.notify({ type: 'positive', message: 'Profile saved locally!' });
+      return;
+    }
 
     let avatarUrl: string | undefined;
     if (avatarFile.value) {
@@ -460,6 +659,7 @@ async function saveProfile() {
     });
 
     if (error) throw error;
+    saveLocalProfile(); // keep local cache in sync after cloud save
     $q.notify({ type: 'positive', message: 'Profile saved!' });
   } catch (err: unknown) {
     $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Save failed' });
@@ -1067,6 +1267,213 @@ function entryTypeLabel(type: string): string {
   color: var(--wb-text-faint);
   margin-top: 4px;
 }
+
+/* ── Flyout quick-settings panel ── */
+
+/* Hero needs relative so trigger + flyout anchor correctly */
+.profile-hero {
+  position: relative;
+  overflow: visible;
+}
+
+/* Trigger button — top-right of hero */
+.flyout-trigger {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 4px;
+  padding: 5px 7px;
+  cursor: pointer;
+  color: var(--wb-text-faint);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  z-index: 10;
+}
+.flyout-trigger:hover,
+.flyout-trigger--open {
+  color: var(--wb-accent);
+  border-color: var(--wb-accent);
+  background: rgba(253, 216, 53, 0.07);
+}
+
+/* Flyout card */
+.profile-flyout {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(300px, calc(100vw - 28px));
+  background: var(--wb-surface);
+  border: 1.5px solid var(--wb-border-mid);
+  border-radius: 6px;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.38), 0 2px 10px rgba(0,0,0,0.18);
+  padding: 14px 16px;
+  z-index: 200;
+  text-align: left;
+}
+
+/* Transition */
+.flyout-slide-enter-active,
+.flyout-slide-leave-active {
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.flyout-slide-enter-from,
+.flyout-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+}
+
+/* Status row */
+.flyout-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.flyout-role-text {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  color: var(--wb-accent);
+}
+.flyout-mode {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.44rem;
+  letter-spacing: 2px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.flyout-mode--LIVE    { color: var(--wb-positive); border-color: var(--wb-positive); background: rgba(105,240,174,0.08); }
+.flyout-mode--LOCAL   { color: var(--wb-warning);  border-color: var(--wb-warning);  background: rgba(255,193,7,0.08); }
+.flyout-mode--DEMO    { color: var(--wb-info);     border-color: var(--wb-info);     background: rgba(33,150,243,0.08); }
+.flyout-mode--OFFLINE { color: var(--wb-text-faint); border-color: var(--wb-border-mid); background: none; }
+
+.flyout-org-name {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.66rem;
+  color: var(--wb-text-muted);
+}
+
+/* Separator */
+.flyout-sep {
+  height: 1px;
+  background: var(--wb-border-subtle);
+  margin: 10px 0;
+}
+
+/* Field label */
+.flyout-field-lbl {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.42rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  margin-bottom: 7px;
+}
+
+/* Name edit row */
+.flyout-name-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.flyout-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--wb-card-input-bg, var(--wb-surface));
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  padding: 6px 9px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--wb-text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.flyout-input:focus { border-color: var(--wb-accent); }
+.flyout-input::placeholder { color: var(--wb-text-faint); }
+
+.flyout-ok-btn {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  padding: 6px 11px;
+  border-radius: 3px;
+  background: var(--wb-accent);
+  color: var(--wb-accent-text, #1a1a1a);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.flyout-ok-btn:hover { opacity: 0.85; }
+
+/* Admin shortcuts chip grid */
+.flyout-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.flyout-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.44rem;
+  letter-spacing: 1.5px;
+  padding: 4px 9px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  background: none;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.flyout-chip:hover {
+  color: var(--wb-accent);
+  border-color: var(--wb-accent);
+  background: rgba(253, 216, 53, 0.06);
+}
+
+/* Footer actions */
+.flyout-foot {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.flyout-foot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.46rem;
+  letter-spacing: 1.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  background: none;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.flyout-foot-btn:hover {
+  color: var(--wb-text);
+  border-color: var(--wb-border-mid);
+  background: var(--wb-surface-hover);
+}
+.flyout-foot-btn--out { color: var(--wb-negative); border-color: rgba(239,83,80,0.3); }
+.flyout-foot-btn--out:hover { background: rgba(239,83,80,0.08); border-color: var(--wb-negative); }
 
 /* ── Save bar ── */
 .save-bar {

@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import { uniqueId } from 'src/utils/uniqueId';
-import { Address, Entry, Location } from 'src/models';
+import { Address, Entry, Location, NeedItem } from 'src/models';
 import { createClient } from '@supabase/supabase-js'
 import { toRaw } from 'vue';
 
@@ -33,7 +33,7 @@ export async function syncToCloud(data: Address, orgId: string | null = null) {
 
 
 export async function openIndexedDB() {
-  const db = await openDB('myAddressDB', 4, {
+  const db = await openDB('myAddressDB', 5, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('addressStore', {
@@ -56,6 +56,9 @@ export async function openIndexedDB() {
       if (oldVersion < 4) {
         db.createObjectStore('notificationStore', { keyPath: 'id' });
         db.createObjectStore('mtsOutbox', { keyPath: 'id', autoIncrement: true });
+      }
+      if (oldVersion < 5) {
+        db.createObjectStore('needItemStore', { keyPath: 'id' });
       }
     },
   });
@@ -354,28 +357,16 @@ export async function syncEntryToCloud(entry: Entry, orgId: string | null = null
     } catch { /* storage is optional — skip silently */ }
   }
 
-  if (entry.type === 'pickup_queue') {
-    const { error } = await supabase.from('boulder_pickups').upsert({
-      id: entry.id,
-      description: entry.description,
-      location: entry.location || '',
-      status: 'pending',
-      created_by: user.id,
-      org_id: orgId,
-    });
-    if (error) console.error('Pickup sync failed:', error.message);
-  } else {
-    const { error } = await supabase.from('community_entries').upsert({
-      id: entry.id,
-      user_id: user.id,
-      org_id: orgId,
-      type: entry.type,
-      description: entry.description,
-      status: entry.status,
-      ...(mediaUrl ? { media_url: mediaUrl } : {}),
-    });
-    if (error) console.error('Entry sync failed:', error.message);
-  }
+  const { error } = await supabase.from('community_entries').upsert({
+    id: entry.id,
+    user_id: user.id,
+    org_id: orgId,
+    type: entry.type,
+    description: entry.description,
+    status: entry.status,
+    ...(mediaUrl ? { media_url: mediaUrl } : {}),
+  });
+  if (error) console.error('Entry sync failed:', error.message);
 }
 
 // ---- Export / Sync / Clear utilities ----
@@ -431,21 +422,12 @@ export async function syncAllToCloud(orgId: string, client?: ReturnType<typeof c
   }
 
   for (const entry of entries) {
-    if (entry.type === 'pickup_queue') {
-      const { error } = await db.from('boulder_pickups').upsert({
-        id: entry.id, description: entry.description,
-        location: entry.location || '', status: 'pending',
-        created_by: user.id, org_id: orgId,
-      });
-      if (error) { errors++; } else { synced++; }
-    } else {
-      const { error } = await db.from('community_entries').upsert({
-        id: entry.id, user_id: user.id, org_id: orgId,
-        type: entry.type, description: entry.description,
-        status: entry.status,
-      });
-      if (error) { errors++; } else { synced++; }
-    }
+    const { error } = await db.from('community_entries').upsert({
+      id: entry.id, user_id: user.id, org_id: orgId,
+      type: entry.type, description: entry.description,
+      status: entry.status,
+    });
+    if (error) { errors++; } else { synced++; }
   }
 
   for (const loc of locations) {
@@ -478,6 +460,30 @@ export async function syncLocationsToCloud(orgId: string, locations: Location[])
     .eq('id', orgId);
 
   if (error) console.error('Location sync failed:', error.message);
+}
+
+// ---- Need Item CRUD (needItemStore) ----
+
+export async function addOrUpdateNeedItem(item: NeedItem) {
+  const db = await openIndexedDB();
+  const tx = db.transaction('needItemStore', 'readwrite');
+  await tx.objectStore('needItemStore').put(toRaw(item));
+  await tx.done;
+}
+
+export async function getAllNeedItems(): Promise<NeedItem[]> {
+  const db = await openIndexedDB();
+  const tx = db.transaction('needItemStore', 'readonly');
+  const data = await tx.objectStore('needItemStore').getAll();
+  await tx.done;
+  return data;
+}
+
+export async function deleteNeedItemById(id: string) {
+  const db = await openIndexedDB();
+  const tx = db.transaction('needItemStore', 'readwrite');
+  await tx.objectStore('needItemStore').delete(id);
+  await tx.done;
 }
 
 // ---- Notification cache (IndexedDB) ----

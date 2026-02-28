@@ -92,29 +92,42 @@ async function routeEvent(supabase: ReturnType<typeof createClient>, eventData: 
     .not('org_id', 'is', null)
     .limit(1);
   const profile = profileRows?.[0] ?? null;
+  const orgId   = profile?.org_id ?? null;
 
   switch (type) {
     case 'delivered':
+      await logEvent(supabase, orgId, 'delivered', recipient, subject);
       await onDelivered(recipient, subject);
       break;
 
     case 'permanent_fail':
+      await logEvent(supabase, orgId, 'bounced_perm', recipient, subject, {
+        error_code:   String(eventData['delivery-status']?.code   ?? ''),
+        error_reason: String(eventData['delivery-status']?.message ?? eventData['delivery-status']?.description ?? ''),
+      });
       await onBounce(supabase, recipient, subject, eventData, profile, true);
       break;
 
     case 'temporary_fail':
+      await logEvent(supabase, orgId, 'bounced_temp', recipient, subject, {
+        error_code:   String(eventData['delivery-status']?.code   ?? ''),
+        error_reason: String(eventData['delivery-status']?.message ?? eventData['delivery-status']?.description ?? ''),
+      });
       await onBounce(supabase, recipient, subject, eventData, profile, false);
       break;
 
     case 'complained':
+      await logEvent(supabase, orgId, 'complained', recipient, subject);
       await onComplaint(supabase, recipient, subject, profile);
       break;
 
     case 'opened':
+      await logEvent(supabase, orgId, 'opened', recipient, subject);
       await onOpened(recipient, subject);
       break;
 
     case 'clicked':
+      await logEvent(supabase, orgId, 'clicked', recipient, subject);
       await onClicked(recipient, String(eventData.url ?? ''));
       break;
 
@@ -199,6 +212,26 @@ async function onClicked(recipient: string, url: string) {
 }
 
 // ── Shared helpers ─────────────────────────────────────────────
+
+async function logEvent(
+  supabase: ReturnType<typeof createClient>,
+  orgId: string | null,
+  eventType: string,
+  recipient: string,
+  subject: string,
+  extra: { error_code?: string; error_reason?: string } = {},
+) {
+  const { error } = await supabase.from('message_log').insert({
+    org_id:       orgId,
+    event_type:   eventType,
+    transport:    'email',
+    recipient,
+    subject,
+    error_code:   extra.error_code   ?? null,
+    error_reason: extra.error_reason ?? null,
+  });
+  if (error) console.error('message_log insert failed:', error.message);
+}
 
 interface SiteNotification {
   type: string;

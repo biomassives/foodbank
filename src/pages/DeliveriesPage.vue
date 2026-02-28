@@ -13,11 +13,8 @@ async function claimItem(itemId: string) {
   }
 
   const { error } = await supabase
-    .from('boulder_pickups')
-    .update({ 
-      claimed_by: user.id, 
-      status: 'claimed' 
-    })
+    .from('community_entries')
+    .update({ status: 'active' })
     .eq('id', itemId);
 
   if (error) {

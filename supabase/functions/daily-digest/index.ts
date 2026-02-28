@@ -149,15 +149,15 @@ async function getOrgActivity(
 ): Promise<OrgActivity> {
   const [newPickups, claimedPickups, completedPickups, newMembers, newEntries, needsResult] =
     await Promise.all([
-      supabase.from('boulder_pickups')
+      supabase.from('community_entries')
         .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId).gte('created_at', since).eq('status', 'pending'),
-      supabase.from('boulder_pickups')
+        .eq('org_id', orgId).eq('type', 'pickup_queue').gte('created_at', since).eq('status', 'active'),
+      supabase.from('community_entries')
         .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId).gte('updated_at', since).eq('status', 'claimed'),
-      supabase.from('boulder_pickups')
+        .eq('org_id', orgId).eq('type', 'pickup_queue').gte('updated_at', since).eq('status', 'active'),
+      supabase.from('community_entries')
         .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId).gte('updated_at', since).eq('status', 'completed'),
+        .eq('org_id', orgId).eq('type', 'pickup_queue').gte('updated_at', since).eq('status', 'fulfilled'),
       supabase.from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('org_id', orgId).gte('created_at', since),

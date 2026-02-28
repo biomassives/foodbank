@@ -68,6 +68,20 @@
   --wb-fab-loc-text: #69f0ae;
   --wb-fab-loc-border: #69f0ae;
   --wb-fab-loc-glow: rgba(105, 240, 174, 0.2);
+
+  // ── Needs bin system (neon — dark theme) ────────────────────────
+  --bin-available:      #00ff7a;
+  --bin-available-bg:   rgba(0, 255, 122, 0.05);
+  --bin-available-glow: 0 0 14px rgba(0, 255, 122, 0.22);
+  --bin-expected:       #ffe200;
+  --bin-expected-bg:    rgba(255, 226, 0, 0.05);
+  --bin-expected-glow:  0 0 14px rgba(255, 226, 0, 0.22);
+  --bin-offered:        #00e5ff;
+  --bin-offered-bg:     rgba(0, 229, 255, 0.05);
+  --bin-offered-glow:   0 0 14px rgba(0, 229, 255, 0.22);
+  --bin-need:           #ff2dbd;
+  --bin-need-bg:        rgba(255, 45, 189, 0.05);
+  --bin-need-glow:      0 0 14px rgba(255, 45, 189, 0.22);
 }
 
 /* Scoped to the data-theme attribute */
@@ -136,6 +150,16 @@
   --wb-fab-loc-text:  #4A7C59;
   --wb-fab-loc-border:#4A7C59;
   --wb-fab-loc-glow:  rgba(74,124,89,0.2);
+
+  // ── Needs bin system (earthy — parchment) ──────────
+  --bin-available:      #256a3c;
+  --bin-available-bg:   rgba(37, 106, 60, 0.06);
+  --bin-expected:       #a07000;
+  --bin-expected-bg:    rgba(160, 112, 0, 0.06);
+  --bin-offered:        #2b5167;
+  --bin-offered-bg:     rgba(43, 81, 103, 0.06);
+  --bin-need:           #862060;
+  --bin-need-bg:        rgba(134, 32, 96, 0.06);
 
   // ── Quasar component overrides ─────────────────────
   background-color: var(--wb-bg);
@@ -270,6 +294,16 @@
   --wb-fab-loc-text: #2e7d32;
   --wb-fab-loc-border: #2e7d32;
   --wb-fab-loc-glow: rgba(46, 125, 50, 0.2);
+
+  // ── Needs bin system (deep saturated — warm cream) ──
+  --bin-available:      #0a7038;
+  --bin-available-bg:   rgba(10, 112, 56, 0.06);
+  --bin-expected:       #9a6200;
+  --bin-expected-bg:    rgba(154, 98, 0, 0.06);
+  --bin-offered:        #006a9e;
+  --bin-offered-bg:     rgba(0, 106, 158, 0.06);
+  --bin-need:           #9a0070;
+  --bin-need-bg:        rgba(154, 0, 112, 0.06);
 }
 
 // Bauhaus / Mondrian theme
@@ -330,6 +364,16 @@
   --wb-fab-loc-text: #1a56db;
   --wb-fab-loc-border: #000;
   --wb-fab-loc-glow: rgba(26, 86, 219, 0.2);
+
+  // ── Needs bin system (bold primaries — white) ───────
+  --bin-available:      #1a6b2e;
+  --bin-available-bg:   rgba(26, 107, 46, 0.05);
+  --bin-expected:       #a87800;
+  --bin-expected-bg:    rgba(168, 120, 0, 0.05);
+  --bin-offered:        #0d47a1;
+  --bin-offered-bg:     rgba(13, 71, 161, 0.05);
+  --bin-need:           #880e4f;
+  --bin-need-bg:        rgba(136, 14, 79, 0.05);
 }
 
 // Bauhaus-specific overrides: thicker borders on grid cells
@@ -1048,6 +1092,22 @@
   &:hover {
     opacity: 1;
     color: var(--wb-accent) !important;
+  }
+}
+
+.cell-header-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--wb-text-faint);
+  opacity: 0.5;
+  text-decoration: none;
+  padding: 2px 3px;
+  border-radius: 2px;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  &:hover {
+    opacity: 1;
+    color: var(--wb-accent);
+    background: var(--wb-surface-hover);
   }
 }
 
