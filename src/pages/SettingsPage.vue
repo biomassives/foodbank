@@ -184,31 +184,21 @@
       <div class="settings-section">
         <div class="settings-section-label">DEMO</div>
 
-        <!-- Active demo banner -->
+        <!-- Active demo status strip -->
         <div v-if="store.demoMode" class="demo-active-banner">
           <div class="demo-active-row">
             <q-icon name="science" size="15px" />
             <span class="demo-active-name">{{ activeSimName }} — DEMO ACTIVE</span>
           </div>
-          <q-btn
-            unelevated no-caps dense
-            icon="clear_all"
-            label="Clear Demo"
-            class="demo-btn demo-btn--clear"
-            :loading="loadingDemo"
-            @click="handleClearDemo"
-          />
-        </div>
-        <div v-if="store.demoMode" class="demo-hint">
-          Your real data is preserved. Demo items use separate IDs and are removed cleanly when you clear.
         </div>
 
-        <!-- Simulation cards (shown when no demo is active) -->
-        <div v-if="!store.demoMode" class="sim-grid">
+        <!-- Simulation cards (always visible) -->
+        <div class="sim-grid">
           <div
             v-for="sim in DEMO_SIMS"
             :key="sim.id"
             class="sim-card"
+            :class="{ 'sim-card--active': store.activeSimulationId === sim.id }"
           >
             <div class="sim-card-header">
               <div class="sim-icon">
@@ -223,7 +213,12 @@
             <div class="sim-tags">
               <span v-for="tag in sim.tags" :key="tag" class="sim-tag">{{ tag }}</span>
             </div>
+            <div v-if="store.activeSimulationId === sim.id" class="sim-displayed-badge">
+              <q-icon name="check_circle" size="13px" />
+              DISPLAYED
+            </div>
             <q-btn
+              v-else
               unelevated no-caps
               icon="play_arrow"
               :label="loadingSimId === sim.id ? 'Loading…' : 'Load'"
@@ -235,7 +230,28 @@
           </div>
         </div>
 
-        <div v-if="!store.demoMode" class="demo-hint">
+        <!-- Bottom controls when demo is active -->
+        <div v-if="store.demoMode" class="demo-bottom-controls">
+          <q-btn
+            v-if="savedDataExists"
+            flat no-caps dense
+            icon="history"
+            label="Restore local data"
+            class="demo-restore-btn"
+            :loading="loadingDemo"
+            @click="handleRestoreLocal"
+          />
+          <q-btn
+            flat no-caps dense
+            icon="clear_all"
+            label="Clear Demo"
+            class="demo-btn demo-btn--clear"
+            :loading="loadingDemo"
+            @click="handleClearDemo"
+          />
+        </div>
+
+        <div class="demo-hint">
           Your real data is preserved. Demo items use separate IDs and are removed cleanly when you clear.
         </div>
       </div>
@@ -581,6 +597,18 @@ const confirmClear = ref(false);
 const confirmSync = ref(false);
 const loadingDemo = ref(false);
 const loadingSimId = ref('');
+const savedDataExists = ref(false);
+
+function checkSavedData() {
+  try {
+    const raw = localStorage.getItem('demo-saved-content');
+    if (!raw) { savedDataExists.value = false; return; }
+    const parsed = JSON.parse(raw);
+    savedDataExists.value = Object.values(parsed).some(v => v !== null && v !== undefined);
+  } catch {
+    savedDataExists.value = false;
+  }
+}
 
 // The two demo simulations surfaced in the UI (the others remain available via loadSimulation(id))
 const DEMO_SIMS = [
@@ -774,6 +802,7 @@ async function handleLoadSim(id: string) {
   loadingSimId.value = id;
   try {
     await store.loadSimulation(id);
+    checkSavedData();
     const sim = SIMULATIONS.find(s => s.id === id);
     $q.notify({
       color: 'positive',
@@ -787,6 +816,19 @@ async function handleLoadSim(id: string) {
   } finally {
     loadingDemo.value = false;
     loadingSimId.value = '';
+  }
+}
+
+async function handleRestoreLocal() {
+  loadingDemo.value = true;
+  try {
+    await store.clearDemoMode();
+    savedDataExists.value = false;
+    $q.notify({ color: 'positive', icon: 'history', message: 'Your data has been restored.' });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: e.message || 'Failed to restore data.' });
+  } finally {
+    loadingDemo.value = false;
   }
 }
 
@@ -890,6 +932,8 @@ async function saveEmailPrefs() {
 }
 
 onMounted(async () => {
+  checkSavedData();
+
   // Load last Mailgun test result
   try {
     const lastTest = localStorage.getItem('wb-mailgun-last-test');
@@ -1173,13 +1217,12 @@ onMounted(async () => {
 .demo-active-banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: rgba(206, 147, 216, 0.08);
   border: 1px solid rgba(206, 147, 216, 0.3);
   border-radius: 3px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .demo-active-row {
   display: flex;
@@ -1300,6 +1343,25 @@ onMounted(async () => {
   color: var(--wb-text-faint);
 }
 
+.sim-card--active {
+  border-color: rgba(206, 147, 216, 0.4);
+  background: rgba(206, 147, 216, 0.04);
+}
+
+.sim-displayed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  color: #ce93d8;
+  border: 1px solid rgba(206, 147, 216, 0.4);
+  border-radius: 3px;
+  padding: 4px 10px;
+}
+
 .sim-load-btn {
   font-family: var(--wb-font);
   font-weight: 800;
@@ -1309,6 +1371,28 @@ onMounted(async () => {
   background: var(--wb-accent) !important;
   color: var(--wb-accent-text) !important;
   padding: 4px 16px;
+}
+
+.demo-bottom-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.demo-restore-btn {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 1.5px;
+  border-radius: 3px;
+  color: var(--wb-positive) !important;
+  border: 1px solid var(--wb-positive);
+  padding: 4px 12px;
+  opacity: 0.85;
+}
+.demo-restore-btn:hover {
+  opacity: 1;
 }
 
 /* ---- Connection ---- */
