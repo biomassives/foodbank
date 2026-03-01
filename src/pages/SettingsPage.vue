@@ -411,27 +411,47 @@
 
           <div class="integ-divider" />
 
-          <!-- Webhook — URL is not a secret; signing secret stays server-side -->
-          <div class="integ-sub-label">WEBHOOK</div>
-          <q-input
-            v-model="webhookUrl"
-            filled dense
-            label="Webhook URL"
-            placeholder="https://hooks.slack.com/..."
-            class="integ-input q-mb-xs"
-          />
-          <div class="integ-env-row">
-            <span class="integ-env-key">WEBHOOK_SECRET</span>
-            <span class="integ-env-val integ-env-val--server">
-              <q-icon name="lock" size="11px" /> server-side only
+          <!-- Webhook — collapsed by default, power-user feature -->
+          <div class="integ-webhook-toggle" @click="webhookExpanded = !webhookExpanded">
+            <span class="integ-sub-label" style="margin:0;">WEBHOOK</span>
+            <span class="integ-webhook-status">
+              {{ webhookUrl ? 'configured' : 'not set' }}
             </span>
+            <q-icon :name="webhookExpanded ? 'expand_less' : 'expand_more'" size="16px" style="color:var(--wb-text-faint);" />
           </div>
-          <div class="integ-hint">JSON payloads for pantry events. Slack, Discord, or custom.</div>
-          <div class="integ-actions">
-            <q-btn flat no-caps dense icon="save" label="Save"
-              class="conn-btn" @click="saveWebhook" />
-            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
-              class="conn-btn conn-btn--clear" @click="clearWebhook" />
+          <div v-if="webhookExpanded" class="integ-webhook-body">
+            <div class="integ-hint" style="margin-bottom:8px;">
+              Optional Slack / Discord / custom endpoint. MTS posts JSON events and signs payloads with <code>X-MTS-Signature</code>. Credentials stored in your org's Supabase record — never in the browser.
+            </div>
+            <q-input
+              v-model="webhookUrl"
+              filled dense
+              label="Webhook URL"
+              placeholder="https://hooks.slack.com/..."
+              class="integ-input q-mb-xs"
+            />
+            <q-input
+              v-model="webhookSecret"
+              filled dense
+              label="Signing Secret"
+              :type="showWebhookSecret ? 'text' : 'password'"
+              class="integ-input q-mb-xs"
+            >
+              <template #append>
+                <q-icon
+                  :name="showWebhookSecret ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  style="color: var(--wb-text-faint);"
+                  @click="showWebhookSecret = !showWebhookSecret"
+                />
+              </template>
+            </q-input>
+            <div class="integ-actions">
+              <q-btn flat no-caps dense icon="save" label="Save"
+                class="conn-btn" @click="saveWebhook" />
+              <q-btn flat no-caps dense icon="delete_outline" label="Clear"
+                class="conn-btn conn-btn--clear" @click="clearWebhook" />
+            </div>
           </div>
 
         </div>
@@ -592,7 +612,10 @@ const maskedAnonKey = computed(() =>
   envAnonKey ? envAnonKey.slice(0, 18) + '···' : '',
 );
 
-const webhookUrl = ref(localStorage.getItem('wb-webhook-url') || '');
+const webhookUrl      = ref(localStorage.getItem('wb-webhook-url') || '');
+const webhookSecret   = ref('');   // never persisted to localStorage — DB only
+const showWebhookSecret = ref(false);
+const webhookExpanded = ref(false);
 
 // ── Mailgun test ─────────────────────────────────────────────
 const mailgunTestEmail = ref('');
@@ -640,21 +663,27 @@ async function testMailgunConnection() {
 }
 
 async function saveWebhook() {
+  // URL goes to localStorage (not a secret); secret goes to DB only
   localStorage.setItem('wb-webhook-url', webhookUrl.value);
   if (store.canSync && store.userOrgId) {
-    await supabase.from('organizations').update({
-      webhook_url: webhookUrl.value || null,
-    }).eq('id', store.userOrgId);
+    const patch: Record<string, string | null> = { webhook_url: webhookUrl.value || null };
+    if (webhookSecret.value) patch.webhook_secret = webhookSecret.value;
+    await supabase.from('organizations').update(patch).eq('id', store.userOrgId);
+    webhookSecret.value = ''; // clear from memory after write
+  } else if (webhookSecret.value) {
+    $q.notify({ color: 'warning', message: 'Sign in to save the signing secret to your org.' });
+    return;
   }
-  $q.notify({ color: 'positive', message: 'Webhook URL saved.' });
+  $q.notify({ color: 'positive', message: 'Webhook saved.' });
 }
-function clearWebhook() {
+async function clearWebhook() {
   localStorage.removeItem('wb-webhook-url');
   webhookUrl.value = '';
+  webhookSecret.value = '';
   if (store.canSync && store.userOrgId) {
-    supabase.from('organizations').update({ webhook_url: null }).eq('id', store.userOrgId);
+    await supabase.from('organizations').update({ webhook_url: null, webhook_secret: null }).eq('id', store.userOrgId);
   }
-  $q.notify({ color: 'positive', message: 'Webhook URL cleared.' });
+  $q.notify({ color: 'positive', message: 'Webhook cleared.' });
 }
 
 const contactCount = computed(() => store.getData.length);
@@ -831,11 +860,12 @@ onMounted(async () => {
 
   // Security hardening: purge any secrets that may have been stored in localStorage
   // by an older version of this page. These should only live in server-side env vars.
+  // Purge secrets that older versions stored in localStorage
   for (const key of [
     'wb-mailgun-key', 'wb-mailgun-domain',
     'customSupabaseUrl', 'customSupabaseKey',
     'wb-deploy-url', 'wb-repo-url',
-    'wb-webhook-secret',
+    'wb-webhook-secret',   // now lives in organizations table only
   ]) localStorage.removeItem(key);
 
   // Load last Mailgun test result
@@ -866,6 +896,22 @@ onMounted(async () => {
         }
       }
     } catch { /* offline or not synced */ }
+  }
+
+  // Load webhook config from org record — secret shown as placeholder only
+  if (store.canSync && store.userOrgId) {
+    try {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('webhook_url, webhook_secret')
+        .eq('id', store.userOrgId)
+        .single();
+      if (org) {
+        if (org.webhook_url) webhookUrl.value = org.webhook_url;
+        // Don't populate the secret field — just hint it's set via placeholder
+        if (org.webhook_secret) webhookSecret.value = '';
+      }
+    } catch { /* not critical */ }
   }
 });
 </script>
@@ -1478,6 +1524,28 @@ onMounted(async () => {
   height: 1px;
   background: var(--wb-border-subtle);
   margin: 12px 0;
+}
+
+.integ-webhook-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.integ-webhook-status {
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--wb-text-faint);
+  margin-left: auto;
+}
+
+.integ-webhook-body {
+  padding-top: 8px;
 }
 
 .integ-hint {

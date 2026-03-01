@@ -1996,7 +1996,7 @@ async function createAndSendInvite() {
 
       // Send invitation email, then stamp notified_at
       const pantryName = localStorage.getItem('pantryName') || 'Ward Food Pantry';
-      const siteUrl    = 'https://ward.funkypony.space';
+      const siteUrl    = (import.meta.env.VITE_DEPLOY_URL as string) || window.location.origin;
       const inviteUrl  = `${siteUrl}/#/join?code=${encodeURIComponent(code)}`;
       const { status: sendStatus } = await fnProbe('mts', {
         type: 'driver-invite',

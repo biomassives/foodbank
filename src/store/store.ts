@@ -67,23 +67,12 @@ export const useAddressStore = defineStore('address', () => {
       if (pendingRaw) {
         try {
           const pending = JSON.parse(pendingRaw) as { code: string; orgId: string };
-          const { data: invite } = await supabase
-            .from('invites')
-            .select('id')
-            .eq('code', pending.code)
-            .eq('org_id', pending.orgId)
-            .eq('is_used', false)
-            .single();
-          if (invite) {
-            await supabase.from('profiles').update({
-              org_id: pending.orgId,
-              role: 'editor',
-              has_invite: true,
-            }).eq('id', user.id);
-            await supabase.from('invites').update({
-              is_used: true,
-              used_by: user.id,
-            }).eq('id', invite.id);
+          // Use the claim-invite edge function (service role) so the correct role
+          // from the invite record is applied — never hardcode a role here.
+          const { data: claimResult } = await supabase.functions.invoke('claim-invite', {
+            body: { code: pending.code, userId: user.id },
+          });
+          if (claimResult?.ok) {
             // Fire welcome + admin-join notifications (fire-and-forget)
             const memberEmail = user.email ?? undefined;
             supabase.functions.invoke('mts', {
