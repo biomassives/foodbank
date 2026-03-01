@@ -337,48 +337,51 @@
         <div class="settings-section-label">INTEGRATIONS</div>
         <div class="integrations-block">
 
-          <!-- Mailgun -->
-          <div class="integ-sub-label">MAILGUN</div>
-          <q-input
-            v-model="mailgunKey"
-            filled dense
-            label="API Key"
-            :type="showMailgunKey ? 'text' : 'password'"
-            class="integ-input q-mb-xs"
-          >
-            <template #append>
-              <q-icon
-                :name="showMailgunKey ? 'visibility_off' : 'visibility'"
-                class="cursor-pointer integ-eye"
-                @click="showMailgunKey = !showMailgunKey"
-              />
-            </template>
-          </q-input>
-          <q-input
-            v-model="mailgunDomain"
-            filled dense
-            label="Domain"
-            class="integ-input q-mb-xs"
-          />
-          <div class="integ-actions">
-            <q-btn flat no-caps dense icon="save" label="Save"
-              class="conn-btn" @click="saveMailgun" />
-            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
-              class="conn-btn conn-btn--clear" @click="clearMailgun" />
+          <!-- Supabase — read-only, from env vars -->
+          <div class="integ-sub-label">SUPABASE</div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">VITE_SUPABASE_URL</span>
+            <span class="integ-env-val" :class="envSupabaseUrl ? '' : 'integ-env-val--missing'">
+              {{ envSupabaseUrl ? supabaseProjectRef : 'not set' }}
+            </span>
           </div>
-          <div class="integ-test-row">
+          <div class="integ-env-row">
+            <span class="integ-env-key">VITE_SUPABASE_ANON_KEY</span>
+            <span class="integ-env-val" :class="envAnonKey ? '' : 'integ-env-val--missing'">
+              {{ envAnonKey ? maskedAnonKey : 'not set' }}
+            </span>
+          </div>
+          <div class="integ-hint">Set in Vercel / Netlify environment variables. Never stored in the browser.</div>
+
+          <div class="integ-divider" />
+
+          <!-- Mailgun — secrets stay server-side, test via edge function -->
+          <div class="integ-sub-label">MAILGUN</div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">MAILGUN_API_KEY</span>
+            <span class="integ-env-val integ-env-val--server">
+              <q-icon name="lock" size="11px" /> server-side · Supabase secrets
+            </span>
+          </div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">MAILGUN_DOMAIN</span>
+            <span class="integ-env-val integ-env-val--server">
+              <q-icon name="lock" size="11px" /> server-side · Supabase secrets
+            </span>
+          </div>
+          <div class="integ-test-row q-mt-sm">
             <q-input
               v-model="mailgunTestEmail"
               dense filled
               placeholder="your@email.com"
-              class="integ-input integ-test-input q-mb-xs"
+              class="integ-input integ-test-input"
               type="email"
             />
             <q-btn flat no-caps dense icon="send"
               label="Test"
               class="conn-btn conn-btn--test"
               :loading="mailgunTesting"
-              :disable="!mailgunKey || !mailgunDomain || !mailgunTestEmail.includes('@')"
+              :disable="!mailgunTestEmail.includes('@')"
               @click="testMailgunConnection"
             />
           </div>
@@ -390,73 +393,25 @@
 
           <div class="integ-divider" />
 
-          <!-- Supabase -->
-          <div class="integ-sub-label">SUPABASE</div>
-          <q-input
-            v-model="customSupaUrl"
-            filled dense
-            label="Supabase URL"
-            class="integ-input q-mb-xs"
-          />
-          <q-input
-            v-model="customSupaKey"
-            filled dense
-            label="Anon Key"
-            :type="showSupaKey ? 'text' : 'password'"
-            class="integ-input q-mb-xs"
-          >
-            <template #append>
-              <q-icon
-                :name="showSupaKey ? 'visibility_off' : 'visibility'"
-                class="cursor-pointer integ-eye"
-                @click="showSupaKey = !showSupaKey"
-              />
-            </template>
-          </q-input>
-          <div class="integ-actions">
-            <q-btn flat no-caps dense icon="save" label="Save"
-              class="conn-btn" @click="saveSupabase" />
-            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
-              class="conn-btn conn-btn--clear" @click="clearSupabase" />
-          </div>
-
-          <div class="integ-divider" />
-
-          <!-- Deployment -->
+          <!-- Deployment — read from env vars -->
           <div class="integ-sub-label">DEPLOYMENT</div>
-          <q-input
-            v-model="deployUrl"
-            filled dense
-            label="Vercel / Netlify URL"
-            class="integ-input q-mb-xs"
-          />
-          <div class="integ-actions">
-            <q-btn flat no-caps dense icon="save" label="Save"
-              class="conn-btn" @click="saveDeployUrl" />
-            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
-              class="conn-btn conn-btn--clear" @click="clearDeployUrl" />
+          <div class="integ-env-row">
+            <span class="integ-env-key">VITE_DEPLOY_URL</span>
+            <span class="integ-env-val" :class="envDeployUrl ? '' : 'integ-env-val--missing'">
+              {{ envDeployUrl || 'not set' }}
+            </span>
           </div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">VITE_REPO_URL</span>
+            <span class="integ-env-val" :class="envRepoUrl ? '' : 'integ-env-val--missing'">
+              {{ envRepoUrl || 'not set' }}
+            </span>
+          </div>
+          <div class="integ-hint">Set in your deployment environment — no browser storage.</div>
 
           <div class="integ-divider" />
 
-          <!-- Repository -->
-          <div class="integ-sub-label">REPOSITORY</div>
-          <q-input
-            v-model="repoUrl"
-            filled dense
-            label="GitHub / GitLab URL"
-            class="integ-input q-mb-xs"
-          />
-          <div class="integ-actions">
-            <q-btn flat no-caps dense icon="save" label="Save"
-              class="conn-btn" @click="saveRepoUrl" />
-            <q-btn flat no-caps dense icon="delete_outline" label="Clear"
-              class="conn-btn conn-btn--clear" @click="clearRepoUrl" />
-          </div>
-
-          <div class="integ-divider" />
-
-          <!-- Webhook -->
+          <!-- Webhook — URL is not a secret; signing secret stays server-side -->
           <div class="integ-sub-label">WEBHOOK</div>
           <q-input
             v-model="webhookUrl"
@@ -465,21 +420,12 @@
             placeholder="https://hooks.slack.com/..."
             class="integ-input q-mb-xs"
           />
-          <q-input
-            v-model="webhookSecret"
-            filled dense
-            label="Signing Secret"
-            :type="showWebhookSecret ? 'text' : 'password'"
-            class="integ-input q-mb-xs"
-          >
-            <template #append>
-              <q-icon
-                :name="showWebhookSecret ? 'visibility_off' : 'visibility'"
-                class="cursor-pointer integ-eye"
-                @click="showWebhookSecret = !showWebhookSecret"
-              />
-            </template>
-          </q-input>
+          <div class="integ-env-row">
+            <span class="integ-env-key">WEBHOOK_SECRET</span>
+            <span class="integ-env-val integ-env-val--server">
+              <q-icon name="lock" size="11px" /> server-side only
+            </span>
+          </div>
           <div class="integ-hint">JSON payloads for pantry events. Slack, Discord, or custom.</div>
           <div class="integ-actions">
             <q-btn flat no-caps dense icon="save" label="Save"
@@ -632,18 +578,21 @@ const userEmail = ref('');
 const digestOptIn = ref(true);
 const savingEmail = ref(false);
 
-// ── Integrations ──────────────────────────────────────────────
-const mailgunKey = ref(localStorage.getItem('wb-mailgun-key') || '');
-const mailgunDomain = ref(localStorage.getItem('wb-mailgun-domain') || '');
-const showMailgunKey = ref(false);
-const customSupaUrl = ref(localStorage.getItem('customSupabaseUrl') || '');
-const customSupaKey = ref(localStorage.getItem('customSupabaseKey') || '');
-const showSupaKey = ref(false);
-const deployUrl = ref(localStorage.getItem('wb-deploy-url') || '');
-const repoUrl = ref(localStorage.getItem('wb-repo-url') || '');
+// ── Integrations — read from env vars, no secrets in browser ──────────────
+const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL as string || '';
+const envAnonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string || '';
+const envDeployUrl   = import.meta.env.VITE_DEPLOY_URL as string || '';
+const envRepoUrl     = import.meta.env.VITE_REPO_URL as string || '';
+
+const supabaseProjectRef = computed(() => {
+  if (!envSupabaseUrl) return '';
+  try { return new URL(envSupabaseUrl).hostname.split('.')[0]; } catch { return envSupabaseUrl; }
+});
+const maskedAnonKey = computed(() =>
+  envAnonKey ? envAnonKey.slice(0, 18) + '···' : '',
+);
+
 const webhookUrl = ref(localStorage.getItem('wb-webhook-url') || '');
-const webhookSecret = ref(localStorage.getItem('wb-webhook-secret') || '');
-const showWebhookSecret = ref(false);
 
 // ── Mailgun test ─────────────────────────────────────────────
 const mailgunTestEmail = ref('');
@@ -690,76 +639,22 @@ async function testMailgunConnection() {
   }
 }
 
-function saveMailgun() {
-  localStorage.setItem('wb-mailgun-key', mailgunKey.value);
-  localStorage.setItem('wb-mailgun-domain', mailgunDomain.value);
-  $q.notify({ color: 'positive', message: 'Mailgun credentials saved.' });
-}
-function clearMailgun() {
-  localStorage.removeItem('wb-mailgun-key');
-  localStorage.removeItem('wb-mailgun-domain');
-  mailgunKey.value = '';
-  mailgunDomain.value = '';
-  $q.notify({ color: 'positive', message: 'Mailgun credentials cleared.' });
-}
-
-function saveSupabase() {
-  localStorage.setItem('customSupabaseUrl', customSupaUrl.value);
-  localStorage.setItem('customSupabaseKey', customSupaKey.value);
-  $q.notify({ color: 'positive', message: 'Supabase credentials saved.' });
-}
-function clearSupabase() {
-  localStorage.removeItem('customSupabaseUrl');
-  localStorage.removeItem('customSupabaseKey');
-  customSupaUrl.value = '';
-  customSupaKey.value = '';
-  $q.notify({ color: 'positive', message: 'Supabase credentials cleared.' });
-}
-
-function saveDeployUrl() {
-  localStorage.setItem('wb-deploy-url', deployUrl.value);
-  $q.notify({ color: 'positive', message: 'Deployment URL saved.' });
-}
-function clearDeployUrl() {
-  localStorage.removeItem('wb-deploy-url');
-  deployUrl.value = '';
-  $q.notify({ color: 'positive', message: 'Deployment URL cleared.' });
-}
-
-function saveRepoUrl() {
-  localStorage.setItem('wb-repo-url', repoUrl.value);
-  $q.notify({ color: 'positive', message: 'Repository URL saved.' });
-}
-function clearRepoUrl() {
-  localStorage.removeItem('wb-repo-url');
-  repoUrl.value = '';
-  $q.notify({ color: 'positive', message: 'Repository URL cleared.' });
-}
-
 async function saveWebhook() {
   localStorage.setItem('wb-webhook-url', webhookUrl.value);
-  localStorage.setItem('wb-webhook-secret', webhookSecret.value);
-  // Also save to org record if synced
   if (store.canSync && store.userOrgId) {
     await supabase.from('organizations').update({
       webhook_url: webhookUrl.value || null,
-      webhook_secret: webhookSecret.value || null,
     }).eq('id', store.userOrgId);
   }
-  $q.notify({ color: 'positive', message: 'Webhook saved.' });
+  $q.notify({ color: 'positive', message: 'Webhook URL saved.' });
 }
 function clearWebhook() {
   localStorage.removeItem('wb-webhook-url');
-  localStorage.removeItem('wb-webhook-secret');
   webhookUrl.value = '';
-  webhookSecret.value = '';
   if (store.canSync && store.userOrgId) {
-    supabase.from('organizations').update({
-      webhook_url: null,
-      webhook_secret: null,
-    }).eq('id', store.userOrgId);
+    supabase.from('organizations').update({ webhook_url: null }).eq('id', store.userOrgId);
   }
-  $q.notify({ color: 'positive', message: 'Webhook cleared.' });
+  $q.notify({ color: 'positive', message: 'Webhook URL cleared.' });
 }
 
 const contactCount = computed(() => store.getData.length);
@@ -933,6 +828,15 @@ async function saveEmailPrefs() {
 
 onMounted(async () => {
   checkSavedData();
+
+  // Security hardening: purge any secrets that may have been stored in localStorage
+  // by an older version of this page. These should only live in server-side env vars.
+  for (const key of [
+    'wb-mailgun-key', 'wb-mailgun-domain',
+    'customSupabaseUrl', 'customSupabaseKey',
+    'wb-deploy-url', 'wb-repo-url',
+    'wb-webhook-secret',
+  ]) localStorage.removeItem(key);
 
   // Load last Mailgun test result
   try {
@@ -1504,6 +1408,45 @@ onMounted(async () => {
   margin-bottom: 6px;
 }
 
+.integ-env-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.integ-env-key {
+  font-family: monospace;
+  font-size: 0.68rem;
+  color: var(--wb-text-muted);
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.integ-env-val {
+  font-family: monospace;
+  font-size: 0.68rem;
+  color: var(--wb-text);
+  word-break: break-all;
+}
+
+.integ-env-val--missing {
+  color: var(--wb-text-faint);
+  font-style: italic;
+}
+
+.integ-env-val--server {
+  color: var(--wb-positive);
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--wb-font);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .integ-input :deep(.q-field__control) {
   background: var(--wb-card-input-bg) !important;
   border: 1px solid var(--wb-card-input-border);
@@ -1516,9 +1459,6 @@ onMounted(async () => {
   font-family: var(--wb-font);
 }
 
-.integ-eye {
-  color: var(--wb-text-faint);
-}
 
 .integ-actions {
   display: flex;
