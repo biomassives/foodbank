@@ -1,129 +1,118 @@
 <template>
-  <q-page class="flex flex-center bg-grey-2">
-    <q-card style="width: 400px; max-width: 90vw;">
-      <q-card-section class="text-center">
-        <div class="text-h6">Biodiversity Address Book</div>
-        <div class="text-subtitle2 text-grey-7">Identity & Access Management</div>
-      </q-card-section>
+  <q-page class="flex flex-center login-bg">
+    <div class="login-card column q-gutter-md">
 
-      <q-tabs v-model="tab" dense class="text-grey" active-color="primary" indicator-color="primary" align="justify">
-        <q-tab name="phone" label="Phone" />
-        <q-tab name="email" label="Email" />
-      </q-tabs>
+      <div class="text-center">
+        <div class="login-title">WELCOME BACK</div>
+        <div class="login-sub">Sign in to your pantry</div>
+      </div>
 
-      <q-separator />
+      <template v-if="!magicSent">
+        <q-input
+          v-model="email"
+          filled dark color="yellow"
+          type="email"
+          placeholder="you@example.com"
+          hint="We'll send a sign-in link — no password needed"
+          @keyup.enter="sendMagicLink"
+        />
 
-      <q-tab-panels v-model="tab" animated>
-        <q-tab-panel name="phone">
-          <div v-if="!otpSent">
-            <q-input 
-              v-model="phone" 
-              label="Phone Number" 
-              mask="+############"
-              hint="Format: +CountryCode Number"
-              filled
-            />
-            <q-btn 
-              label="Send Verification Code" 
-              color="primary" 
-              class="full-width q-mt-md" 
-              @click="sendOTP" 
-              :loading="loading"
-            />
-          </div>
-          <div v-else>
-            <q-input v-model="token" label="Verification Code" mask="######" filled />
-            <q-btn 
-              label="Verify & Login" 
-              color="secondary" 
-              class="full-width q-mt-md" 
-              @click="verifyOTP" 
-              :loading="loading"
-            />
-            <q-btn flat label="Back" class="full-width q-mt-sm" @click="otpSent = false" />
-          </div>
-        </q-tab-panel>
+        <q-btn
+          label="SEND SIGN-IN LINK"
+          color="yellow"
+          text-color="black"
+          :loading="loading"
+          @click="sendMagicLink"
+        />
 
-        <q-tab-panel name="email">
-          <q-input v-model="email" label="Email" type="email" filled class="q-mb-sm" />
-          <q-input v-model="password" label="Password" type="password" filled />
-          <q-btn 
-            label="Sign In with Password" 
-            color="primary" 
-            class="full-width q-mt-md" 
-            @click="loginWithPassword" 
-            :loading="loading"
-          />
-        </q-tab-panel>
-      </q-tab-panels>
+        <div v-if="errorMessage" class="login-error text-caption">{{ errorMessage }}</div>
 
-      <q-card-section v-if="errorMessage" class="bg-red-1 text-red text-caption">
-        {{ errorMessage }}
-      </q-card-section>
-    </q-card>
+        <div class="text-center q-mt-sm">
+          <router-link to="/join" class="login-link">Join with an invite code</router-link>
+        </div>
+      </template>
+
+      <template v-else>
+        <q-icon name="mark_email_read" size="48px" color="yellow" class="self-center" />
+        <p class="text-center text-yellow text-weight-bold">Check your inbox!</p>
+        <p class="text-center text-grey-4" style="font-size: 0.85rem; line-height: 1.5">
+          A sign-in link was sent to <strong>{{ email }}</strong>.<br>
+          Click it and you'll be signed in automatically.
+        </p>
+        <q-btn
+          flat dense no-caps
+          label="Use a different email"
+          color="grey-5"
+          @click="magicSent = false"
+        />
+      </template>
+
+    </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { supabase } from 'src/dbManagement';
-import { useRouter } from 'vue-router';
-import { useAddressStore } from 'src/store/store';
 
-// State
-const tab = ref('email'); // Defaulting to email for your current needs
-const phone = ref('');
-const email = ref('admin@funkypony.org');
-const password = ref('password123');
-const token = ref('');
-const otpSent = ref(false);
+const email = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
+const magicSent = ref(false);
 
-const router = useRouter();
-const store = useAddressStore();
-
-// --- Auth Methods ---
-
-async function sendOTP() {
+async function sendMagicLink() {
+  if (!email.value.trim()) {
+    errorMessage.value = 'Please enter your email address.';
+    return;
+  }
   loading.value = true;
   errorMessage.value = '';
-  const { error } = await supabase.auth.signInWithOtp({ phone: phone.value });
-  if (error) errorMessage.value = error.message;
-  else otpSent.value = true;
-  loading.value = false;
-}
-
-async function verifyOTP() {
-  loading.value = true;
-  errorMessage.value = '';
-  const { error } = await supabase.auth.verifyOtp({
-    phone: phone.value,
-    token: token.value,
-    type: 'sms',
-  });
-  handleAuthResult(error);
-}
-
-async function loginWithPassword() {
-  loading.value = true;
-  errorMessage.value = '';
-  const { error } = await supabase.auth.signInWithPassword({
-    email: email.value,
-    password: password.value,
-  });
-  handleAuthResult(error);
-}
-
-async function handleAuthResult(error: any) {
-  if (error) {
-    errorMessage.value = error.message;
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.value.trim(),
+      options: { emailRedirectTo: window.location.origin + '/' },
+    });
+    if (error) {
+      errorMessage.value = error.message;
+    } else {
+      magicSent.value = true;
+    }
+  } finally {
     loading.value = false;
-  } else {
-    // Crucial: Refresh store and clear session cache
-    await store.fetchUserRole();
-    // Use window.location for a hard refresh to clear out the "Sign in first" loops
-    window.location.href = '/'; 
   }
 }
 </script>
+
+<style scoped>
+.login-bg {
+  background: var(--wb-bg, #121212);
+}
+.login-card {
+  width: 300px;
+}
+.login-title {
+  font-family: var(--wb-font, monospace);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--wb-accent, #fdd835);
+}
+.login-sub {
+  font-size: 0.8rem;
+  color: var(--wb-text-muted, #aaa);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+.login-error {
+  color: var(--wb-negative, #ff5252);
+  text-align: center;
+}
+.login-link {
+  color: var(--wb-text-muted, #aaa);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+.login-link:hover {
+  color: var(--wb-accent, #fdd835);
+}
+</style>
