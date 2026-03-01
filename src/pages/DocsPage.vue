@@ -401,6 +401,47 @@
           <span class="docs-chapter-label">FOR DEPLOYERS</span>
         </div>
 
+        <section class="docs-section" id="quick-install">
+          <h2 class="docs-h2">Quick Install</h2>
+          <p class="docs-body">Three paths depending on your goal — no prior Vue or Supabase experience required for the first two.</p>
+
+          <h3 class="docs-h3">New Pantry Group (no code)</h3>
+          <p class="docs-body">
+            Fork or clone the repo, then deploy directly from GitHub to your hosting platform.
+            Both Vercel and Netlify detect the Quasar project automatically and build with
+            <span class="mono">quasar build</span>.
+          </p>
+          <ol class="docs-list">
+            <li>Connect your GitHub fork to Vercel or Netlify — set build command <span class="mono">quasar build</span>, output dir <span class="mono">dist/spa</span></li>
+            <li>In the platform dashboard → Environment Variables, add <span class="mono">VITE_SUPABASE_URL</span> and <span class="mono">VITE_SUPABASE_ANON_KEY</span> (or leave blank to boot in local mode)</li>
+            <li>Open your deployed URL — the Setup Wizard launches automatically on first visit</li>
+            <li>Complete the 5-step wizard, generate your first invite code, share it with your team</li>
+          </ol>
+          <div class="docs-deploy-row">
+            <span class="docs-deploy-chip docs-deploy-chip--vercel">▲ Vercel — Connect GitHub repo → new project → auto-detect Vite → set env vars → Deploy</span>
+            <span class="docs-deploy-chip docs-deploy-chip--netlify">◆ Netlify — New site from Git → build command <span class="mono">quasar build</span> → publish dir <span class="mono">dist/spa</span></span>
+          </div>
+
+          <h3 class="docs-h3">Dev / Local Test</h3>
+          <div class="docs-code-block">
+            <div class="docs-code-line">git clone https://github.com/your-org/foodbank.git && cd foodbank</div>
+            <div class="docs-code-line">npm install</div>
+            <div class="docs-code-line">cp .env.example .env.local    <span class="code-comment"># fill in or leave blank for local mode</span></div>
+            <div class="docs-code-line">quasar dev                    <span class="code-comment"># hot-reload dev server at localhost:9000</span></div>
+          </div>
+          <p class="docs-body">Use <strong>Demo Mode</strong> on first load to explore the full UI with pre-filled data — no Supabase project needed.</p>
+
+          <h3 class="docs-h3">Full Stack / Admin Test</h3>
+          <ol class="docs-list">
+            <li>Create a free Supabase project at <span class="mono">supabase.com</span></li>
+            <li>Apply migrations via SQL Editor (all files in <span class="mono">supabase/migrations/</span>, in date order)</li>
+            <li>Deploy all four edge functions (<span class="mono">mts</span>, <span class="mono">claim-invite</span>, <span class="mono">daily-digest</span>, <span class="mono">mailgun-webhook</span>)</li>
+            <li>Set Mailgun secrets: <span class="mono">supabase secrets set MAILGUN_API_KEY=… MAILGUN_DOMAIN=…</span></li>
+            <li>Add <span class="mono">http://localhost:9000</span> to Supabase Auth → Redirect URLs</li>
+            <li>Open <strong>Admin → Oracle</strong> connectivity probe — all indicators should be green before inviting real users</li>
+          </ol>
+        </section>
+
         <section class="docs-section" id="requirements">
           <h2 class="docs-h2">Requirements</h2>
           <div class="docs-arch-table">
@@ -471,42 +512,288 @@
           </p>
         </section>
 
-        <section class="docs-section" id="edge-functions">
-          <h2 class="docs-h2">Edge Functions</h2>
+        <section class="docs-section" id="supabase-functions">
+          <h2 class="docs-h2">Supabase Functions</h2>
           <p class="docs-body">
-            Deploy all four functions from <span class="mono">supabase/functions/</span>:
+            FoodBank uses four Deno edge functions deployed to Supabase.
+            Each runs in an isolated V8 context at the edge and communicates
+            with the app via HTTP POST or webhook.
           </p>
+
+          <h3 class="docs-h3">Function reference</h3>
           <div class="docs-arch-table">
             <div class="docs-arch-row docs-arch-row--hd">
               <span>Function</span><span>Trigger</span><span>Purpose</span>
             </div>
             <div class="docs-arch-row">
               <span class="mono">mts</span><span>HTTP POST</span>
-              <span>Sends role-targeted messages via Mailgun</span>
+              <span>Core notification router — receives a typed event from the app, resolves recipient emails by role, and dispatches via Mailgun (or configured provider)</span>
             </div>
             <div class="docs-arch-row">
               <span class="mono">claim-invite</span><span>HTTP POST</span>
-              <span>Redeems an invite code and links user to org</span>
+              <span>Redeems an invite code after auth: validates the code, sets <span class="mono">is_used = true</span>, writes the user's <span class="mono">org_id</span> and role to their profile row</span>
             </div>
             <div class="docs-arch-row">
-              <span class="mono">daily-digest</span><span>Cron</span>
-              <span>Sends daily summary emails to opted-in members</span>
+              <span class="mono">daily-digest</span><span>Cron (08:00)</span>
+              <span>Queries today's calendar events + queue summary, formats a digest email, and sends to all members with <span class="mono">digest_opt_in = true</span></span>
             </div>
             <div class="docs-arch-row">
               <span class="mono">mailgun-webhook</span><span>HTTP POST</span>
-              <span>Receives delivery receipts and bounce events from Mailgun</span>
+              <span>Receives Mailgun delivery events (<span class="mono">delivered</span>, <span class="mono">bounced</span>, <span class="mono">complained</span>) — logs to a side table for the Oracle probe to query</span>
             </div>
           </div>
-          <div class="docs-code-block" style="margin-top:14px">
+
+          <h3 class="docs-h3">Deploy all four</h3>
+          <div class="docs-code-block">
+            <div class="docs-code-line"><span class="code-comment"># from project root, with supabase CLI linked to your project</span></div>
             <div class="docs-code-line">supabase functions deploy mts</div>
             <div class="docs-code-line">supabase functions deploy claim-invite</div>
             <div class="docs-code-line">supabase functions deploy daily-digest</div>
             <div class="docs-code-line">supabase functions deploy mailgun-webhook</div>
           </div>
-          <p class="docs-body" style="margin-top:12px">
-            Set the required secrets via
-            <span class="mono">supabase secrets set MAILGUN_API_KEY=… MAILGUN_DOMAIN=…</span>
+
+          <h3 class="docs-h3">Required secrets</h3>
+          <div class="docs-code-block">
+            <div class="docs-code-line">supabase secrets set \</div>
+            <div class="docs-code-line">  MAILGUN_API_KEY=key-… \</div>
+            <div class="docs-code-line">  MAILGUN_DOMAIN=mg.yourdomain.com \</div>
+            <div class="docs-code-line">  MAILGUN_FROM="FoodBank &lt;noreply@mg.yourdomain.com&gt;"</div>
+          </div>
+
+          <h3 class="docs-h3">Testing functions locally</h3>
+          <p class="docs-body">
+            Supabase CLI can serve functions locally against your cloud database,
+            or against a local Supabase stack started with
+            <span class="mono">supabase start</span>.
           </p>
+          <div class="docs-code-block">
+            <div class="docs-code-line"><span class="code-comment"># serve all functions locally (hot-reload)</span></div>
+            <div class="docs-code-line">supabase functions serve --env-file .env.local</div>
+            <div class="docs-code-line"></div>
+            <div class="docs-code-line"><span class="code-comment"># test mts manually</span></div>
+            <div class="docs-code-line">curl -X POST http://localhost:54321/functions/v1/mts \</div>
+            <div class="docs-code-line">  -H "Authorization: Bearer $ANON_KEY" \</div>
+            <div class="docs-code-line">  -H "Content-Type: application/json" \</div>
+            <div class="docs-code-line">  -d '{"type":"pickup-claimed","data":{"taskDescription":"Test box","taskLocation":"Hub A","claimedBy":"dev"}}'</div>
+            <div class="docs-code-line"></div>
+            <div class="docs-code-line"><span class="code-comment"># test claim-invite</span></div>
+            <div class="docs-code-line">curl -X POST http://localhost:54321/functions/v1/claim-invite \</div>
+            <div class="docs-code-line">  -H "Authorization: Bearer $USER_JWT" \</div>
+            <div class="docs-code-line">  -H "Content-Type: application/json" \</div>
+            <div class="docs-code-line">  -d '{"code":"ABC123"}'</div>
+          </div>
+          <p class="docs-body">
+            Use the <strong>Admin → Oracle</strong> connectivity probe to confirm all four
+            functions are reachable from the deployed app — it probes each endpoint and
+            reports HTTP status in a checklist.
+          </p>
+
+          <h3 class="docs-h3">Viewing logs</h3>
+          <div class="docs-code-block">
+            <div class="docs-code-line"><span class="code-comment"># tail live logs for a specific function</span></div>
+            <div class="docs-code-line">supabase functions logs mts --tail</div>
+            <div class="docs-code-line">supabase functions logs daily-digest --tail</div>
+          </div>
+          <p class="docs-body">
+            Logs are also available in the Supabase dashboard under
+            Edge Functions → select function → Logs tab. Each invocation shows
+            request headers, duration, and any <span class="mono">console.log</span> output.
+          </p>
+        </section>
+
+        <section class="docs-section" id="alternative-stacks">
+          <h2 class="docs-h2">Alternative Stacks</h2>
+          <p class="docs-body">
+            Supabase is the default backend, but FoodBank's store layer is
+            designed to be adapter-friendly. The offline-first IndexedDB tier
+            always works independently — cloud adapters are a thin wrapper
+            around it in <span class="mono">src/store/store.ts</span>.
+          </p>
+
+          <h3 class="docs-h3">Appwrite</h3>
+          <p class="docs-body">
+            Appwrite is a fully open-source BaaS self-hostable via Docker Compose.
+            It covers the same surface as Supabase — Auth, Database, Storage,
+            Functions — without requiring you to manage PostgreSQL directly.
+          </p>
+          <div class="docs-arch-table">
+            <div class="docs-arch-row docs-arch-row--hd">
+              <span>Feature</span><span>Supabase</span><span>Appwrite</span>
+            </div>
+            <div class="docs-arch-row"><span>Database</span><span>PostgreSQL</span><span>MariaDB / Postgres</span></div>
+            <div class="docs-arch-row"><span>Self-host</span><span class="mono">Docker</span><span class="mono">Docker Compose</span></div>
+            <div class="docs-arch-row"><span>Auth</span><span>Magic link · OAuth · OTP</span><span>Email · OAuth · Phone</span></div>
+            <div class="docs-arch-row"><span>Functions</span><span>Deno Edge Functions</span><span>Deno / Node / PHP / Python</span></div>
+            <div class="docs-arch-row"><span>Realtime</span><span>Postgres CDC</span><span>WebSocket events</span></div>
+            <div class="docs-arch-row"><span>Access control</span><span>Row Level Security (SQL)</span><span>Permissions API</span></div>
+            <div class="docs-arch-row"><span>Free cloud tier</span><span>Yes</span><span>Yes</span></div>
+          </div>
+          <p class="docs-body" style="margin-top:12px">
+            To adapt FoodBank: swap the <span class="mono">supabase</span> client calls in
+            <span class="mono">src/dbManagement/index.ts</span> and
+            <span class="mono">src/store/store.ts</span> for the Appwrite Web SDK.
+            The IndexedDB layer, queue logic, and all Vue components require no changes.
+          </p>
+          <div class="docs-code-block">
+            <div class="docs-code-line"><span class="code-comment"># Self-host Appwrite with Docker Compose</span></div>
+            <div class="docs-code-line">docker run -it --rm \</div>
+            <div class="docs-code-line">  --volume /var/run/docker.sock:/var/run/docker.sock \</div>
+            <div class="docs-code-line">  --volume "$(pwd)"/appwrite:/usr/src/code/appwrite:rw \</div>
+            <div class="docs-code-line">  appwrite/install</div>
+          </div>
+
+          <h3 class="docs-h3">Neon / PlanetScale (Serverless Postgres)</h3>
+          <p class="docs-body">
+            For teams already on Vercel, pairing <strong>Neon</strong>
+            (serverless Postgres with branching) or <strong>PlanetScale</strong>
+            (MySQL, zero-downtime schema changes) with Vercel Functions eliminates
+            the Supabase dependency entirely.
+            Neon's branch-per-PR feature is useful for isolated preview deployments —
+            each PR gets its own database branch that merges automatically.
+          </p>
+        </section>
+
+        <section class="docs-section" id="vercel-functions">
+          <h2 class="docs-h2">Vercel Functions</h2>
+          <p class="docs-body">
+            The four MTS functions can be deployed as Vercel API routes instead of
+            Supabase Edge Functions. Create an <span class="mono">api/</span> directory
+            in the project root — Vercel auto-deploys any <span class="mono">.ts</span>
+            file there as a serverless or edge endpoint.
+          </p>
+
+          <h3 class="docs-h3">Edge vs Serverless runtime</h3>
+          <div class="docs-arch-table">
+            <div class="docs-arch-row docs-arch-row--hd">
+              <span>Runtime</span><span>Cold start</span><span>Best for</span>
+            </div>
+            <div class="docs-arch-row">
+              <span>Edge (V8 isolate)</span><span>~0 ms</span>
+              <span>Lightweight auth checks, claim-invite validation, fast responses</span>
+            </div>
+            <div class="docs-arch-row">
+              <span>Serverless (Node.js)</span><span>50–200 ms</span>
+              <span>Mailgun HTTP calls, DB writes, daily-digest generation</span>
+            </div>
+          </div>
+
+          <h3 class="docs-h3">mts as a Vercel route</h3>
+          <div class="docs-code-block">
+            <div class="docs-code-line"><span class="code-comment">// api/mts.ts</span></div>
+            <div class="docs-code-line">import type { VercelRequest, VercelResponse } from '@vercel/node';</div>
+            <div class="docs-code-line"></div>
+            <div class="docs-code-line">export default async function handler(req: VercelRequest, res: VercelResponse) {</div>
+            <div class="docs-code-line">  if (req.method !== 'POST') return res.status(405).end();</div>
+            <div class="docs-code-line">  const { type, data, recipientEmail } = req.body;</div>
+            <div class="docs-code-line">  <span class="code-comment">// same Mailgun call as supabase/functions/mts/index.ts</span></div>
+            <div class="docs-code-line">  res.status(200).json({ ok: true });</div>
+            <div class="docs-code-line">}</div>
+          </div>
+          <p class="docs-body">
+            Point <span class="mono">VITE_MTS_URL=/api/mts</span> in your Vercel
+            environment variables. The <span class="mono">useMts</span> composable reads
+            this at runtime — no other code change required.
+          </p>
+
+          <h3 class="docs-h3">Cron (daily-digest)</h3>
+          <p class="docs-body">
+            Vercel Cron (Pro plan) schedules the digest automatically. Add to
+            <span class="mono">vercel.json</span>:
+          </p>
+          <div class="docs-code-block">
+            <div class="docs-code-line">&#123;</div>
+            <div class="docs-code-line">  "crons": [&#123; "path": "/api/daily-digest", "schedule": "0 8 * * *" &#125;]</div>
+            <div class="docs-code-line">&#125;</div>
+          </div>
+          <p class="docs-body">
+            On the free Hobby plan, use a GitHub Actions workflow with
+            <span class="mono">schedule: cron: '0 8 * * *'</span> to
+            <span class="mono">curl</span> the endpoint instead.
+          </p>
+        </section>
+
+        <section class="docs-section" id="messaging-providers">
+          <h2 class="docs-h2">Messaging Providers</h2>
+          <p class="docs-body">
+            The <span class="mono">mts</span> function is provider-agnostic — swap
+            the HTTP call in the function body to switch providers with no changes
+            to the app or composable layer.
+          </p>
+
+          <h3 class="docs-h3">Mailgun (default)</h3>
+          <p class="docs-body">
+            REST email API with strong deliverability, EU and US data centres,
+            and a generous free tier (100 emails/day on Flex plan).
+          </p>
+          <ol class="docs-list">
+            <li>Create account at <span class="mono">mailgun.com</span>, add and verify your sending domain</li>
+            <li>Add SPF, DKIM, and MX records to your DNS — Mailgun's setup guide walks through each one</li>
+            <li>Copy your Sending API key (not the Mailgun Admin API key)</li>
+            <li>Set secrets: <span class="mono">supabase secrets set MAILGUN_API_KEY=key-… MAILGUN_DOMAIN=mg.yourdomain.com</span></li>
+            <li>In Mailgun dashboard → Webhooks, set the URL to your deployed <span class="mono">mailgun-webhook</span> function endpoint</li>
+            <li>Events tracked: <span class="mono">delivered</span>, <span class="mono">bounced</span>, <span class="mono">complained</span>, <span class="mono">unsubscribed</span></li>
+          </ol>
+
+          <h3 class="docs-h3">Twilio (SMS + Voice)</h3>
+          <p class="docs-body">
+            Add SMS alerts so drivers receive a text when a pickup is claimed or
+            a delivery is due. Twilio also owns SendGrid for high-volume email.
+          </p>
+          <div class="docs-code-block">
+            <div class="docs-code-line"><span class="code-comment">// Extend mts function — add SMS path alongside email</span></div>
+            <div class="docs-code-line">import twilio from 'npm:twilio';</div>
+            <div class="docs-code-line">const tw = twilio(Deno.env.get('TWILIO_SID'), Deno.env.get('TWILIO_TOKEN'));</div>
+            <div class="docs-code-line">await tw.messages.create(&#123;</div>
+            <div class="docs-code-line">  body: `Pickup: ${data.taskDescription} @ ${data.taskLocation}`,</div>
+            <div class="docs-code-line">  from: Deno.env.get('TWILIO_FROM'),</div>
+            <div class="docs-code-line">  to: recipientPhone,</div>
+            <div class="docs-code-line">&#125;);</div>
+          </div>
+          <p class="docs-body">
+            Secrets to set: <span class="mono">TWILIO_SID</span>,
+            <span class="mono">TWILIO_TOKEN</span>,
+            <span class="mono">TWILIO_FROM</span> (your Twilio number).
+            Phone numbers are stored on the <span class="mono">profiles</span> table.
+          </p>
+
+          <h3 class="docs-h3">Other providers</h3>
+          <div class="docs-concept-grid">
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Resend</div>
+              <p class="docs-concept-body">
+                Modern REST email API with React Email template support.
+                Excellent DX, generous free tier (3 000 emails/month).
+                Set <span class="mono">RESEND_API_KEY</span> and use
+                <span class="mono">resend.emails.send()</span> in the mts function.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">SendGrid</div>
+              <p class="docs-concept-body">
+                Twilio-owned high-volume platform. Built-in template editor,
+                unsubscribe management, and delivery analytics.
+                Set <span class="mono">SENDGRID_API_KEY</span>.
+                Good for pantries sending &gt; 10 000 emails/month.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Postmark</div>
+              <p class="docs-concept-body">
+                Best-in-class deliverability for transactional email.
+                Fast delivery SLA, detailed bounce classification, and
+                message streams separating transactional from bulk.
+                Set <span class="mono">POSTMARK_SERVER_TOKEN</span>.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">AWS SES</div>
+              <p class="docs-concept-body">
+                Lowest cost at scale ($0.10 / 1 000 emails). Requires
+                domain verification and exiting sandbox mode. Good fit
+                for self-hosted deployments already using AWS infrastructure.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section class="docs-section" id="going-live">
@@ -546,6 +833,135 @@
             <div class="docs-code-line">└── css/            <span class="code-comment"># themes.scss — all --wb-* and --bin-* design tokens</span></div>
             <div class="docs-code-line">crypto/             <span class="code-comment"># e8_theta.ts + e8_theta.c reference implementation</span></div>
             <div class="docs-code-line">supabase/           <span class="code-comment"># migrations/, functions/</span></div>
+          </div>
+        </section>
+
+        <section class="docs-section" id="learning-resources">
+          <h2 class="docs-h2">Learning Vue 3 &amp; Quasar</h2>
+          <p class="docs-body">
+            FoodBank uses Vue 3 Composition API and Quasar throughout. If you are
+            new to the stack, these are the key resources covering everything used
+            in this codebase.
+          </p>
+
+          <h3 class="docs-h3">Vue 3</h3>
+          <div class="docs-concept-grid">
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Official Guide</div>
+              <p class="docs-concept-body">
+                <span class="mono">vuejs.org/guide</span> — Composition API
+                (<span class="mono">ref</span>, <span class="mono">computed</span>,
+                <span class="mono">watch</span>, <span class="mono">reactive</span>),
+                component props/emits, and <span class="mono">&lt;script setup&gt;</span>
+                syntax used throughout FoodBank.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Pinia</div>
+              <p class="docs-concept-body">
+                <span class="mono">pinia.vuejs.org</span> — FoodBank's single
+                store. Covers <span class="mono">defineStore</span>, getters,
+                actions, and DevTools integration for inspecting state in real time.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Vue Router</div>
+              <p class="docs-concept-body">
+                <span class="mono">router.vuejs.org</span> — Navigation guards used
+                in <span class="mono">routes.ts</span>. The
+                <span class="mono">beforeEnter</span> guard checks
+                <span class="mono">store.canEdit</span> before allowing access to
+                <span class="mono">/admin</span> and <span class="mono">/setup</span>.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Vue Devtools</div>
+              <p class="docs-concept-body">
+                Browser extension for Chrome and Firefox. Inspect the Pinia store
+                in real time, trace component re-renders, and debug reactivity
+                without <span class="mono">console.log</span>.
+              </p>
+            </div>
+          </div>
+
+          <h3 class="docs-h3">Quasar Framework</h3>
+          <div class="docs-concept-grid">
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Component Docs</div>
+              <p class="docs-concept-body">
+                <span class="mono">quasar.dev/vue-components</span> — full prop/event API
+                for every <span class="mono">q-*</span> component in the codebase:
+                <span class="mono">q-btn</span>, <span class="mono">q-input</span>,
+                <span class="mono">q-select</span>, <span class="mono">q-dialog</span>,
+                <span class="mono">q-card</span>, <span class="mono">q-toggle</span>,
+                <span class="mono">q-icon</span>, <span class="mono">q-notify</span>.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Quasar CLI</div>
+              <p class="docs-concept-body">
+                <span class="mono">quasar.dev/start/quasar-cli</span> —
+                <span class="mono">quasar dev</span> (HMR dev server at :9000),
+                <span class="mono">quasar build</span> (SPA output to
+                <span class="mono">dist/spa</span>),
+                <span class="mono">quasar inspect</span> (Vite config dump).
+                Also generates the PWA manifest and service worker.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">CSS Utilities</div>
+              <p class="docs-concept-body">
+                Quasar flex helpers (<span class="mono">row</span>,
+                <span class="mono">col</span>, <span class="mono">items-center</span>),
+                spacing classes (<span class="mono">q-pa-md</span>,
+                <span class="mono">q-ma-sm</span>), and responsive breakpoints.
+                FoodBank supplements these with scoped
+                <span class="mono">--wb-*</span> design tokens in
+                <span class="mono">src/css/themes.scss</span>.
+              </p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Notify Plugin</div>
+              <p class="docs-concept-body">
+                <span class="mono">$q.notify(&#123; color, icon, message, timeout &#125;)</span>
+                — toast notifications used throughout FoodBank for action confirmations.
+                Quasar registers the plugin globally;
+                access it via <span class="mono">useQuasar()</span> in any component.
+              </p>
+            </div>
+          </div>
+
+          <h3 class="docs-h3">Vite &amp; TypeScript</h3>
+          <ul class="docs-ul">
+            <li>
+              <strong>Vite</strong> (<span class="mono">vitejs.dev</span>) — build tool powering Quasar. HMR in dev, Rollup bundling in prod. Environment variables prefixed <span class="mono">VITE_</span> are injected at build time via <span class="mono">import.meta.env</span>.
+            </li>
+            <li>
+              <strong>TypeScript</strong> (<span class="mono">typescriptlang.org/docs</span>) — strict mode throughout. The interfaces in <span class="mono">src/models/index.ts</span> are the single source of truth for all data shapes.
+            </li>
+            <li>
+              <strong>ESLint</strong> — <span class="mono">@typescript-eslint</span> rules enforced on save. Key rules: <span class="mono">no-unused-vars</span> (prefix unused params with <span class="mono">_</span>), <span class="mono">no-empty-function</span> (add a comment inside empty catch blocks).
+            </li>
+          </ul>
+
+          <h3 class="docs-h3">Community</h3>
+          <div class="docs-concept-grid">
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Vue Discord</div>
+              <p class="docs-concept-body"><span class="mono">chat.vuejs.org</span> — active community for Composition API questions, Pinia patterns, and component design.</p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Quasar Discord</div>
+              <p class="docs-concept-body"><span class="mono">discord.quasar.dev</span> — Quasar-specific help for component props, CLI issues, and custom theme questions.</p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Vue School</div>
+              <p class="docs-concept-body"><span class="mono">vueschool.io</span> — video courses on Vue 3, Pinia, and Vue Router. Free tier covers Composition API fundamentals.</p>
+            </div>
+            <div class="docs-concept-card">
+              <div class="docs-concept-title">Quasar Forum</div>
+              <p class="docs-concept-body"><span class="mono">forum.quasar.dev</span> — searchable Q&amp;A for component-level issues. Check here before filing a GitHub issue.</p>
+            </div>
           </div>
         </section>
 
@@ -788,17 +1204,22 @@ const TOC: TocGroup[] = [
   {
     id: 'for-deployers', label: 'FOR DEPLOYERS',
     items: [
-      { id: 'requirements',   label: 'Requirements' },
-      { id: 'environment',    label: 'Environment Config' },
-      { id: 'supabase-setup', label: 'Supabase Setup' },
-      { id: 'edge-functions', label: 'Edge Functions' },
-      { id: 'going-live',     label: 'Going Live' },
+      { id: 'quick-install',       label: 'Quick Install' },
+      { id: 'requirements',        label: 'Requirements' },
+      { id: 'environment',         label: 'Environment Config' },
+      { id: 'supabase-setup',      label: 'Supabase Setup' },
+      { id: 'supabase-functions',  label: 'Supabase Functions' },
+      { id: 'alternative-stacks',  label: 'Alternative Stacks' },
+      { id: 'vercel-functions',    label: 'Vercel Functions' },
+      { id: 'messaging-providers', label: 'Messaging Providers' },
+      { id: 'going-live',          label: 'Going Live' },
     ],
   },
   {
     id: 'for-developers', label: 'FOR DEVELOPERS',
     items: [
       { id: 'project-structure',   label: 'Project Structure' },
+      { id: 'learning-resources',  label: 'Vue & Quasar' },
       { id: 'data-model',          label: 'Data Model' },
       { id: 'e8-lattice',          label: 'E8 Lattice Security' },
       { id: 'commitment-pipeline', label: 'Commitment Pipeline' },
@@ -1239,5 +1660,36 @@ onUnmounted(() => {
 .dac-name { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--wb-text); }
 .dac-body { font-size: 11px; color: var(--wb-text-faint); line-height: 1.6; margin: 0; }
 .dac-web3 { border-style: dashed; opacity: 0.9; }
+
+/* ── Deploy chips ─────────────────────────────────────────────────  */
+
+.docs-deploy-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.docs-deploy-chip {
+  display: block;
+  padding: 8px 14px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  border: 1px solid;
+}
+
+.docs-deploy-chip--vercel {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--wb-border-mid);
+  color: var(--wb-text-muted);
+}
+
+.docs-deploy-chip--netlify {
+  background: rgba(0, 229, 255, 0.04);
+  border-color: color-mix(in srgb, var(--wb-info) 30%, transparent);
+  color: var(--wb-text-muted);
+}
 
 </style>
