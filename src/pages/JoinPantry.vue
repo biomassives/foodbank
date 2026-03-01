@@ -97,26 +97,24 @@ async function claimInvite() {
       return
     }
 
-    // Not signed in: validate code, store pending, send magic link
-    const { data: invite, error: invErr } = await supabase
-      .from('invites')
-      .select('id, org_id')
-      .eq('code', inviteCode.value.toUpperCase())
-      .eq('is_used', false)
-      .single()
+    // Not signed in: ask the edge function to validate the code and send a
+    // magic link using the service-role admin API. This works even when global
+    // signups are disabled because the admin pre-provisions the account.
+    const { data: fnData, error: fnErr } = await supabase.functions.invoke('claim-invite', {
+      body: {
+        action: 'send-magic-link',
+        code: inviteCode.value.toUpperCase(),
+        email: email.value.trim(),
+        redirectTo: window.location.origin + '/',
+      },
+    })
+    if (fnErr || fnData?.error) throw new Error(fnErr?.message || fnData?.error)
 
-    if (invErr || !invite) throw new Error('Invalid or already-used invite code.')
-
+    // Save pending invite so fetchUserRole can redeem on return (same-browser flow)
     localStorage.setItem('pendingInvite', JSON.stringify({
       code: inviteCode.value.toUpperCase(),
-      orgId: invite.org_id,
+      orgId: fnData.orgId,
     }))
-
-    const { error: otpErr } = await supabase.auth.signInWithOtp({
-      email: email.value.trim(),
-      options: { emailRedirectTo: window.location.origin + '/' },
-    })
-    if (otpErr) throw new Error(otpErr.message)
 
     magicSent.value = true
     $q.notify({ type: 'positive', message: 'Magic link sent — check your inbox!' })

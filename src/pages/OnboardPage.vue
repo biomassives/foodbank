@@ -511,17 +511,23 @@ async function redeemInvite() {
 
     if (error || !invite) throw new Error('Invalid or already-used invite code.');
 
-    // Store so fetchUserRole can auto-redeem after magic link sign-in
+    // Ask the edge function to validate the code and send a magic link via
+    // the service-role admin API — works with signups disabled globally.
+    const { data: fnData, error: fnErr } = await supabase.functions.invoke('claim-invite', {
+      body: {
+        action: 'send-magic-link',
+        code: inviteCode.value.toUpperCase(),
+        email: inviteEmail.value.trim(),
+        redirectTo: window.location.origin + '/',
+      },
+    });
+    if (fnErr || fnData?.error) throw new Error(fnErr?.message || fnData?.error);
+
+    // Save pending invite so fetchUserRole can auto-redeem on return
     localStorage.setItem('pendingInvite', JSON.stringify({
       code: inviteCode.value.toUpperCase(),
-      orgId: invite.org_id,
+      orgId: fnData.orgId,
     }));
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: inviteEmail.value.trim(),
-      options: { emailRedirectTo: window.location.origin + '/' },
-    });
-    if (otpError) throw new Error(otpError.message);
 
     inviteMagicSent.value = true;
     $q.notify({

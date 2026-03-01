@@ -1212,14 +1212,18 @@ async function sendVerification() {
   otpError.value   = '';
   pwCanvasMode.value = 'vectorflow';
   try {
-    // Pre-fill email from current user if not manually entered
-    if (!emailInput.value) {
-      const { data } = await supabase.auth.getUser();
-      emailInput.value = data.user?.email ?? '';
+    // Must be authenticated — fetch the current session user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) {
+      otpError.value     = 'You must be signed in to send a verification link. Sign in via the login page first.';
+      pwCanvasMode.value = 'e8';
+      return;
     }
+    // Always use the authenticated user's own email — prevents enumeration
+    emailInput.value = user.email;
     const { error } = await supabase.auth.signInWithOtp({
-      email: emailInput.value,
-      options: { shouldCreateUser: false },
+      email: user.email,
+      // No shouldCreateUser:false — user is confirmed to exist from getUser() above
     });
     if (error) {
       otpError.value     = error.message;

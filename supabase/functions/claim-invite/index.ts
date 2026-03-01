@@ -20,11 +20,60 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { code, userId } = await req.json();
+    const body = await req.json();
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ── Action: send-magic-link ────────────────────────────────────────────
+    // Called by /join and /onboard when the user is not yet authenticated.
+    // Validates the invite code server-side, then uses the admin API to
+    // create (or find) the auth user and send them a magic-link email.
+    // Works even when global signups are disabled in Supabase Auth settings.
+    if (body.action === 'send-magic-link') {
+      const { email, code, redirectTo } = body;
+
+      if (!email || !code) {
+        return jsonResponse({ error: 'Missing email or code' }, 400);
+      }
+
+      // Validate invite
+      const { data: invite } = await supabase
+        .from('invites')
+        .select('id, org_id, email')
+        .eq('code', (code as string).toUpperCase())
+        .eq('is_used', false)
+        .single();
+
+      if (!invite) {
+        return jsonResponse({ error: 'Invalid or already-used invite code.' }, 400);
+      }
+
+      // If the invite is locked to a specific email, enforce it
+      if (invite.email && invite.email.toLowerCase() !== (email as string).toLowerCase()) {
+        return jsonResponse(
+          { error: 'This invite code is assigned to a different email address.' },
+          400,
+        );
+      }
+
+      // Create or find the user and send them a magic link.
+      // admin.inviteUserByEmail bypasses the global signup restriction.
+      const { error: invErr } = await supabase.auth.admin.inviteUserByEmail(email, {
+        redirectTo: redirectTo ?? '/',
+      });
+
+      if (invErr) {
+        return jsonResponse({ error: invErr.message }, 400);
+      }
+
+      return jsonResponse({ ok: true, orgId: invite.org_id });
+    }
+
+    // ── Action: redeem (default, existing flow) ────────────────────────────
+    // Called after the user is authenticated (returned from magic link click).
+    // Assigns the user to the org and burns the invite code.
+    const { code, userId } = body;
 
     if (!code || !userId) return jsonResponse({ error: 'Missing code or userId' }, 400);
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // 1. Find the invite
     const { data: invite } = await supabase
@@ -45,7 +94,10 @@ Deno.serve(async (req) => {
     if (profileError) throw profileError;
 
     // 3. Burn the code (single-use)
-    await supabase.from('invites').update({ is_used: true }).eq('id', invite.id);
+    await supabase
+      .from('invites')
+      .update({ is_used: true, accepted_at: new Date().toISOString() })
+      .eq('id', invite.id);
 
     return jsonResponse({ ok: true, orgId: invite.org_id });
   } catch (err) {
