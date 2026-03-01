@@ -183,43 +183,60 @@
       <!-- ── DEMO ── -->
       <div class="settings-section">
         <div class="settings-section-label">DEMO</div>
-        <div class="demo-block">
-          <div class="demo-desc">
-            Load sample data to explore the app: 5 community members,
-            pickup queue with items at every status, locations with schedules,
-            and community entries (needs, offerings, and more).
-          </div>
 
-          <div v-if="store.demoMode" class="demo-active">
-            <q-icon name="science" size="14px" />
-            <span>DEMO MODE ACTIVE</span>
+        <!-- Active demo banner -->
+        <div v-if="store.demoMode" class="demo-active-banner">
+          <div class="demo-active-row">
+            <q-icon name="science" size="15px" />
+            <span class="demo-active-name">{{ activeSimName }} — DEMO ACTIVE</span>
           </div>
+          <q-btn
+            unelevated no-caps dense
+            icon="clear_all"
+            label="Clear Demo"
+            class="demo-btn demo-btn--clear"
+            :loading="loadingDemo"
+            @click="handleClearDemo"
+          />
+        </div>
+        <div v-if="store.demoMode" class="demo-hint">
+          Your real data is preserved. Demo items use separate IDs and are removed cleanly when you clear.
+        </div>
 
-          <div class="demo-actions">
+        <!-- Simulation cards (shown when no demo is active) -->
+        <div v-if="!store.demoMode" class="sim-grid">
+          <div
+            v-for="sim in DEMO_SIMS"
+            :key="sim.id"
+            class="sim-card"
+          >
+            <div class="sim-card-header">
+              <div class="sim-icon">
+                <q-icon :name="sim.icon" size="18px" />
+              </div>
+              <div>
+                <div class="sim-name">{{ sim.name }}</div>
+                <div class="sim-subtitle">{{ sim.subtitle }}</div>
+              </div>
+            </div>
+            <p class="sim-desc">{{ sim.description }}</p>
+            <div class="sim-tags">
+              <span v-for="tag in sim.tags" :key="tag" class="sim-tag">{{ tag }}</span>
+            </div>
             <q-btn
-              v-if="!store.demoMode"
               unelevated no-caps
               icon="play_arrow"
-              label="Load Demo"
-              class="demo-btn demo-btn--load"
-              :loading="loadingDemo"
-              @click="handleLoadDemo"
-            />
-            <q-btn
-              v-if="store.demoMode"
-              unelevated no-caps
-              icon="clear_all"
-              label="Clear Demo"
-              class="demo-btn demo-btn--clear"
-              :loading="loadingDemo"
-              @click="handleClearDemo"
+              :label="loadingSimId === sim.id ? 'Loading…' : 'Load'"
+              class="sim-load-btn"
+              :loading="loadingSimId === sim.id"
+              :disable="loadingDemo"
+              @click="handleLoadSim(sim.id)"
             />
           </div>
+        </div>
 
-          <div class="demo-hint">
-            Your real data is preserved. Demo items use separate IDs and
-            are removed cleanly when you clear.
-          </div>
+        <div v-if="!store.demoMode" class="demo-hint">
+          Your real data is preserved. Demo items use separate IDs and are removed cleanly when you clear.
         </div>
       </div>
 
@@ -547,6 +564,7 @@ import { useAddressStore } from 'src/store/store';
 import { supabase } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
 import { useTheme } from 'src/composables/useTheme';
+import { SIMULATIONS } from 'src/data/simulations/index';
 
 const store = useAddressStore();
 const $q = useQuasar();
@@ -562,6 +580,24 @@ const themeOptions = [
 const confirmClear = ref(false);
 const confirmSync = ref(false);
 const loadingDemo = ref(false);
+const loadingSimId = ref('');
+
+// The two demo simulations surfaced in the UI (the others remain available via loadSimulation(id))
+const DEMO_SIMS = [
+  {
+    ...SIMULATIONS.find(s => s.id === 'inventory-manager')!,
+    icon: 'inventory_2',
+  },
+  {
+    ...SIMULATIONS.find(s => s.id === 'driver-notify')!,
+    icon: 'notifications_active',
+  },
+];
+
+const activeSimName = computed(() => {
+  const id = store.activeSimulationId;
+  return SIMULATIONS.find(s => s.id === id)?.name ?? 'Demo';
+});
 const exporting = ref(false);
 const syncing = ref(false);
 const userEmail = ref('');
@@ -733,17 +769,29 @@ const statusLabel = computed(() => {
   return 'Visitor';
 });
 
-async function handleLoadDemo() {
+async function handleLoadSim(id: string) {
   loadingDemo.value = true;
+  loadingSimId.value = id;
   try {
-    await store.loadDemo();
-    $q.notify({ color: 'positive', icon: 'science', message: 'Demo loaded — 5 users, queue items, locations, and entries.' });
+    await store.loadSimulation(id);
+    const sim = SIMULATIONS.find(s => s.id === id);
+    $q.notify({
+      color: 'positive',
+      icon: 'science',
+      message: sim
+        ? `"${sim.name}" loaded — ${sim.contacts.length} people, ${sim.locations.length} locations, ${sim.entries.length} entries.`
+        : 'Demo loaded.',
+    });
   } catch (e: any) {
     $q.notify({ color: 'negative', message: e.message || 'Failed to load demo.' });
   } finally {
     loadingDemo.value = false;
+    loadingSimId.value = '';
   }
 }
+
+// Keep alias for any external callers
+const handleLoadDemo = () => handleLoadSim('basic-demo');
 
 async function handleClearDemo() {
   loadingDemo.value = true;
@@ -1121,54 +1169,40 @@ onMounted(async () => {
 }
 
 /* ---- Demo ---- */
-.demo-block {
-  padding: 12px 4px;
-}
-
-.demo-desc {
-  font-family: var(--wb-font);
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--wb-text-mid);
-  line-height: 1.5;
-}
-
-.demo-active {
+/* ── Demo active banner ── */
+.demo-active-banner {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 6px 10px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
   background: rgba(206, 147, 216, 0.08);
   border: 1px solid rgba(206, 147, 216, 0.3);
   border-radius: 3px;
+  margin-bottom: 6px;
+}
+.demo-active-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: #ce93d8;
   font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.6rem;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
 }
-
-.demo-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
+.demo-active-name {
+  color: #ce93d8;
 }
 
 .demo-btn {
   font-family: var(--wb-font);
   font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 2px;
+  font-size: 0.7rem;
+  letter-spacing: 1.5px;
   border-radius: 3px;
-  padding: 6px 18px;
+  padding: 4px 12px;
 }
-
-.demo-btn--load {
-  background: var(--wb-accent) !important;
-  color: var(--wb-accent-text) !important;
-}
-
 .demo-btn--clear {
   background: var(--wb-surface-hover) !important;
   color: var(--wb-text) !important;
@@ -1180,8 +1214,101 @@ onMounted(async () => {
   font-weight: 600;
   font-size: 0.65rem;
   color: var(--wb-text-faint);
-  margin-top: 8px;
+  margin-top: 6px;
   letter-spacing: 0.3px;
+}
+
+/* ── Simulation cards ── */
+.sim-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+
+.sim-card {
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 4px;
+  padding: 14px 14px 12px;
+  transition: border-color 0.15s;
+}
+.sim-card:hover {
+  border-color: var(--wb-border-mid);
+}
+
+.sim-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sim-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  background: var(--wb-surface-hover);
+  border: 1px solid var(--wb-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wb-accent);
+  flex-shrink: 0;
+}
+
+.sim-name {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: var(--wb-text);
+  line-height: 1.3;
+}
+
+.sim-subtitle {
+  font-family: var(--wb-font);
+  font-size: 0.65rem;
+  color: var(--wb-text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.sim-desc {
+  font-family: var(--wb-font);
+  font-size: 0.7rem;
+  color: var(--wb-text-muted);
+  line-height: 1.55;
+  margin: 0 0 8px;
+}
+
+.sim-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.sim-tag {
+  font-family: var(--wb-font);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--wb-surface-hover);
+  border: 1px solid var(--wb-border-subtle);
+  color: var(--wb-text-faint);
+}
+
+.sim-load-btn {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 1.5px;
+  border-radius: 3px;
+  background: var(--wb-accent) !important;
+  color: var(--wb-accent-text) !important;
+  padding: 4px 16px;
 }
 
 /* ---- Connection ---- */

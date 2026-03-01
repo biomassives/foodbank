@@ -2,1160 +2,637 @@
   <q-page class="docs-page">
     <div class="docs-layout">
 
-      <!-- ── Left TOC ─────────────────────────────────────────────── -->
-      <nav class="docs-toc">
-        <div class="docs-toc-inner">
-          <div class="docs-toc-brand">DOCS</div>
-
+      <!-- ── Sidebar — its own scroll zone, never leaves view -->
+      <aside class="docs-sidebar">
+        <div class="docs-sidebar-brand">DOCS</div>
+        <nav class="docs-toc">
           <div v-for="group in TOC" :key="group.id" class="docs-toc-group">
-            <button
-              class="docs-toc-group-hd"
-              :class="{ 'docs-toc-group-hd--open': openGroups.has(group.id) }"
-              @click="toggleGroup(group.id)"
-            >
-              <span class="docs-toc-group-label">{{ group.label }}</span>
-              <q-icon :name="openGroups.has(group.id) ? 'expand_less' : 'expand_more'" size="11px" />
-            </button>
-            <div v-show="openGroups.has(group.id)" class="docs-toc-items">
-              <a
-                v-for="item in group.items"
-                :key="item.id"
-                class="docs-toc-item"
-                :class="{ 'docs-toc-item--active': activeSection === item.id }"
-                :href="`#${item.id}`"
-                @click.prevent="scrollTo(item.id)"
-              >{{ item.label }}</a>
+            <div class="docs-toc-group-label">{{ group.label }}</div>
+            <ul class="docs-toc-list">
+              <li v-for="item in group.items" :key="item.id">
+                <a
+                  :href="'#' + item.id"
+                  class="docs-toc-link"
+                  :class="{ 'is-active': activeId === item.id }"
+                  @click.prevent="scrollTo(item.id)"
+                >{{ item.label }}</a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ── Content — its own scroll zone ─────────────── -->
+      <main class="docs-content" ref="contentEl">
+
+        <!-- QUICK START -->
+        <div class="docs-quickstart">
+          <div class="docs-qs-label">QUICK START</div>
+          <div class="docs-qs-steps">
+            <div class="docs-qs-step">
+              <span class="docs-qs-num">1</span>
+              <span class="docs-qs-text">Get an invite code from your pantry admin</span>
+            </div>
+            <div class="docs-qs-step">
+              <span class="docs-qs-num">2</span>
+              <span class="docs-qs-text">Open the app → enter code + email</span>
+            </div>
+            <div class="docs-qs-step">
+              <span class="docs-qs-num">3</span>
+              <span class="docs-qs-text">Check your email for the magic link</span>
+            </div>
+            <div class="docs-qs-step">
+              <span class="docs-qs-num">4</span>
+              <span class="docs-qs-text">You're in — your role is already set</span>
             </div>
           </div>
         </div>
-      </nav>
 
-      <!-- ── Main content ──────────────────────────────────────────── -->
-      <main class="docs-content">
-
-        <!-- ═══════════════════════════════════════════════════════════
-             OVERVIEW
-        ═══════════════════════════════════════════════════════════ -->
-        <div class="docs-chapter-divider" id="overview">
-          <span class="docs-chapter-label">OVERVIEW</span>
-        </div>
-
-        <section class="docs-section" id="what-is-foodbank">
-          <h2 class="docs-h2">What is FoodBank?</h2>
-          <p class="docs-body">
-            FoodBank is an open-source community food pantry management system — a
-            progressive web app (PWA) that lets a small team coordinate donors,
-            recipients, pickup logistics, and pantry operations from any device,
-            online or offline.
-          </p>
-          <p class="docs-body">
-            It is intentionally lightweight: no proprietary cloud lock-in, no app
-            store, no installation. A pantry coordinator pastes a URL, runs a
-            setup wizard, and is operational in under ten minutes. Cloud sync via
-            Supabase is optional — the app runs entirely in the browser using
-            IndexedDB and localStorage when no backend is configured.
-          </p>
-          <div class="docs-badge-row">
-            <span class="docs-badge docs-badge--green">Offline-first</span>
-            <span class="docs-badge docs-badge--cyan">No install required</span>
-            <span class="docs-badge docs-badge--violet">Open source (MIT)</span>
-            <span class="docs-badge docs-badge--yellow">Self-hostable</span>
+        <!-- ── OVERVIEW ───────────────────────────────────── -->
+        <section id="overview" data-docs-section class="docs-section">
+          <div class="docs-section-header">
+            <span class="docs-section-badge">01</span>
+            <h2 class="docs-section-title">Overview</h2>
           </div>
-        </section>
 
-        <section class="docs-section" id="key-concepts">
-          <h2 class="docs-h2">Key Concepts</h2>
+          <div id="what-is-foodbank" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">What is FoodBank?</h3>
+            <p class="docs-sub-body">
+              FoodBank is an open-source web app for coordinating community food pantry
+              operations — donors, recipients, drivers, and stock teams all in one place.
+              It runs entirely in the browser and works offline by default. Cloud sync via
+              Supabase is optional and additive: local data is never lost if the network goes down.
+            </p>
+          </div>
 
-          <div class="docs-concept-grid">
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Entries</div>
-              <p class="docs-concept-body">
-                The core data unit. An entry is a need, offering, pickup task,
-                calendar event, or community announcement. Every entry lives in
-                IndexedDB first, then optionally syncs to Supabase.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Locations / Hubs</div>
-              <p class="docs-concept-body">
-                Physical pickup points with a weekly schedule. Adding a location
-                auto-generates 12 weeks of calendar events and populates the
-                logistics hub diagram.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Pickup Queue</div>
-              <p class="docs-concept-body">
-                A Kanban-style pipeline: Pending → Claimed → In Transit →
-                Delivered → Stocked. Drivers and stock team each see only their
-                relevant lanes.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Modes</div>
-              <p class="docs-concept-body">
-                <strong>Local mode</strong> — single-device, no account needed.
-                <strong>Demo mode</strong> — pre-filled sample data.
-                <strong>Shared mode</strong> — multi-user via Supabase with
-                invite codes and role-based access.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">MTS</div>
-              <p class="docs-concept-body">
-                Message Transport System. An edge-function layer for real-time
-                team notifications — pickup claimed, delivery confirmed,
-                announcements broadcast to role-filtered recipients.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">E8 Integrity</div>
-              <p class="docs-concept-body">
-                Optional tamper-evident seal on every record using the geometry
-                of the exceptional Lie group E8. Produces a commitment scalar C
-                stored alongside each row for silent background verification.
-              </p>
+          <div id="key-concepts" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Key Concepts</h3>
+            <p class="docs-sub-body">
+              Four ideas power everything in FoodBank:
+            </p>
+            <div class="docs-concept-grid">
+              <div class="docs-concept-card">
+                <div class="docs-concept-icon">📦</div>
+                <div class="docs-concept-name">Entries</div>
+                <div class="docs-concept-desc">Anything that needs to move — food, goods, a need, an offering. Each entry has a type, status, and optional photo.</div>
+              </div>
+              <div class="docs-concept-card">
+                <div class="docs-concept-icon">📍</div>
+                <div class="docs-concept-name">Locations</div>
+                <div class="docs-concept-desc">Physical hubs on a recurring schedule. Each location auto-generates calendar events for 12 weeks.</div>
+              </div>
+              <div class="docs-concept-card">
+                <div class="docs-concept-icon">🔄</div>
+                <div class="docs-concept-name">Queue Status</div>
+                <div class="docs-concept-desc">Every pickup moves through states: pending → claimed → in-transit → delivered → stocked.</div>
+              </div>
+              <div class="docs-concept-card">
+                <div class="docs-concept-icon">🔐</div>
+                <div class="docs-concept-name">Commitments</div>
+                <div class="docs-concept-desc">Optional E8-lattice cryptographic hashes that make records tamper-evident without a central authority.</div>
+              </div>
             </div>
           </div>
-        </section>
 
-        <section class="docs-section" id="architecture">
-          <h2 class="docs-h2">Architecture</h2>
-          <p class="docs-body">
-            The stack is intentionally thin. The browser hosts the full
-            application; Supabase is an optional persistence layer, not a
-            required dependency.
-          </p>
-          <div class="docs-arch-table">
-            <div class="docs-arch-row docs-arch-row--hd">
-              <span>Layer</span><span>Technology</span><span>Notes</span>
+          <div id="architecture" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Architecture</h3>
+            <p class="docs-sub-body">
+              The stack is intentionally thin. There is no application server you have to run.
+            </p>
+            <div class="docs-arch-strip">
+              <div class="docs-arch-node">Vue 3 + Quasar<br><span class="docs-arch-sub">browser SPA</span></div>
+              <div class="docs-arch-arrow">⇄</div>
+              <div class="docs-arch-node">IndexedDB<br><span class="docs-arch-sub">local persistence</span></div>
+              <div class="docs-arch-arrow">⇄</div>
+              <div class="docs-arch-node docs-arch-node--cloud">Supabase<br><span class="docs-arch-sub">optional cloud</span></div>
             </div>
-            <div class="docs-arch-row">
-              <span>UI Framework</span><span class="mono">Vue 3 + Quasar</span>
-              <span>Composition API, SFCs, Quasar components</span>
-            </div>
-            <div class="docs-arch-row">
-              <span>State</span><span class="mono">Pinia</span>
-              <span>Single store, exported as <span class="mono">useAddressStore()</span></span>
-            </div>
-            <div class="docs-arch-row">
-              <span>Local storage</span><span class="mono">IndexedDB (idb)</span>
-              <span>Entries, locations, profiles — all offline-capable</span>
-            </div>
-            <div class="docs-arch-row">
-              <span>Cloud (optional)</span><span class="mono">Supabase</span>
-              <span>Postgres + RLS + Auth + Realtime + Edge Functions</span>
-            </div>
-            <div class="docs-arch-row">
-              <span>Build</span><span class="mono">Vite + Quasar CLI</span>
-              <span>PWA manifest included; static SPA output</span>
-            </div>
-            <div class="docs-arch-row">
-              <span>Deploy</span><span class="mono">Vercel / Netlify</span>
-              <span>Any static host; no server-side rendering required</span>
+            <p class="docs-sub-body" style="margin-top:10px;">
+              Pinia manages in-memory state and coordinates reads/writes to both IndexedDB and Supabase.
+              The store detects local vs cloud mode automatically — the UI is identical either way.
+            </p>
+          </div>
+
+          <div id="roles" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Roles</h3>
+            <p class="docs-sub-body">Every member has one of these roles:</p>
+            <div class="docs-role-table">
+              <div class="docs-role-row docs-role-header">
+                <div>Role</div><div>What they do</div><div>Key views</div>
+              </div>
+              <div class="docs-role-row">
+                <div><span class="docs-role-pill docs-role--admin">admin</span></div>
+                <div>Configure the pantry, manage members and locations, deploy features</div>
+                <div>Admin panel, all views</div>
+              </div>
+              <div class="docs-role-row">
+                <div><span class="docs-role-pill docs-role--driver">driver</span></div>
+                <div>Claim and execute pickups, mark deliveries</div>
+                <div>Queue, Logistics</div>
+              </div>
+              <div class="docs-role-row">
+                <div><span class="docs-role-pill docs-role--stock">stock_pantry</span></div>
+                <div>Receive delivered items, stock shelves, manage inventory</div>
+                <div>Queue, Calendar</div>
+              </div>
+              <div class="docs-role-row">
+                <div><span class="docs-role-pill docs-role--logistics">logistics</span></div>
+                <div>Dispatch overview, route planning, schedule coordination</div>
+                <div>Logistics, Calendar</div>
+              </div>
+              <div class="docs-role-row">
+                <div><span class="docs-role-pill docs-role--member">member</span></div>
+                <div>Browse entries, submit needs and offerings, view pantry info</div>
+                <div>Home, Info, Calendar</div>
+              </div>
             </div>
           </div>
         </section>
 
-        <!-- ═══════════════════════════════════════════════════════════
-             FOR USERS
-        ═══════════════════════════════════════════════════════════ -->
-        <div class="docs-chapter-divider" id="for-users">
-          <span class="docs-chapter-label">FOR USERS</span>
-        </div>
-
-        <section class="docs-section" id="getting-started">
-          <h2 class="docs-h2">Getting Started</h2>
-          <p class="docs-body">
-            If your pantry coordinator has already deployed FoodBank, you join via
-            an <strong>invite code</strong>. If you are starting fresh, the setup
-            wizard walks you through configuration in five steps.
-          </p>
-          <h3 class="docs-h3">Joining with an invite code</h3>
-          <ol class="docs-list">
-            <li>Open the app URL shared by your coordinator.</li>
-            <li>Tap <strong>Get Started</strong> and enter your invite code.</li>
-            <li>Provide your email — a magic link is sent (no password needed).</li>
-            <li>Click the link in your email; your account is created and linked to the pantry.</li>
-            <li>Complete your profile (name, availability, role).</li>
-          </ol>
-          <h3 class="docs-h3">Running locally (no account)</h3>
-          <p class="docs-body">
-            Open the app and choose <strong>Local Mode</strong>. All data stays in
-            your browser. You can explore every feature — queue, calendar,
-            logistics — without a Supabase project or an account. Local mode is
-            single-device; data will not sync to other browsers or devices.
-          </p>
-        </section>
-
-        <section class="docs-section" id="your-profile">
-          <h2 class="docs-h2">Your Profile</h2>
-          <p class="docs-body">
-            Visit <span class="mono">/profile</span> to set your display name,
-            bio, and weekly availability. Your availability grid (Mon–Sun ×
-            Morning / Afternoon / Evening) is used by coordinators when assigning
-            pickups.
-          </p>
-          <p class="docs-body">
-            The <strong>Needs &amp; Items</strong> board on your profile lets you
-            post what you have available, what you expect to have, what you are
-            offering, and what you need — four bins with drag-and-drop ordering.
-            Items can be marked anonymous; the community feed will show the
-            category but not your name or description.
-          </p>
-        </section>
-
-        <section class="docs-section" id="pickup-queue">
-          <h2 class="docs-h2">Pickup Queue</h2>
-          <p class="docs-body">
-            The main queue (<span class="mono">/</span> homepage → Queue tab)
-            shows all active pickup tasks in priority order. Each card shows a
-            thumbnail, description, location, and current status.
-          </p>
-          <div class="docs-status-row">
-            <span class="docs-status-dot" style="background:var(--wb-queue-pending,#ffab40)"></span>
-            <span class="docs-status-label">Pending</span>
-            <span class="docs-status-desc">Unassigned — any driver can claim it</span>
-          </div>
-          <div class="docs-status-row">
-            <span class="docs-status-dot" style="background:var(--wb-accent,#fdd835)"></span>
-            <span class="docs-status-label">Claimed</span>
-            <span class="docs-status-desc">A driver has accepted; can be marked in transit</span>
-          </div>
-          <div class="docs-status-row">
-            <span class="docs-status-dot" style="background:var(--wb-positive,#69f0ae)"></span>
-            <span class="docs-status-label">In Transit</span>
-            <span class="docs-status-desc">En route — animated on the logistics hub diagram</span>
-          </div>
-          <div class="docs-status-row">
-            <span class="docs-status-dot" style="background:var(--wb-positive,#69f0ae)"></span>
-            <span class="docs-status-label">Delivered</span>
-            <span class="docs-status-desc">Dropped off; stock team takes over</span>
-          </div>
-          <div class="docs-status-row">
-            <span class="docs-status-dot" style="background:var(--wb-queue-transit,#ce93d8)"></span>
-            <span class="docs-status-label">Stocked</span>
-            <span class="docs-status-desc">Checked in and shelved; task complete</span>
-          </div>
-        </section>
-
-        <section class="docs-section" id="logistics-view">
-          <h2 class="docs-h2">Logistics View</h2>
-          <p class="docs-body">
-            <span class="mono">/logistics</span> is the dispatch dashboard. It
-            shows three panels:
-          </p>
-          <ul class="docs-ul">
-            <li>
-              <strong>Sidebar</strong> — week strip with location dots per day,
-              plus a real-time pipeline count for each status.
-            </li>
-            <li>
-              <strong>Hub Diagram</strong> — an SVG flow diagram connecting each
-              hub to its active items via bezier curves. In-transit items animate
-              as flowing dashed lines.
-            </li>
-            <li>
-              <strong>3-Week Schedule</strong> — collapsible week rows (current +
-              next 2 weeks) with 7 day columns. Click any item to edit; admins
-              can add new items directly to a day cell.
-            </li>
-          </ul>
-          <p class="docs-body">
-            The <strong>role filter</strong> chips at the top let drivers focus on
-            Claimed + In Transit items, while the stock team sees Delivered +
-            Stocked.
-          </p>
-        </section>
-
-        <section class="docs-section" id="calendar">
-          <h2 class="docs-h2">Calendar</h2>
-          <p class="docs-body">
-            <span class="mono">/calendar</span> displays a 12-week master view
-            across five event layers:
-          </p>
-          <ul class="docs-ul">
-            <li><strong>Pantry hours</strong> — from the weekly schedule set in Admin → Schedule</li>
-            <li><strong>Location events</strong> — auto-generated when a hub is added or edited</li>
-            <li><strong>Tasks</strong> — upcoming_need entries with a calendar date</li>
-            <li><strong>Staged messages</strong> — queued announcements appearing on their send date</li>
-            <li><strong>Calendar events</strong> — manually created calendar_event entries</li>
-          </ul>
-          <p class="docs-body">
-            Visibility filters (public / drivers / stock / logistics / admin)
-            control what each role sees. The calendar respects the same
-            visibility flags as announcements.
-          </p>
-        </section>
-
-        <!-- ═══════════════════════════════════════════════════════════
-             FOR ADMINS
-        ═══════════════════════════════════════════════════════════ -->
-        <div class="docs-chapter-divider" id="for-admins">
-          <span class="docs-chapter-label">FOR ADMINS</span>
-        </div>
-
-        <section class="docs-section" id="setup-wizard">
-          <h2 class="docs-h2">Setup Wizard</h2>
-          <p class="docs-body">
-            The wizard at <span class="mono">/wizard</span> walks through five
-            steps in order. You can return to any step later via
-            <span class="mono">/setup</span> (requires edit permission).
-          </p>
-          <ol class="docs-list">
-            <li><strong>Welcome</strong> — pantry name, tagline, and about text shown on the homepage</li>
-            <li><strong>Info Page</strong> — public-facing ops page at <span class="mono">/info</span>: hours, address, sections</li>
-            <li><strong>Schedule</strong> — weekly pantry hours (day × morning/afternoon/evening)</li>
-            <li><strong>Locations</strong> — add your first pickup hub</li>
-            <li><strong>Invite</strong> — generate an invite code to share with your team</li>
-          </ol>
-        </section>
-
-        <section class="docs-section" id="managing-locations">
-          <h2 class="docs-h2">Managing Locations</h2>
-          <p class="docs-body">
-            Locations are physical pickup hubs. Each has a name, contact,
-            phone, transport size, scheduled days, and optional notes.
-          </p>
-          <p class="docs-body">
-            When you <strong>save</strong> a location, the app immediately
-            generates 12 weeks of <span class="mono">calendar_event</span>
-            entries — one per scheduled day — using deterministic IDs
-            (<span class="mono">cal-{locId}-{day}-{YYYY-MM-DD}</span>). These
-            appear automatically on the calendar and in the logistics hub
-            diagram. Editing the schedule regenerates entries from the current
-            date forward; past entries are left untouched.
-          </p>
-          <p class="docs-body">
-            Manage locations at <strong>Admin → Locations</strong> or inline
-            from the Logistics page (admin only).
-          </p>
-        </section>
-
-        <section class="docs-section" id="invites-members">
-          <h2 class="docs-h2">Invites &amp; Members</h2>
-          <p class="docs-body">
-            In shared mode, access is controlled by invite codes. Generate a
-            code in <strong>Admin → Invites</strong>; share it with your team
-            member; they enter it on the join screen along with their email.
-            A magic link is sent — no password required.
-          </p>
-          <p class="docs-body">
-            Member roles (driver, stock_pantry, logistics_outreach, admin)
-            control visibility of queue items, calendar events, and
-            announcements. Roles are set in <strong>Admin → Members</strong>.
-          </p>
-          <h3 class="docs-h3">Invite flow (shared mode)</h3>
-          <ol class="docs-list">
-            <li>Admin generates code → stored in <span class="mono">invites</span> table (RLS: anon SELECT where <span class="mono">is_used = false</span>)</li>
-            <li>New user enters code + email on <span class="mono">/join</span></li>
-            <li>Pending invite saved to <span class="mono">localStorage['pendingInvite']</span></li>
-            <li>Magic link sent via <span class="mono">supabase.auth.signInWithOtp()</span></li>
-            <li>On return, <span class="mono">fetchUserRole()</span> detects pending invite, redeems it, clears localStorage</li>
-          </ol>
-        </section>
-
-        <section class="docs-section" id="announcements">
-          <h2 class="docs-h2">Announcements &amp; MTS</h2>
-          <p class="docs-body">
-            The <strong>Announce</strong> tab in Admin lets you compose
-            messages targeted to specific roles. Three delivery options:
-          </p>
-          <ul class="docs-ul">
-            <li><strong>Stage Draft</strong> — saves to <span class="mono">localStorage['pantry-staged-messages']</span>; appears on calendar on its send date</li>
-            <li><strong>Schedule &amp; Queue</strong> — also creates an <span class="mono">upcoming_need</span> entry in IndexedDB for tracking</li>
-            <li><strong>Send Now</strong> — fires the <span class="mono">mts</span> edge function (requires active Supabase project)</li>
-          </ul>
-          <p class="docs-body">
-            MTS (Message Transport System) routes messages through Mailgun.
-            Daily digests are sent by the <span class="mono">daily-digest</span>
-            edge function on a cron schedule. Webhook replies are handled by
-            <span class="mono">mailgun-webhook</span>.
-          </p>
-        </section>
-
-        <section class="docs-section" id="admin-oracle">
-          <h2 class="docs-h2">Admin Oracle</h2>
-          <p class="docs-body">
-            The Oracle panel (<strong>Admin → Oracle</strong>) is a diagnostic
-            and trust-management hub for coordinators and developers. It contains
-            four tabs:
-          </p>
-          <ul class="docs-ul">
-            <li><strong>Lattice</strong> — interactive E8 visualisation with dual-passphrase comparison</li>
-            <li><strong>Pipeline</strong> — animated commitment pipeline showing each processing stage</li>
-            <li><strong>Trust</strong> — live flow diagram of auth, write, realtime, offline sync, and web3 archive paths</li>
-            <li><strong>Adapters</strong> — card listing of every connected data adapter (Supabase, IndexedDB, Nile, Arweave, Pinata, NFT chain)</li>
-          </ul>
-          <p class="docs-body">
-            The Oracle also runs a connectivity probe on open — checking Supabase
-            Auth, edge function reachability, and mailgun webhook status — and
-            displays the results as a checklist.
-          </p>
-        </section>
-
-        <!-- ═══════════════════════════════════════════════════════════
-             FOR DEPLOYERS
-        ═══════════════════════════════════════════════════════════ -->
-        <div class="docs-chapter-divider" id="for-deployers">
-          <span class="docs-chapter-label">FOR DEPLOYERS</span>
-        </div>
-
-        <section class="docs-section" id="quick-install">
-          <h2 class="docs-h2">Quick Install</h2>
-          <p class="docs-body">Three paths depending on your goal — no prior Vue or Supabase experience required for the first two.</p>
-
-          <h3 class="docs-h3">New Pantry Group (no code)</h3>
-          <p class="docs-body">
-            Fork or clone the repo, then deploy directly from GitHub to your hosting platform.
-            Both Vercel and Netlify detect the Quasar project automatically and build with
-            <span class="mono">quasar build</span>.
-          </p>
-          <ol class="docs-list">
-            <li>Connect your GitHub fork to Vercel or Netlify — set build command <span class="mono">quasar build</span>, output dir <span class="mono">dist/spa</span></li>
-            <li>In the platform dashboard → Environment Variables, add <span class="mono">VITE_SUPABASE_URL</span> and <span class="mono">VITE_SUPABASE_ANON_KEY</span> (or leave blank to boot in local mode)</li>
-            <li>Open your deployed URL — the Setup Wizard launches automatically on first visit</li>
-            <li>Complete the 5-step wizard, generate your first invite code, share it with your team</li>
-          </ol>
-          <div class="docs-deploy-row">
-            <span class="docs-deploy-chip docs-deploy-chip--vercel">▲ Vercel — Connect GitHub repo → new project → auto-detect Vite → set env vars → Deploy</span>
-            <span class="docs-deploy-chip docs-deploy-chip--netlify">◆ Netlify — New site from Git → build command <span class="mono">quasar build</span> → publish dir <span class="mono">dist/spa</span></span>
+        <!-- ── FOR USERS ──────────────────────────────────── -->
+        <section id="for-users" data-docs-section class="docs-section">
+          <div class="docs-section-header">
+            <span class="docs-section-badge">02</span>
+            <h2 class="docs-section-title">For Users</h2>
           </div>
 
-          <h3 class="docs-h3">Dev / Local Test</h3>
-          <div class="docs-code-block">
-            <div class="docs-code-line">git clone https://github.com/your-org/foodbank.git && cd foodbank</div>
-            <div class="docs-code-line">npm install</div>
-            <div class="docs-code-line">cp .env.example .env.local    <span class="code-comment"># fill in or leave blank for local mode</span></div>
-            <div class="docs-code-line">quasar dev                    <span class="code-comment"># hot-reload dev server at localhost:9000</span></div>
+          <div id="getting-started" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Getting Started</h3>
+            <p class="docs-sub-body">
+              You need an invite code from your pantry admin. Navigate to the app URL,
+              tap <span class="docs-keyword">Join</span>, enter your code and email address,
+              and a magic sign-in link arrives in your inbox. Click it and you are logged in
+              with your role already assigned. No password to create.
+            </p>
+            <p class="docs-sub-body">
+              If your pantry runs in <span class="docs-keyword">local mode</span> (no cloud),
+              the admin will tell you — you can start using it immediately without any sign-in.
+            </p>
           </div>
-          <p class="docs-body">Use <strong>Demo Mode</strong> on first load to explore the full UI with pre-filled data — no Supabase project needed.</p>
 
-          <h3 class="docs-h3">Full Stack / Admin Test</h3>
-          <ol class="docs-list">
-            <li>Create a free Supabase project at <span class="mono">supabase.com</span></li>
-            <li>Apply migrations via SQL Editor (all files in <span class="mono">supabase/migrations/</span>, in date order)</li>
-            <li>Deploy all four edge functions (<span class="mono">mts</span>, <span class="mono">claim-invite</span>, <span class="mono">daily-digest</span>, <span class="mono">mailgun-webhook</span>)</li>
-            <li>Set Mailgun secrets: <span class="mono">supabase secrets set MAILGUN_API_KEY=… MAILGUN_DOMAIN=…</span></li>
-            <li>Add <span class="mono">http://localhost:9000</span> to Supabase Auth → Redirect URLs</li>
-            <li>Open <strong>Admin → Oracle</strong> connectivity probe — all indicators should be green before inviting real users</li>
-          </ol>
-        </section>
+          <div id="your-profile" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Your Profile</h3>
+            <p class="docs-sub-body">
+              Open your profile from the drawer. Set a display name that coordinators
+              will recognise. Add your availability and any contact preferences.
+              Your profile also hosts a <span class="docs-keyword">Needs & Items</span> board —
+              a private drag-and-drop space to track what you have available, what you expect,
+              what you are offering, and what you need. Community-visible items appear in
+              the broader feed.
+            </p>
+          </div>
 
-        <section class="docs-section" id="requirements">
-          <h2 class="docs-h2">Requirements</h2>
-          <div class="docs-arch-table">
-            <div class="docs-arch-row docs-arch-row--hd">
-              <span>Dependency</span><span>Version</span><span>Notes</span>
+          <div id="pickup-queue" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Pickup Queue</h3>
+            <p class="docs-sub-body">
+              The queue is the heart of daily operations. Every active pickup is listed
+              with its type, location, and current status. Tap an item to see details.
+              Drivers claim items to reserve them, then move them through the pipeline:
+            </p>
+            <div class="docs-status-flow">
+              <div class="docs-sf-node docs-sf--pending">
+                <div class="docs-sf-label">pending</div>
+                <div class="docs-sf-hint">Waiting for a driver</div>
+              </div>
+              <div class="docs-sf-arrow">↓</div>
+              <div class="docs-sf-node docs-sf--claimed">
+                <div class="docs-sf-label">claimed</div>
+                <div class="docs-sf-hint">Driver has it</div>
+              </div>
+              <div class="docs-sf-arrow">↓</div>
+              <div class="docs-sf-node docs-sf--transit">
+                <div class="docs-sf-label">in-transit</div>
+                <div class="docs-sf-hint">En route</div>
+              </div>
+              <div class="docs-sf-arrow">↓</div>
+              <div class="docs-sf-node docs-sf--delivered">
+                <div class="docs-sf-label">delivered</div>
+                <div class="docs-sf-hint">Dropped at hub</div>
+              </div>
+              <div class="docs-sf-arrow">↓</div>
+              <div class="docs-sf-node docs-sf--stocked">
+                <div class="docs-sf-label">stocked</div>
+                <div class="docs-sf-hint">On the shelf</div>
+              </div>
             </div>
-            <div class="docs-arch-row">
-              <span>Node.js</span><span class="mono">≥ 18</span><span>LTS recommended</span>
+          </div>
+
+          <div id="logistics-view" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Logistics View</h3>
+            <p class="docs-sub-body">
+              The <code class="docs-code">/logistics</code> page is for dispatchers.
+              It shows a live SVG flow diagram: hub blocks on the left connect via bezier
+              curves to five status lanes on the right. In-transit items pulse green.
+              A week strip on the left sidebar previews the schedule for the coming days,
+              with dot indicators on days that have pickups scheduled.
+            </p>
+            <p class="docs-sub-body">
+              Use the role filter chips (<span class="docs-keyword">ALL / DRIVERS / STOCK</span>)
+              to focus the view. The active-now panel below the diagram lists items in
+              priority order: in-transit first, then claimed, then pending.
+            </p>
+          </div>
+
+          <div id="calendar" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Calendar</h3>
+            <p class="docs-sub-body">
+              The <code class="docs-code">/calendar</code> page shows a 12-week master view.
+              Four sources are merged:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>Pantry hours</strong> — from the weekly schedule configured in Admin</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Location events</strong> — auto-generated when you save or edit a location</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>Staged messages</strong> — announcements you have scheduled but not yet sent</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Tasks</strong> — upcoming_need entries with a calendar date set</div>
             </div>
-            <div class="docs-arch-row">
-              <span>Quasar CLI</span><span class="mono">v2</span>
-              <span><span class="mono">npm i -g @quasar/cli</span></span>
+          </div>
+
+          <div id="needs-board" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Needs &amp; Items Board</h3>
+            <p class="docs-sub-body">
+              Every member has a drag-and-drop bin board on their profile. Four bins:
+            </p>
+            <div class="docs-bin-row">
+              <div class="docs-bin docs-bin--available">AVAILABLE<div class="docs-bin-desc">Things you can offer now</div></div>
+              <div class="docs-bin docs-bin--expected">EXPECTED<div class="docs-bin-desc">Coming soon, nearly ready</div></div>
+              <div class="docs-bin docs-bin--offered">OFFERED<div class="docs-bin-desc">Formally offered to the community</div></div>
+              <div class="docs-bin docs-bin--need">NEED<div class="docs-bin-desc">What you are looking for</div></div>
             </div>
-            <div class="docs-arch-row">
-              <span>Supabase account</span><span>optional</span>
-              <span>Required for shared / multi-user mode</span>
+            <p class="docs-sub-body" style="margin-top:10px;">
+              Toggle the privacy eye to post anonymously. Community need items from all
+              members appear in a dotted-border feed at the bottom of your board.
+            </p>
+          </div>
+        </section>
+
+        <!-- ── FOR ADMINS ─────────────────────────────────── -->
+        <section id="for-admins" data-docs-section class="docs-section">
+          <div class="docs-section-header">
+            <span class="docs-section-badge">03</span>
+            <h2 class="docs-section-title">For Admins</h2>
+          </div>
+
+          <div id="admin-overview" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Admin Panel Overview</h3>
+            <p class="docs-sub-body">
+              The admin panel (<code class="docs-code">/admin</code>) is visible only to
+              members with the <span class="docs-keyword">admin</span> role. It is organised
+              into tabs across the top:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>WELCOME</strong> — edit the homepage drawing and welcome text</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>INFO PAGE</strong> — compose the public pantry info page at <code class="docs-code">/info</code></div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>MEMBERS</strong> — view members and their roles</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>ANNOUNCE</strong> — compose and stage targeted announcements</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>SCHEDULE</strong> — set your weekly pantry operating hours</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>LOCATIONS</strong> — manage physical pickup and drop-off hubs</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>INVITES</strong> — generate and manage invite codes</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>ORACLE</strong> — diagnostic and integrity tools</div>
             </div>
-            <div class="docs-arch-row">
-              <span>Mailgun account</span><span>optional</span>
-              <span>Required for MTS email delivery</span>
+          </div>
+
+          <div id="setup-wizard" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Setup Wizard</h3>
+            <p class="docs-sub-body">
+              The setup wizard (<code class="docs-code">/setup</code>) walks new admins through
+              first-time configuration: naming the pantry, entering Supabase credentials,
+              deploying edge functions, and inviting the first members.
+              Each step is independently completable — skip the cloud steps to run local-only.
+              The wizard's deploy checklist confirms each edge function is responding.
+            </p>
+          </div>
+
+          <div id="managing-locations" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Managing Locations</h3>
+            <p class="docs-sub-body">
+              Add a location in the LOCATIONS tab. Give it a name, set which days of the week
+              it operates, and save. FoodBank immediately generates 12 weeks of calendar events.
+              Edit the schedule later and the events regenerate. Locations appear in:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>The logistics hub diagram</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>The calendar as recurring events</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>The logistics week strip as schedule dots</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Queue entry filter chips</div>
             </div>
-            <div class="docs-arch-row">
-              <span>Vercel / Netlify</span><span>optional</span>
-              <span>Any static host works; these have free tiers</span>
+          </div>
+
+          <div id="invites-members" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Invites &amp; Members</h3>
+            <p class="docs-sub-body">
+              Generate invite codes from the INVITES tab. Each code carries a role.
+              Share the code with the new member — they enter it at <code class="docs-code">/join</code>.
+              Codes can be one-time or multi-use. The code is burned on redemption in cloud mode.
+            </p>
+            <p class="docs-sub-body">
+              The MEMBERS tab shows all members and their assigned roles.
+              In cloud mode this reads from Supabase profiles. In local mode it shows
+              local records only.
+            </p>
+          </div>
+
+          <div id="announcements" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Announcements &amp; MTS</h3>
+            <p class="docs-sub-body">
+              The message transport system (MTS) lets you send targeted announcements
+              to specific roles. From the ANNOUNCE tab:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>Stage Draft</strong> — saves locally, appears on calendar</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>Schedule &amp; Queue</strong> — adds an upcoming_need entry with a date</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>Send Now</strong> — fires immediately via the MTS edge function (requires Supabase)</div>
+            </div>
+            <p class="docs-sub-body">
+              Target one or more roles: <span class="docs-keyword">drivers</span>,
+              <span class="docs-keyword">stock_pantry</span>,
+              <span class="docs-keyword">logistics_outreach</span>, or
+              <span class="docs-keyword">admin</span>.
+            </p>
+          </div>
+
+          <div id="admin-oracle" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Admin Oracle</h3>
+            <p class="docs-sub-body">
+              The Oracle panel is a diagnostic console with four tabs:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>LATTICE</strong> — rotating E8 Coxeter plane visualiser; passphrase explorer maps input to 8 Chern roots</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>PIPELINE</strong> — animated flow diagram of the commitment process</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>TRUST</strong> — triangle showing Supabase / IndexedDB / Nile nodes with animated commitment dots</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>ACCESS</strong> — password update form and feature access matrix for your role</div>
             </div>
           </div>
         </section>
 
-        <section class="docs-section" id="environment">
-          <h2 class="docs-h2">Environment Configuration</h2>
-          <p class="docs-body">
-            Copy <span class="mono">.env.example</span> to
-            <span class="mono">.env.local</span> and fill in:
-          </p>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-key">VITE_SUPABASE_URL</span>=https://your-project.supabase.co</div>
-            <div class="docs-code-line"><span class="code-key">VITE_SUPABASE_ANON_KEY</span>=eyJ…</div>
-            <div class="docs-code-line docs-code-comment"># Optional — for Nile multi-tenancy</div>
-            <div class="docs-code-line"><span class="code-key">VITE_NILE_DB_URL</span>=postgres://…</div>
+        <!-- ── FOR DEPLOYERS ──────────────────────────────── -->
+        <section id="for-deployers" data-docs-section class="docs-section">
+          <div class="docs-section-header">
+            <span class="docs-section-badge">04</span>
+            <h2 class="docs-section-title">For Deployers</h2>
           </div>
-          <p class="docs-body">
-            The app detects whether <span class="mono">VITE_SUPABASE_URL</span>
-            is set at startup. If absent, it boots in local mode automatically.
-            Never commit <span class="mono">.env.local</span> — it contains your
-            anon key.
-          </p>
-        </section>
 
-        <section class="docs-section" id="supabase-setup">
-          <h2 class="docs-h2">Supabase Setup</h2>
-          <p class="docs-body">
-            Create a Supabase project, then apply migrations. Because the
-            migration history can drift, apply new migrations via the Supabase
-            <strong>SQL Editor</strong> rather than <span class="mono">supabase db push</span>:
-          </p>
-          <ol class="docs-list">
-            <li>Open your project's SQL Editor in the Supabase dashboard</li>
-            <li>Run each file in <span class="mono">supabase/migrations/</span> in date order</li>
-            <li>Key tables created: <span class="mono">invites</span>, <span class="mono">profiles</span>, <span class="mono">need_items</span></li>
-            <li>RLS policies are included in the migration files — review before applying</li>
-          </ol>
-          <h3 class="docs-h3">Auth URL configuration</h3>
-          <p class="docs-body">
-            In Supabase → Auth → URL Configuration, add your deployment URL as a
-            redirect URL. Also add <span class="mono">http://localhost:9000</span>
-            for local development. Without this, magic-link OTP flows return a
-            422 error.
-          </p>
-        </section>
-
-        <section class="docs-section" id="supabase-functions">
-          <h2 class="docs-h2">Supabase Functions</h2>
-          <p class="docs-body">
-            FoodBank uses four Deno edge functions deployed to Supabase.
-            Each runs in an isolated V8 context at the edge and communicates
-            with the app via HTTP POST or webhook.
-          </p>
-
-          <h3 class="docs-h3">Function reference</h3>
-          <div class="docs-arch-table">
-            <div class="docs-arch-row docs-arch-row--hd">
-              <span>Function</span><span>Trigger</span><span>Purpose</span>
-            </div>
-            <div class="docs-arch-row">
-              <span class="mono">mts</span><span>HTTP POST</span>
-              <span>Core notification router — receives a typed event from the app, resolves recipient emails by role, and dispatches via Mailgun (or configured provider)</span>
-            </div>
-            <div class="docs-arch-row">
-              <span class="mono">claim-invite</span><span>HTTP POST</span>
-              <span>Redeems an invite code after auth: validates the code, sets <span class="mono">is_used = true</span>, writes the user's <span class="mono">org_id</span> and role to their profile row</span>
-            </div>
-            <div class="docs-arch-row">
-              <span class="mono">daily-digest</span><span>Cron (08:00)</span>
-              <span>Queries today's calendar events + queue summary, formats a digest email, and sends to all members with <span class="mono">digest_opt_in = true</span></span>
-            </div>
-            <div class="docs-arch-row">
-              <span class="mono">mailgun-webhook</span><span>HTTP POST</span>
-              <span>Receives Mailgun delivery events (<span class="mono">delivered</span>, <span class="mono">bounced</span>, <span class="mono">complained</span>) — logs to a side table for the Oracle probe to query</span>
+          <div id="quick-install" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Quick Install</h3>
+            <div class="docs-code-block">
+              <div class="docs-code-line"><span class="docs-code-comment"># clone and install</span></div>
+              <div class="docs-code-line">git clone https://github.com/your-org/foodbank</div>
+              <div class="docs-code-line">cd foodbank &amp;&amp; npm install</div>
+              <div class="docs-code-line">&nbsp;</div>
+              <div class="docs-code-line"><span class="docs-code-comment"># configure environment</span></div>
+              <div class="docs-code-line">cp .env.example .env.local</div>
+              <div class="docs-code-line"><span class="docs-code-comment"># edit .env.local with your Supabase keys</span></div>
+              <div class="docs-code-line">&nbsp;</div>
+              <div class="docs-code-line"><span class="docs-code-comment"># dev server</span></div>
+              <div class="docs-code-line">quasar dev</div>
+              <div class="docs-code-line">&nbsp;</div>
+              <div class="docs-code-line"><span class="docs-code-comment"># production build → dist/spa</span></div>
+              <div class="docs-code-line">quasar build</div>
             </div>
           </div>
 
-          <h3 class="docs-h3">Deploy all four</h3>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-comment"># from project root, with supabase CLI linked to your project</span></div>
-            <div class="docs-code-line">supabase functions deploy mts</div>
-            <div class="docs-code-line">supabase functions deploy claim-invite</div>
-            <div class="docs-code-line">supabase functions deploy daily-digest</div>
-            <div class="docs-code-line">supabase functions deploy mailgun-webhook</div>
-          </div>
-
-          <h3 class="docs-h3">Required secrets</h3>
-          <div class="docs-code-block">
-            <div class="docs-code-line">supabase secrets set \</div>
-            <div class="docs-code-line">  MAILGUN_API_KEY=key-… \</div>
-            <div class="docs-code-line">  MAILGUN_DOMAIN=mg.yourdomain.com \</div>
-            <div class="docs-code-line">  MAILGUN_FROM="FoodBank &lt;noreply@mg.yourdomain.com&gt;"</div>
-          </div>
-
-          <h3 class="docs-h3">Testing functions locally</h3>
-          <p class="docs-body">
-            Supabase CLI can serve functions locally against your cloud database,
-            or against a local Supabase stack started with
-            <span class="mono">supabase start</span>.
-          </p>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-comment"># serve all functions locally (hot-reload)</span></div>
-            <div class="docs-code-line">supabase functions serve --env-file .env.local</div>
-            <div class="docs-code-line"></div>
-            <div class="docs-code-line"><span class="code-comment"># test mts manually</span></div>
-            <div class="docs-code-line">curl -X POST http://localhost:54321/functions/v1/mts \</div>
-            <div class="docs-code-line">  -H "Authorization: Bearer $ANON_KEY" \</div>
-            <div class="docs-code-line">  -H "Content-Type: application/json" \</div>
-            <div class="docs-code-line">  -d '{"type":"pickup-claimed","data":{"taskDescription":"Test box","taskLocation":"Hub A","claimedBy":"dev"}}'</div>
-            <div class="docs-code-line"></div>
-            <div class="docs-code-line"><span class="code-comment"># test claim-invite</span></div>
-            <div class="docs-code-line">curl -X POST http://localhost:54321/functions/v1/claim-invite \</div>
-            <div class="docs-code-line">  -H "Authorization: Bearer $USER_JWT" \</div>
-            <div class="docs-code-line">  -H "Content-Type: application/json" \</div>
-            <div class="docs-code-line">  -d '{"code":"ABC123"}'</div>
-          </div>
-          <p class="docs-body">
-            Use the <strong>Admin → Oracle</strong> connectivity probe to confirm all four
-            functions are reachable from the deployed app — it probes each endpoint and
-            reports HTTP status in a checklist.
-          </p>
-
-          <h3 class="docs-h3">Viewing logs</h3>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-comment"># tail live logs for a specific function</span></div>
-            <div class="docs-code-line">supabase functions logs mts --tail</div>
-            <div class="docs-code-line">supabase functions logs daily-digest --tail</div>
-          </div>
-          <p class="docs-body">
-            Logs are also available in the Supabase dashboard under
-            Edge Functions → select function → Logs tab. Each invocation shows
-            request headers, duration, and any <span class="mono">console.log</span> output.
-          </p>
-        </section>
-
-        <section class="docs-section" id="alternative-stacks">
-          <h2 class="docs-h2">Alternative Stacks</h2>
-          <p class="docs-body">
-            Supabase is the default backend, but FoodBank's store layer is
-            designed to be adapter-friendly. The offline-first IndexedDB tier
-            always works independently — cloud adapters are a thin wrapper
-            around it in <span class="mono">src/store/store.ts</span>.
-          </p>
-
-          <h3 class="docs-h3">Appwrite</h3>
-          <p class="docs-body">
-            Appwrite is a fully open-source BaaS self-hostable via Docker Compose.
-            It covers the same surface as Supabase — Auth, Database, Storage,
-            Functions — without requiring you to manage PostgreSQL directly.
-          </p>
-          <div class="docs-arch-table">
-            <div class="docs-arch-row docs-arch-row--hd">
-              <span>Feature</span><span>Supabase</span><span>Appwrite</span>
-            </div>
-            <div class="docs-arch-row"><span>Database</span><span>PostgreSQL</span><span>MariaDB / Postgres</span></div>
-            <div class="docs-arch-row"><span>Self-host</span><span class="mono">Docker</span><span class="mono">Docker Compose</span></div>
-            <div class="docs-arch-row"><span>Auth</span><span>Magic link · OAuth · OTP</span><span>Email · OAuth · Phone</span></div>
-            <div class="docs-arch-row"><span>Functions</span><span>Deno Edge Functions</span><span>Deno / Node / PHP / Python</span></div>
-            <div class="docs-arch-row"><span>Realtime</span><span>Postgres CDC</span><span>WebSocket events</span></div>
-            <div class="docs-arch-row"><span>Access control</span><span>Row Level Security (SQL)</span><span>Permissions API</span></div>
-            <div class="docs-arch-row"><span>Free cloud tier</span><span>Yes</span><span>Yes</span></div>
-          </div>
-          <p class="docs-body" style="margin-top:12px">
-            To adapt FoodBank: swap the <span class="mono">supabase</span> client calls in
-            <span class="mono">src/dbManagement/index.ts</span> and
-            <span class="mono">src/store/store.ts</span> for the Appwrite Web SDK.
-            The IndexedDB layer, queue logic, and all Vue components require no changes.
-          </p>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-comment"># Self-host Appwrite with Docker Compose</span></div>
-            <div class="docs-code-line">docker run -it --rm \</div>
-            <div class="docs-code-line">  --volume /var/run/docker.sock:/var/run/docker.sock \</div>
-            <div class="docs-code-line">  --volume "$(pwd)"/appwrite:/usr/src/code/appwrite:rw \</div>
-            <div class="docs-code-line">  appwrite/install</div>
-          </div>
-
-          <h3 class="docs-h3">Neon / PlanetScale (Serverless Postgres)</h3>
-          <p class="docs-body">
-            For teams already on Vercel, pairing <strong>Neon</strong>
-            (serverless Postgres with branching) or <strong>PlanetScale</strong>
-            (MySQL, zero-downtime schema changes) with Vercel Functions eliminates
-            the Supabase dependency entirely.
-            Neon's branch-per-PR feature is useful for isolated preview deployments —
-            each PR gets its own database branch that merges automatically.
-          </p>
-        </section>
-
-        <section class="docs-section" id="vercel-functions">
-          <h2 class="docs-h2">Vercel Functions</h2>
-          <p class="docs-body">
-            The four MTS functions can be deployed as Vercel API routes instead of
-            Supabase Edge Functions. Create an <span class="mono">api/</span> directory
-            in the project root — Vercel auto-deploys any <span class="mono">.ts</span>
-            file there as a serverless or edge endpoint.
-          </p>
-
-          <h3 class="docs-h3">Edge vs Serverless runtime</h3>
-          <div class="docs-arch-table">
-            <div class="docs-arch-row docs-arch-row--hd">
-              <span>Runtime</span><span>Cold start</span><span>Best for</span>
-            </div>
-            <div class="docs-arch-row">
-              <span>Edge (V8 isolate)</span><span>~0 ms</span>
-              <span>Lightweight auth checks, claim-invite validation, fast responses</span>
-            </div>
-            <div class="docs-arch-row">
-              <span>Serverless (Node.js)</span><span>50–200 ms</span>
-              <span>Mailgun HTTP calls, DB writes, daily-digest generation</span>
+          <div id="requirements" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Requirements</h3>
+            <div class="docs-req-grid">
+              <div class="docs-req-item"><div class="docs-req-name">Node</div><div class="docs-req-val">20+</div></div>
+              <div class="docs-req-item"><div class="docs-req-name">Chrome</div><div class="docs-req-val">100+</div></div>
+              <div class="docs-req-item"><div class="docs-req-name">Firefox</div><div class="docs-req-val">100+</div></div>
+              <div class="docs-req-item"><div class="docs-req-name">Safari</div><div class="docs-req-val">15.4+</div></div>
+              <div class="docs-req-item"><div class="docs-req-name">Supabase</div><div class="docs-req-val">optional</div></div>
+              <div class="docs-req-item"><div class="docs-req-name">Deno</div><div class="docs-req-val">edge fn local</div></div>
             </div>
           </div>
 
-          <h3 class="docs-h3">mts as a Vercel route</h3>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-comment">// api/mts.ts</span></div>
-            <div class="docs-code-line">import type { VercelRequest, VercelResponse } from '@vercel/node';</div>
-            <div class="docs-code-line"></div>
-            <div class="docs-code-line">export default async function handler(req: VercelRequest, res: VercelResponse) {</div>
-            <div class="docs-code-line">  if (req.method !== 'POST') return res.status(405).end();</div>
-            <div class="docs-code-line">  const { type, data, recipientEmail } = req.body;</div>
-            <div class="docs-code-line">  <span class="code-comment">// same Mailgun call as supabase/functions/mts/index.ts</span></div>
-            <div class="docs-code-line">  res.status(200).json({ ok: true });</div>
-            <div class="docs-code-line">}</div>
-          </div>
-          <p class="docs-body">
-            Point <span class="mono">VITE_MTS_URL=/api/mts</span> in your Vercel
-            environment variables. The <span class="mono">useMts</span> composable reads
-            this at runtime — no other code change required.
-          </p>
-
-          <h3 class="docs-h3">Cron (daily-digest)</h3>
-          <p class="docs-body">
-            Vercel Cron (Pro plan) schedules the digest automatically. Add to
-            <span class="mono">vercel.json</span>:
-          </p>
-          <div class="docs-code-block">
-            <div class="docs-code-line">&#123;</div>
-            <div class="docs-code-line">  "crons": [&#123; "path": "/api/daily-digest", "schedule": "0 8 * * *" &#125;]</div>
-            <div class="docs-code-line">&#125;</div>
-          </div>
-          <p class="docs-body">
-            On the free Hobby plan, use a GitHub Actions workflow with
-            <span class="mono">schedule: cron: '0 8 * * *'</span> to
-            <span class="mono">curl</span> the endpoint instead.
-          </p>
-        </section>
-
-        <section class="docs-section" id="messaging-providers">
-          <h2 class="docs-h2">Messaging Providers</h2>
-          <p class="docs-body">
-            The <span class="mono">mts</span> function is provider-agnostic — swap
-            the HTTP call in the function body to switch providers with no changes
-            to the app or composable layer.
-          </p>
-
-          <h3 class="docs-h3">Mailgun (default)</h3>
-          <p class="docs-body">
-            REST email API with strong deliverability, EU and US data centres,
-            and a generous free tier (100 emails/day on Flex plan).
-          </p>
-          <ol class="docs-list">
-            <li>Create account at <span class="mono">mailgun.com</span>, add and verify your sending domain</li>
-            <li>Add SPF, DKIM, and MX records to your DNS — Mailgun's setup guide walks through each one</li>
-            <li>Copy your Sending API key (not the Mailgun Admin API key)</li>
-            <li>Set secrets: <span class="mono">supabase secrets set MAILGUN_API_KEY=key-… MAILGUN_DOMAIN=mg.yourdomain.com</span></li>
-            <li>In Mailgun dashboard → Webhooks, set the URL to your deployed <span class="mono">mailgun-webhook</span> function endpoint</li>
-            <li>Events tracked: <span class="mono">delivered</span>, <span class="mono">bounced</span>, <span class="mono">complained</span>, <span class="mono">unsubscribed</span></li>
-          </ol>
-
-          <h3 class="docs-h3">Twilio (SMS + Voice)</h3>
-          <p class="docs-body">
-            Add SMS alerts so drivers receive a text when a pickup is claimed or
-            a delivery is due. Twilio also owns SendGrid for high-volume email.
-          </p>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-comment">// Extend mts function — add SMS path alongside email</span></div>
-            <div class="docs-code-line">import twilio from 'npm:twilio';</div>
-            <div class="docs-code-line">const tw = twilio(Deno.env.get('TWILIO_SID'), Deno.env.get('TWILIO_TOKEN'));</div>
-            <div class="docs-code-line">await tw.messages.create(&#123;</div>
-            <div class="docs-code-line">  body: `Pickup: ${data.taskDescription} @ ${data.taskLocation}`,</div>
-            <div class="docs-code-line">  from: Deno.env.get('TWILIO_FROM'),</div>
-            <div class="docs-code-line">  to: recipientPhone,</div>
-            <div class="docs-code-line">&#125;);</div>
-          </div>
-          <p class="docs-body">
-            Secrets to set: <span class="mono">TWILIO_SID</span>,
-            <span class="mono">TWILIO_TOKEN</span>,
-            <span class="mono">TWILIO_FROM</span> (your Twilio number).
-            Phone numbers are stored on the <span class="mono">profiles</span> table.
-          </p>
-
-          <h3 class="docs-h3">Other providers</h3>
-          <div class="docs-concept-grid">
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Resend</div>
-              <p class="docs-concept-body">
-                Modern REST email API with React Email template support.
-                Excellent DX, generous free tier (3 000 emails/month).
-                Set <span class="mono">RESEND_API_KEY</span> and use
-                <span class="mono">resend.emails.send()</span> in the mts function.
-              </p>
+          <div id="environment" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Environment Config</h3>
+            <div class="docs-code-block">
+              <div class="docs-code-line"><span class="docs-code-comment"># Required for cloud mode</span></div>
+              <div class="docs-code-line">VITE_SUPABASE_URL=https://xxxx.supabase.co</div>
+              <div class="docs-code-line">VITE_SUPABASE_ANON_KEY=eyJ...</div>
+              <div class="docs-code-line">&nbsp;</div>
+              <div class="docs-code-line"><span class="docs-code-comment"># Optional: force local-only mode</span></div>
+              <div class="docs-code-line">VITE_LOCAL_MODE=true</div>
             </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">SendGrid</div>
-              <p class="docs-concept-body">
-                Twilio-owned high-volume platform. Built-in template editor,
-                unsubscribe management, and delivery analytics.
-                Set <span class="mono">SENDGRID_API_KEY</span>.
-                Good for pantries sending &gt; 10 000 emails/month.
-              </p>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              All env vars are prefixed <code class="docs-code">VITE_</code> and injected at
+              build time. The app detects whether Supabase keys are present and falls back
+              to local mode automatically if they are missing.
+            </p>
+          </div>
+
+          <div id="supabase-setup" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Supabase Setup</h3>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Create a project at <code class="docs-code">supabase.com</code></div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>In SQL Editor, run each migration from <code class="docs-code">supabase/migrations/</code> in order</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Enable email auth in Authentication → Providers</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Add your site URL to Authentication → URL Configuration → Redirect URLs</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Copy the Project URL and anon key into <code class="docs-code">.env.local</code></div>
             </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Postmark</div>
-              <p class="docs-concept-body">
-                Best-in-class deliverability for transactional email.
-                Fast delivery SLA, detailed bounce classification, and
-                message streams separating transactional from bulk.
-                Set <span class="mono">POSTMARK_SERVER_TOKEN</span>.
-              </p>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              RLS policies are included in the migrations. Do not skip them.
+            </p>
+          </div>
+
+          <div id="supabase-functions" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Supabase Edge Functions</h3>
+            <p class="docs-sub-body">Deploy four functions from <code class="docs-code">supabase/functions/</code>:</p>
+            <div class="docs-fn-grid">
+              <div class="docs-fn-card">
+                <div class="docs-fn-name">mts</div>
+                <div class="docs-fn-desc">Message transport — sends announcements via Mailgun</div>
+              </div>
+              <div class="docs-fn-card">
+                <div class="docs-fn-name">claim-invite</div>
+                <div class="docs-fn-desc">Burns invite codes and assigns roles on sign-up</div>
+              </div>
+              <div class="docs-fn-card">
+                <div class="docs-fn-name">daily-digest</div>
+                <div class="docs-fn-desc">Scheduled summary sent to configured recipients</div>
+              </div>
+              <div class="docs-fn-card">
+                <div class="docs-fn-name">mailgun-webhook</div>
+                <div class="docs-fn-desc">Receives delivery and bounce events from Mailgun</div>
+              </div>
             </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">AWS SES</div>
-              <p class="docs-concept-body">
-                Lowest cost at scale ($0.10 / 1 000 emails). Requires
-                domain verification and exiting sandbox mode. Good fit
-                for self-hosted deployments already using AWS infrastructure.
-              </p>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              The Setup page in the app includes a probe checklist that pings each function
+              and shows green/red status.
+            </p>
+          </div>
+
+          <div id="alternative-stacks" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Alternative Stacks</h3>
+            <p class="docs-sub-body">
+              The E8 integrity layer has adapters for Supabase, IndexedDB, and Mongoose/MongoDB.
+              Auth can be swapped out — the store's <code class="docs-code">fetchUserRole()</code>
+              function is the integration point. Nile (multi-tenant Postgres) is a planned
+              adapter. If you replace Supabase, you need to replicate the four edge function
+              contracts in your own backend.
+            </p>
+          </div>
+
+          <div id="vercel-functions" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Vercel Functions</h3>
+            <p class="docs-sub-body">
+              If you deploy to Vercel, serverless functions in <code class="docs-code">api/</code>
+              can substitute for the Supabase edge functions. The function signatures are
+              compatible. Set environment variables in the Vercel dashboard rather than
+              <code class="docs-code">.env.local</code>.
+            </p>
+          </div>
+
+          <div id="messaging-providers" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Messaging Providers</h3>
+            <p class="docs-sub-body">
+              MTS ships with Mailgun support for email. To enable: set
+              <code class="docs-code">MAILGUN_API_KEY</code> and
+              <code class="docs-code">MAILGUN_DOMAIN</code> as edge function secrets in Supabase.
+              SMS delivery via Twilio can be added by extending the MTS function.
+              The mailgun-webhook function handles bounce and delivery callbacks automatically.
+            </p>
+          </div>
+
+          <div id="going-live" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Going Live Checklist</h3>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>Custom domain pointed at your static host</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>Supabase redirect URLs include your production domain</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>All four edge functions deployed and probed green</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>RLS policies verified in Supabase SQL Editor</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>Admin Oracle ACCESS tab shows correct role matrix</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>First admin invite code generated and tested</div>
             </div>
           </div>
         </section>
 
-        <section class="docs-section" id="going-live">
-          <h2 class="docs-h2">Going Live</h2>
-          <ol class="docs-list">
-            <li>Build: <span class="mono">quasar build</span> — output in <span class="mono">dist/spa/</span></li>
-            <li>Deploy the <span class="mono">dist/spa</span> folder to Vercel, Netlify, or any static host</li>
-            <li>Set environment variables in your host's dashboard (same keys as <span class="mono">.env.local</span>)</li>
-            <li>Add the production URL to Supabase Auth → Redirect URLs</li>
-            <li>Run the Admin Oracle connectivity probe to confirm all edge functions are reachable</li>
-            <li>Generate your first invite code via Admin → Invites and share it with your team</li>
-          </ol>
-        </section>
-
-        <!-- ═══════════════════════════════════════════════════════════
-             FOR DEVELOPERS
-        ═══════════════════════════════════════════════════════════ -->
-        <div class="docs-chapter-divider" id="for-developers">
-          <span class="docs-chapter-label">FOR DEVELOPERS</span>
-        </div>
-
-        <section class="docs-section" id="project-structure">
-          <h2 class="docs-h2">Project Structure</h2>
-          <div class="docs-code-block docs-code-block--tree">
-            <div class="docs-code-line">src/</div>
-            <div class="docs-code-line">├── pages/          <span class="code-comment"># Route-level views (IndexPage, AdminPage, LogisticsPage…)</span></div>
-            <div class="docs-code-line">├── components/     <span class="code-comment"># Shared components (QueueList, NeedsBinBoard, SketchPad…)</span></div>
-            <div class="docs-code-line">│   ├── wizard/     <span class="code-comment"># Setup wizard steps</span></div>
-            <div class="docs-code-line">│   └── childcomponents/  <span class="code-comment"># Modals, sub-panels</span></div>
-            <div class="docs-code-line">├── store/          <span class="code-comment"># Pinia store (store.ts) — single source of truth</span></div>
-            <div class="docs-code-line">├── models/         <span class="code-comment"># TypeScript interfaces (Entry, Location, QueueStatus…)</span></div>
-            <div class="docs-code-line">├── dbManagement/   <span class="code-comment"># IndexedDB helpers via idb</span></div>
-            <div class="docs-code-line">├── composables/    <span class="code-comment"># useMts, useCalendar…</span></div>
-            <div class="docs-code-line">├── utils/          <span class="code-comment"># calendar.ts, inviteCode.ts, e8Commit.ts…</span></div>
-            <div class="docs-code-line">├── router/         <span class="code-comment"># routes.ts</span></div>
-            <div class="docs-code-line">├── layouts/        <span class="code-comment"># MainLayout.vue (drawer nav, header, search)</span></div>
-            <div class="docs-code-line">└── css/            <span class="code-comment"># themes.scss — all --wb-* and --bin-* design tokens</span></div>
-            <div class="docs-code-line">crypto/             <span class="code-comment"># e8_theta.ts + e8_theta.c reference implementation</span></div>
-            <div class="docs-code-line">supabase/           <span class="code-comment"># migrations/, functions/</span></div>
+        <!-- ── FOR DEVELOPERS ─────────────────────────────── -->
+        <section id="for-developers" data-docs-section class="docs-section">
+          <div class="docs-section-header">
+            <span class="docs-section-badge">05</span>
+            <h2 class="docs-section-title">For Developers</h2>
           </div>
-        </section>
 
-        <section class="docs-section" id="learning-resources">
-          <h2 class="docs-h2">Learning Vue 3 &amp; Quasar</h2>
-          <p class="docs-body">
-            FoodBank uses Vue 3 Composition API and Quasar throughout. If you are
-            new to the stack, these are the key resources covering everything used
-            in this codebase.
-          </p>
-
-          <h3 class="docs-h3">Vue 3</h3>
-          <div class="docs-concept-grid">
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Official Guide</div>
-              <p class="docs-concept-body">
-                <span class="mono">vuejs.org/guide</span> — Composition API
-                (<span class="mono">ref</span>, <span class="mono">computed</span>,
-                <span class="mono">watch</span>, <span class="mono">reactive</span>),
-                component props/emits, and <span class="mono">&lt;script setup&gt;</span>
-                syntax used throughout FoodBank.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Pinia</div>
-              <p class="docs-concept-body">
-                <span class="mono">pinia.vuejs.org</span> — FoodBank's single
-                store. Covers <span class="mono">defineStore</span>, getters,
-                actions, and DevTools integration for inspecting state in real time.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Vue Router</div>
-              <p class="docs-concept-body">
-                <span class="mono">router.vuejs.org</span> — Navigation guards used
-                in <span class="mono">routes.ts</span>. The
-                <span class="mono">beforeEnter</span> guard checks
-                <span class="mono">store.canEdit</span> before allowing access to
-                <span class="mono">/admin</span> and <span class="mono">/setup</span>.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Vue Devtools</div>
-              <p class="docs-concept-body">
-                Browser extension for Chrome and Firefox. Inspect the Pinia store
-                in real time, trace component re-renders, and debug reactivity
-                without <span class="mono">console.log</span>.
-              </p>
+          <div id="project-structure" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Project Structure</h3>
+            <div class="docs-code-block">
+              <div class="docs-code-line">src/</div>
+              <div class="docs-code-line">  pages/          <span class="docs-code-comment"># route-level views</span></div>
+              <div class="docs-code-line">  components/     <span class="docs-code-comment"># shared UI components</span></div>
+              <div class="docs-code-line">  layouts/        <span class="docs-code-comment"># MainLayout wraps all pages</span></div>
+              <div class="docs-code-line">  store/store.ts  <span class="docs-code-comment"># Pinia store (single store)</span></div>
+              <div class="docs-code-line">  models/         <span class="docs-code-comment"># TypeScript types</span></div>
+              <div class="docs-code-line">  utils/          <span class="docs-code-comment"># calendar, date helpers</span></div>
+              <div class="docs-code-line">  lib/e8-integrity/<span class="docs-code-comment"># crypto commitment layer</span></div>
+              <div class="docs-code-line">  boot/           <span class="docs-code-comment"># supabase, pinia init</span></div>
+              <div class="docs-code-line">supabase/</div>
+              <div class="docs-code-line">  migrations/     <span class="docs-code-comment"># SQL schema files</span></div>
+              <div class="docs-code-line">  functions/      <span class="docs-code-comment"># Deno edge functions</span></div>
             </div>
           </div>
 
-          <h3 class="docs-h3">Quasar Framework</h3>
-          <div class="docs-concept-grid">
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Component Docs</div>
-              <p class="docs-concept-body">
-                <span class="mono">quasar.dev/vue-components</span> — full prop/event API
-                for every <span class="mono">q-*</span> component in the codebase:
-                <span class="mono">q-btn</span>, <span class="mono">q-input</span>,
-                <span class="mono">q-select</span>, <span class="mono">q-dialog</span>,
-                <span class="mono">q-card</span>, <span class="mono">q-toggle</span>,
-                <span class="mono">q-icon</span>, <span class="mono">q-notify</span>.
-              </p>
+          <div id="learning-resources" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Vue &amp; Quasar</h3>
+            <p class="docs-sub-body">
+              The app uses Vue 3 Composition API with <code class="docs-code">&lt;script setup lang="ts"&gt;</code>
+              throughout. State is managed by a single Pinia store. Quasar provides components,
+              routing wrapper, and build tooling via <code class="docs-code">quasar.config.js</code>.
+            </p>
+            <p class="docs-sub-body">
+              If you are new: read the Vue 3 Composition API docs and the Quasar v2 component
+              reference first. The codebase follows Vue SFC conventions closely — understanding
+              those makes navigation straightforward.
+            </p>
+          </div>
+
+          <div id="data-model" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Data Model</h3>
+            <p class="docs-sub-body">
+              All types live in <code class="docs-code">src/models/index.ts</code>.
+              The core types:
+            </p>
+            <div class="docs-code-block">
+              <div class="docs-code-line"><span class="docs-code-kw">Entry</span>       id, type, title, description, image, sketch, queueStatus, calendarDate</div>
+              <div class="docs-code-line"><span class="docs-code-kw">Location</span>    id, name, schedule (DayOfWeek[]), address</div>
+              <div class="docs-code-line"><span class="docs-code-kw">QueueStatus</span> pending | claimed | in_transit | delivered | stocked</div>
+              <div class="docs-code-line"><span class="docs-code-kw">EntryType</span>   contact | need | offering | looking_for | upcoming_need</div>
             </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Quasar CLI</div>
-              <p class="docs-concept-body">
-                <span class="mono">quasar.dev/start/quasar-cli</span> —
-                <span class="mono">quasar dev</span> (HMR dev server at :9000),
-                <span class="mono">quasar build</span> (SPA output to
-                <span class="mono">dist/spa</span>),
-                <span class="mono">quasar inspect</span> (Vite config dump).
-                Also generates the PWA manifest and service worker.
-              </p>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              The store exposes <code class="docs-code">getEntries</code>,
+              <code class="docs-code">getQueueEntries</code>,
+              <code class="docs-code">getCalendarEntries</code>, and
+              <code class="docs-code">getLocations</code> as computed getters.
+              Actions like <code class="docs-code">claimEntry(id, claimer)</code> and
+              <code class="docs-code">transitEntry(id)</code> write to both
+              IndexedDB and Supabase in a single call.
+            </p>
+          </div>
+
+          <div id="e8-lattice" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">E8 Lattice Security</h3>
+            <p class="docs-sub-body">
+              An optional integrity layer in <code class="docs-code">src/lib/e8-integrity/</code>
+              maps record content through an E8 lattice commitment. A passphrase is processed
+              via HKDF-SHA256 into eight Chern-Simons roots. Those roots are fed through
+              a theta function to produce a deterministic commitment hash stored alongside
+              the record. If the record is modified, re-deriving the hash produces a different
+              value — detectable without a central server.
+            </p>
+            <p class="docs-sub-body">
+              Key exports: <code class="docs-code">passwordToRoots</code>,
+              <code class="docs-code">e8Commit</code>,
+              <code class="docs-code">recordToRoots</code>,
+              <code class="docs-code">passwordToRootsHKDF</code>.
+              Cross-language test vectors in <code class="docs-code">crypto/test_vectors.c</code>
+              verify the TypeScript and C implementations agree at 0 ULP.
+            </p>
+          </div>
+
+          <div id="commitment-pipeline" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Commitment Pipeline</h3>
+            <div class="docs-pipeline">
+              <div class="docs-pipe-step">canonicalize<br><span class="docs-pipe-sub">record → string</span></div>
+              <div class="docs-pipe-arrow">→</div>
+              <div class="docs-pipe-step">HKDF-SHA256<br><span class="docs-pipe-sub">key derivation</span></div>
+              <div class="docs-pipe-arrow">→</div>
+              <div class="docs-pipe-step">E8 roots<br><span class="docs-pipe-sub">8 Chern values</span></div>
+              <div class="docs-pipe-arrow">→</div>
+              <div class="docs-pipe-step">θ function<br><span class="docs-pipe-sub">lattice hash</span></div>
+              <div class="docs-pipe-arrow">→</div>
+              <div class="docs-pipe-step docs-pipe-step--out">commitment<br><span class="docs-pipe-sub">stored in DB</span></div>
             </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">CSS Utilities</div>
-              <p class="docs-concept-body">
-                Quasar flex helpers (<span class="mono">row</span>,
-                <span class="mono">col</span>, <span class="mono">items-center</span>),
-                spacing classes (<span class="mono">q-pa-md</span>,
-                <span class="mono">q-ma-sm</span>), and responsive breakpoints.
-                FoodBank supplements these with scoped
-                <span class="mono">--wb-*</span> design tokens in
-                <span class="mono">src/css/themes.scss</span>.
-              </p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Notify Plugin</div>
-              <p class="docs-concept-body">
-                <span class="mono">$q.notify(&#123; color, icon, message, timeout &#125;)</span>
-                — toast notifications used throughout FoodBank for action confirmations.
-                Quasar registers the plugin globally;
-                access it via <span class="mono">useQuasar()</span> in any component.
-              </p>
+            <p class="docs-sub-body" style="margin-top:10px;">
+              Periodic background verification re-derives and compares. Mismatches
+              surface in the Oracle TRUST panel with the affected record ID.
+            </p>
+          </div>
+
+          <div id="trust-architecture" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Trust Architecture</h3>
+            <p class="docs-sub-body">
+              Three storage nodes form a trust triangle. Commitments written to one are
+              verifiable against any other — sync conflicts are detected cryptographically
+              rather than relying on timestamps alone.
+            </p>
+            <div class="docs-trust-row">
+              <div class="docs-trust-node">IndexedDB<div class="docs-trust-sub">local, always available</div></div>
+              <div class="docs-trust-node docs-trust-node--cloud">Supabase<div class="docs-trust-sub">cloud, optional</div></div>
+              <div class="docs-trust-node docs-trust-node--nile">Nile<div class="docs-trust-sub">multi-tenant, planned</div></div>
             </div>
           </div>
 
-          <h3 class="docs-h3">Vite &amp; TypeScript</h3>
-          <ul class="docs-ul">
-            <li>
-              <strong>Vite</strong> (<span class="mono">vitejs.dev</span>) — build tool powering Quasar. HMR in dev, Rollup bundling in prod. Environment variables prefixed <span class="mono">VITE_</span> are injected at build time via <span class="mono">import.meta.env</span>.
-            </li>
-            <li>
-              <strong>TypeScript</strong> (<span class="mono">typescriptlang.org/docs</span>) — strict mode throughout. The interfaces in <span class="mono">src/models/index.ts</span> are the single source of truth for all data shapes.
-            </li>
-            <li>
-              <strong>ESLint</strong> — <span class="mono">@typescript-eslint</span> rules enforced on save. Key rules: <span class="mono">no-unused-vars</span> (prefix unused params with <span class="mono">_</span>), <span class="mono">no-empty-function</span> (add a comment inside empty catch blocks).
-            </li>
-          </ul>
-
-          <h3 class="docs-h3">Community</h3>
-          <div class="docs-concept-grid">
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Vue Discord</div>
-              <p class="docs-concept-body"><span class="mono">chat.vuejs.org</span> — active community for Composition API questions, Pinia patterns, and component design.</p>
+          <div id="contributing" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Contributing</h3>
+            <p class="docs-sub-body">
+              File issues for bugs or feature requests. For code changes, open a PR
+              against <code class="docs-code">master</code> with a clear description of
+              the change and why it is needed. A few conventions:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span>Prefer editing existing files over creating new ones</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span>Match the existing code style — no reformatting unrelated code</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span>No linting bypasses (<code class="docs-code">--no-verify</code> etc.)</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span>Keep components focused and minimal — no premature abstractions</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span>Security: no SQL injection, XSS, or exposed secrets in commits</div>
             </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Quasar Discord</div>
-              <p class="docs-concept-body"><span class="mono">discord.quasar.dev</span> — Quasar-specific help for component props, CLI issues, and custom theme questions.</p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Vue School</div>
-              <p class="docs-concept-body"><span class="mono">vueschool.io</span> — video courses on Vue 3, Pinia, and Vue Router. Free tier covers Composition API fundamentals.</p>
-            </div>
-            <div class="docs-concept-card">
-              <div class="docs-concept-title">Quasar Forum</div>
-              <p class="docs-concept-body"><span class="mono">forum.quasar.dev</span> — searchable Q&amp;A for component-level issues. Check here before filing a GitHub issue.</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="docs-section" id="data-model">
-          <h2 class="docs-h2">Data Model</h2>
-          <p class="docs-body">
-            All types are defined in <span class="mono">src/models/index.ts</span>.
-          </p>
-          <h3 class="docs-h3">Entry</h3>
-          <p class="docs-body">
-            The central record type. <span class="mono">type</span> determines
-            which UI surfaces display it:
-          </p>
-          <div class="docs-arch-table">
-            <div class="docs-arch-row docs-arch-row--hd">
-              <span>type</span><span>Appears in</span>
-            </div>
-            <div class="docs-arch-row"><span class="mono">need</span><span>Address book, community feed</span></div>
-            <div class="docs-arch-row"><span class="mono">offering</span><span>Address book, community feed</span></div>
-            <div class="docs-arch-row"><span class="mono">pickup_queue</span><span>Queue list, logistics diagram, 3-week grid</span></div>
-            <div class="docs-arch-row"><span class="mono">upcoming_need</span><span>Calendar, staged messages</span></div>
-            <div class="docs-arch-row"><span class="mono">calendar_event</span><span>Calendar (auto-generated from locations)</span></div>
-          </div>
-          <h3 class="docs-h3">Store actions (key subset)</h3>
-          <div class="docs-code-block">
-            <div class="docs-code-line"><span class="code-key">addEntry</span>(entry, shouldSync?)      <span class="code-comment"># IndexedDB.put() + optional cloud sync</span></div>
-            <div class="docs-code-line"><span class="code-key">updateEntry</span>(id, entry)           <span class="code-comment"># updateEntryInDatabase + reload</span></div>
-            <div class="docs-code-line"><span class="code-key">claimEntry</span>(id, name)            <span class="code-comment"># sets claimedBy + claimedAt + status=claimed</span></div>
-            <div class="docs-code-line"><span class="code-key">transitEntry</span>(id)               <span class="code-comment"># status → in_transit</span></div>
-            <div class="docs-code-line"><span class="code-key">completeEntry</span>(id)              <span class="code-comment"># status → delivered + completedAt</span></div>
-            <div class="docs-code-line"><span class="code-key">stockEntry</span>(id)                 <span class="code-comment"># status → stocked</span></div>
-            <div class="docs-code-line"><span class="code-key">unclaimEntry</span>(id)               <span class="code-comment"># clears claim fields</span></div>
-          </div>
-        </section>
-
-        <section class="docs-section" id="e8-lattice">
-          <h2 class="docs-h2">E8 Lattice Security</h2>
-          <p class="docs-body">
-            The visualisation in Admin → Oracle → Lattice is a live readout of
-            the mathematical process that seals every database record. What you
-            see is a projection of the <strong>E8 root lattice</strong> onto its
-            Coxeter plane: 240 points in 8 concentric rings whose radii are
-            determined by the Coxeter exponents
-            <span class="mono">m = 1, 7, 11, 13, 17, 19, 23, 29</span>
-            (Coxeter number h = 30).
-          </p>
-          <h3 class="docs-h3">The 8 Chern root vectors</h3>
-          <p class="docs-body">
-            A passphrase is processed through <strong>HKDF-SHA256</strong>
-            (FIPS 198) with the organisation salt, producing 512 bits. These
-            are split into 8 × 64-bit chunks; the top 53 bits of each become
-            a floating-point number y<sub>l</sub> ∈ (0, 1) — one
-            <em>Chern root</em> per E8 dimension. Each root selects an angular
-            position on its assigned exponent ring; the 8 glowing beams are
-            those positions made visible.
-          </p>
-          <h3 class="docs-h3">The commitment scalar C</h3>
-          <p class="docs-body">
-            Three Jacobi theta functions θ₁, θ₂, θ₃ at modular parameter τ = i
-            are evaluated at all 8 roots using 15-term truncated infinite-product
-            formulae. The products π₁, π₂, π₃ yield:
-          </p>
-          <p class="docs-body" style="text-align:center">
-            <span class="mono">C = ½(π₁ + π₂ + π₃)</span>
-          </p>
-          <p class="docs-body">
-            C is stored as a 16-character IEEE 754 hex string alongside every
-            record. If any protected field is altered outside the application,
-            the recomputed C will differ by approximately
-            <span class="mono">5 × 10⁻³</span> — far above the noise floor of
-            <span class="mono">10⁻¹⁰</span>.
-          </p>
-          <p class="docs-body">
-            The dual-passphrase mode in the Explorer lets you compare two
-            passphrases side-by-side: passphrase A renders solid vectors,
-            passphrase B renders dashed — and the separation
-            <span class="mono">|Δ| = |C_A − C_B|</span> is displayed as a
-            scalar in E8 space.
-          </p>
-        </section>
-
-        <section class="docs-section" id="commitment-pipeline">
-          <h2 class="docs-h2">Commitment Pipeline</h2>
-          <ol class="docs-list">
-            <li>
-              <strong>INPUT</strong> — Protected fields serialised to canonical
-              JSON with sorted keys, then concatenated with an org-level salt.
-              Sorted keys guarantee identical bytes across platforms.
-            </li>
-            <li>
-              <strong>HKDF-SHA256</strong> — Canonical string processed by HKDF
-              (RFC 5869) with label
-              <span class="mono">e8-record-integrity-v1</span>, producing
-              64 bytes (512 bits).
-            </li>
-            <li>
-              <strong>CHERN ROOTS</strong> — Each 8-byte block → 64-bit integer
-              → top 53 bits / 2⁵³ → uniform double ∈ (0, 1). Floor of 10⁻⁹
-              avoids theta singularities.
-            </li>
-            <li>
-              <strong>θ PRODUCTS</strong> — θ₁, θ₂, θ₃ evaluated per root, multiplied across all 8 dimensions → π₁, π₂, π₃.
-            </li>
-            <li>
-              <strong>COMMITMENT C</strong> — <span class="mono">½(π₁ + π₂ + π₃)</span>,
-              stored as IEEE 754 hex.
-            </li>
-            <li>
-              <strong>DATABASE</strong> — <span class="mono">e8_commitment</span>
-              and <span class="mono">e8_checked_at</span> written atomically.
-              Verification recomputes C and compares — no secrets leave the server.
-            </li>
-          </ol>
-          <p class="docs-body">
-            Cross-language correctness is verified by a test-vector suite:
-            the C reference (<span class="mono">crypto/e8_theta.c</span>) and
-            the TypeScript port (<span class="mono">crypto/e8_theta.ts</span>)
-            produce bit-identical IEEE 754 results for all 8 test vectors at 0 ULP.
-          </p>
-        </section>
-
-        <section class="docs-section" id="trust-architecture">
-          <h2 class="docs-h2">Trust Architecture</h2>
-          <p class="docs-body">
-            The system forms a two-tier sealed flow: mutable stores at the top
-            write E8 commitments through a central seal, which fans out to
-            permanent decentralised archives below.
-          </p>
-          <h3 class="docs-h3">Mutable store tier</h3>
-          <div class="docs-adapter-grid">
-            <div class="docs-adapter-card">
-              <span class="material-icons dac-icon" style="color:#00e5ff">cloud</span>
-              <span class="dac-name">Supabase</span>
-              <p class="dac-body">Cloud Postgres with RLS. Integrity stored inline or in <span class="mono">_e8_integrity_log</span>.</p>
-            </div>
-            <div class="docs-adapter-card">
-              <span class="material-icons dac-icon" style="color:#fdd835">sync</span>
-              <span class="dac-name">IndexedDB</span>
-              <p class="dac-body">Browser-local. Integrity verified before any record reaches the network.</p>
-            </div>
-            <div class="docs-adapter-card">
-              <span class="material-icons dac-icon" style="color:#69f0ae">water</span>
-              <span class="dac-name">Nile</span>
-              <p class="dac-body">Multi-tenant Postgres via <span class="mono">nile.tenant_id</span>. Standard <span class="mono">pg</span> driver — no proprietary client.</p>
-            </div>
-          </div>
-          <h3 class="docs-h3">Immutable archive tier</h3>
-          <div class="docs-adapter-grid">
-            <div class="docs-adapter-card dac-web3">
-              <span class="material-icons dac-icon" style="color:#00aaff">public</span>
-              <span class="dac-name">Arweave</span>
-              <p class="dac-body">Permanent blockweave. AR transaction <span class="mono">txId</span> is a retrievable proof anchor.</p>
-            </div>
-            <div class="docs-adapter-card dac-web3">
-              <span class="material-icons dac-icon" style="color:#e4772d">push_pin</span>
-              <span class="dac-name">Pinata</span>
-              <p class="dac-body">IPFS pinning. Returned CID is stable across every gateway.</p>
-            </div>
-            <div class="docs-adapter-card dac-web3">
-              <span class="material-icons dac-icon" style="color:#ce93d8">token</span>
-              <span class="dac-name">NFT Metadata</span>
-              <p class="dac-body">Commitment hashes minted on low-gas EVM chains (Polygon, Base). Publicly auditable without mainnet cost.</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="docs-section" id="contributing">
-          <h2 class="docs-h2">Contributing</h2>
-          <p class="docs-body">
-            FoodBank is MIT licensed. Contributions are welcome — bug reports,
-            feature requests, translations, and pull requests.
-          </p>
-          <ol class="docs-list">
-            <li>Fork the repo and clone it locally</li>
-            <li>
-              <span class="mono">npm install</span> then
-              <span class="mono">quasar dev</span> — the app runs at
-              <span class="mono">localhost:9000</span>
-            </li>
-            <li>Create a branch: <span class="mono">git checkout -b feat/your-feature</span></li>
-            <li>Write code; ESLint and TypeScript checks run on save</li>
-            <li>Run <span class="mono">quasar build</span> to verify no build errors</li>
-            <li>Open a pull request — describe the problem it solves</li>
-          </ol>
-          <p class="docs-body">
-            The <span class="mono">crypto/</span> directory contains the E8 theta
-            implementation with a standalone test suite. If you modify the math,
-            run <span class="mono">node crypto/test_vectors.js</span> and confirm
-            0 ULP divergence from the C reference.
-          </p>
-          <div class="docs-badge-row" style="margin-top:18px">
-            <span class="docs-badge docs-badge--green">Issues welcome</span>
-            <span class="docs-badge docs-badge--cyan">PRs reviewed</span>
-            <span class="docs-badge docs-badge--yellow">MIT License</span>
           </div>
         </section>
 
@@ -1165,35 +642,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-
-// ── TOC definition ────────────────────────────────────────────────
+import { ref, onMounted, onUnmounted } from 'vue'
 
 interface TocItem  { id: string; label: string }
 interface TocGroup { id: string; label: string; items: TocItem[] }
 
+const activeId = ref('')
+const contentEl = ref<HTMLElement | null>(null)
+
 const TOC: TocGroup[] = [
   {
-    id: 'overview', label: 'OVERVIEW',
+    id: 'overview',
+    label: 'OVERVIEW',
     items: [
       { id: 'what-is-foodbank', label: 'What is FoodBank?' },
-      { id: 'key-concepts',    label: 'Key Concepts' },
-      { id: 'architecture',   label: 'Architecture' },
+      { id: 'key-concepts',     label: 'Key Concepts' },
+      { id: 'architecture',     label: 'Architecture' },
+      { id: 'roles',            label: 'Roles' },
     ],
   },
   {
-    id: 'for-users', label: 'FOR USERS',
+    id: 'for-users',
+    label: 'FOR USERS',
     items: [
       { id: 'getting-started', label: 'Getting Started' },
       { id: 'your-profile',    label: 'Your Profile' },
       { id: 'pickup-queue',    label: 'Pickup Queue' },
       { id: 'logistics-view',  label: 'Logistics View' },
       { id: 'calendar',        label: 'Calendar' },
+      { id: 'needs-board',     label: 'Needs & Items Board' },
     ],
   },
   {
-    id: 'for-admins', label: 'FOR ADMINS',
+    id: 'for-admins',
+    label: 'FOR ADMINS',
     items: [
+      { id: 'admin-overview',     label: 'Admin Panel' },
       { id: 'setup-wizard',       label: 'Setup Wizard' },
       { id: 'managing-locations', label: 'Managing Locations' },
       { id: 'invites-members',    label: 'Invites & Members' },
@@ -1202,13 +686,14 @@ const TOC: TocGroup[] = [
     ],
   },
   {
-    id: 'for-deployers', label: 'FOR DEPLOYERS',
+    id: 'for-deployers',
+    label: 'FOR DEPLOYERS',
     items: [
       { id: 'quick-install',       label: 'Quick Install' },
       { id: 'requirements',        label: 'Requirements' },
       { id: 'environment',         label: 'Environment Config' },
       { id: 'supabase-setup',      label: 'Supabase Setup' },
-      { id: 'supabase-functions',  label: 'Supabase Functions' },
+      { id: 'supabase-functions',  label: 'Edge Functions' },
       { id: 'alternative-stacks',  label: 'Alternative Stacks' },
       { id: 'vercel-functions',    label: 'Vercel Functions' },
       { id: 'messaging-providers', label: 'Messaging Providers' },
@@ -1216,480 +701,532 @@ const TOC: TocGroup[] = [
     ],
   },
   {
-    id: 'for-developers', label: 'FOR DEVELOPERS',
+    id: 'for-developers',
+    label: 'FOR DEVELOPERS',
     items: [
       { id: 'project-structure',   label: 'Project Structure' },
       { id: 'learning-resources',  label: 'Vue & Quasar' },
       { id: 'data-model',          label: 'Data Model' },
-      { id: 'e8-lattice',          label: 'E8 Lattice Security' },
+      { id: 'e8-lattice',          label: 'E8 Lattice' },
       { id: 'commitment-pipeline', label: 'Commitment Pipeline' },
       { id: 'trust-architecture',  label: 'Trust Architecture' },
       { id: 'contributing',        label: 'Contributing' },
     ],
   },
-];
+]
 
-// All groups open by default
-const openGroups   = ref<Set<string>>(new Set(TOC.map(g => g.id)));
-const activeSection = ref<string>('what-is-foodbank');
-
-function toggleGroup(id: string) {
-  const s = new Set(openGroups.value);
-  if (s.has(id)) s.delete(id); else s.add(id);
-  openGroups.value = s;
+function updateActive () {
+  const el = contentEl.value
+  if (!el) return
+  const sections = el.querySelectorAll<HTMLElement>('[data-docs-section]')
+  // containerTop = where the content scroll area starts in the viewport
+  const containerTop = el.getBoundingClientRect().top
+  let best = ''
+  let bestDist = Infinity
+  sections.forEach(s => {
+    // position relative to the scroll container's viewport
+    const top = s.getBoundingClientRect().top - containerTop
+    if (top <= 80) {
+      const dist = Math.abs(top - 80)
+      if (dist < bestDist) { bestDist = dist; best = s.id }
+    }
+  })
+  if (best) activeId.value = best
 }
 
-function scrollTo(id: string) {
-  activeSection.value = id;
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function scrollTo (id: string) {
+  const el = contentEl.value
+  if (!el) return
+  const target = el.querySelector<HTMLElement>('#' + id)
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
-
-// Scroll spy via IntersectionObserver
-let observer: IntersectionObserver | null = null;
 
 onMounted(() => {
-  const allIds = TOC.flatMap(g => g.items.map(i => i.id));
-  observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          activeSection.value = entry.target.id;
-        }
-      }
-    },
-    { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
-  );
-  for (const id of allIds) {
-    const el = document.getElementById(id);
-    if (el) observer.observe(el);
-  }
-});
-
+  contentEl.value?.addEventListener('scroll', updateActive, { passive: true })
+  updateActive()
+})
 onUnmounted(() => {
-  observer?.disconnect();
-});
+  contentEl.value?.removeEventListener('scroll', updateActive)
+})
 </script>
 
 <style scoped>
-
-/* ── Page shell ──────────────────────────────────────────────────── */
-
+/* ── Page & Layout ─────────────────────────────────────── */
 .docs-page {
-  background: var(--wb-bg);
-  min-height: 100vh;
+  background: var(--wb-bg-page);
+  /* Fill exactly the visible area below the header */
+  height: calc(100vh - var(--q-header-height, 50px));
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column;
 }
 
 .docs-layout {
   display: flex;
-  align-items: flex-start;
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;      /* allow shrink below content height */
+  overflow: hidden;
 }
 
-/* ── Left TOC ────────────────────────────────────────────────────── */
+/* ── Sidebar — fixed height, own scroll, never scrolls away */
+.docs-sidebar {
+  width: 210px;
+  min-width: 210px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--wb-border-subtle);
+  padding: 28px 0 40px 20px;
+  scrollbar-width: none;
+}
+.docs-sidebar::-webkit-scrollbar { display: none; }
+
+.docs-sidebar-brand {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--wb-accent);
+  margin-bottom: 22px;
+}
 
 .docs-toc {
-  display: none;
-}
-
-@media (min-width: 860px) {
-  .docs-toc {
-    display: block;
-    width: 210px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 58px;
-    max-height: calc(100vh - 58px);
-    overflow-y: auto;
-    border-right: 1px solid var(--wb-border-subtle);
-    background: var(--wb-surface);
-  }
-}
-
-.docs-toc-inner {
-  padding: 20px 0 40px;
-}
-
-.docs-toc-brand {
-  font-weight: 900;
-  font-size: 0.5rem;
-  letter-spacing: 5px;
-  color: var(--wb-accent);
-  padding: 0 16px 14px;
-  border-bottom: 1px solid var(--wb-border-subtle);
-  margin-bottom: 8px;
-}
-
-.docs-toc-group {
-  margin-bottom: 2px;
-}
-
-.docs-toc-group-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 6px 16px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--wb-font);
-  transition: background 0.1s;
-}
-
-.docs-toc-group-hd:hover { background: var(--wb-surface-hover); }
-
-.docs-toc-group-label {
-  font-weight: 800;
-  font-size: 0.44rem;
-  letter-spacing: 2.5px;
-  color: var(--wb-text-faint);
-}
-
-.docs-toc-group-hd--open .docs-toc-group-label {
-  color: var(--wb-text-muted);
-}
-
-.docs-toc-items {
   display: flex;
   flex-direction: column;
-  padding-bottom: 4px;
+  gap: 18px;
 }
 
-.docs-toc-item {
-  display: block;
-  padding: 4px 16px 4px 24px;
-  font-weight: 600;
-  font-size: 0.68rem;
+.docs-toc-group-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 2px;
   color: var(--wb-text-faint);
+  margin-bottom: 5px;
+}
+
+.docs-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.docs-toc-link {
+  display: block;
+  padding: 3px 8px 3px 10px;
+  font-size: 11.5px;
+  color: var(--wb-text-muted);
   text-decoration: none;
   border-left: 2px solid transparent;
-  transition: all 0.1s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  border-radius: 0 3px 3px 0;
   line-height: 1.4;
 }
-
-.docs-toc-item:hover {
-  color: var(--wb-text-muted);
+.docs-toc-link:hover {
+  color: var(--wb-text);
   background: var(--wb-surface-hover);
+  border-left-color: var(--wb-border-mid);
 }
-
-.docs-toc-item--active {
+.docs-toc-link.is-active {
   color: var(--wb-accent);
   border-left-color: var(--wb-accent);
-  background: rgba(253, 216, 53, 0.05);
+  font-weight: 700;
+  background: rgba(253,216,53,0.06);
 }
 
-/* ── Main content area ───────────────────────────────────────────── */
-
+/* ── Main content — own scroll container ────────────────── */
 .docs-content {
   flex: 1;
   min-width: 0;
-  max-width: 760px;
-  padding: 36px 28px 100px;
+  overflow-y: auto;
+  padding: 36px 48px 80px 44px;
 }
 
-/* ── Chapter dividers ────────────────────────────────────────────── */
-
-.docs-chapter-divider {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 52px 0 28px;
-  padding-top: 8px;
-  border-top: 2px solid var(--wb-border-mid);
-}
-
-.docs-chapter-divider:first-child {
-  margin-top: 0;
-  border-top: none;
-}
-
-.docs-chapter-label {
-  font-weight: 900;
-  font-size: 0.55rem;
-  letter-spacing: 5px;
-  color: var(--wb-accent);
-  white-space: nowrap;
-}
-
-/* ── Sections ────────────────────────────────────────────────────── */
-
-.docs-section {
-  margin-bottom: 48px;
-  scroll-margin-top: 72px;
-}
-
-.docs-h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--wb-text);
-  margin: 0 0 14px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--wb-border-subtle);
-}
-
-.docs-h3 {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--wb-accent);
-  margin: 24px 0 8px;
-  text-transform: uppercase;
-}
-
-.docs-body {
-  font-size: 13px;
-  color: var(--wb-text-muted);
-  line-height: 1.8;
-  margin: 0 0 12px;
-}
-
-.mono {
-  font-family: monospace;
-  font-size: 11.5px;
-  background: color-mix(in srgb, var(--wb-accent) 9%, transparent);
-  color: var(--wb-accent);
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-
-/* ── Badges ──────────────────────────────────────────────────────── */
-
-.docs-badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.docs-badge {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.58rem;
-  letter-spacing: 1.5px;
-  border: 1px solid;
-}
-
-.docs-badge--green  { color: var(--wb-positive, #69f0ae);         border-color: var(--wb-positive, #69f0ae); }
-.docs-badge--cyan   { color: var(--wb-info, #00e5ff);              border-color: var(--wb-info, #00e5ff); }
-.docs-badge--violet { color: var(--wb-queue-transit, #ce93d8);     border-color: var(--wb-queue-transit, #ce93d8); }
-.docs-badge--yellow { color: var(--wb-accent, #fdd835);            border-color: var(--wb-accent, #fdd835); }
-
-/* ── Concept cards ───────────────────────────────────────────────── */
-
-.docs-concept-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.docs-concept-card {
+/* ── Quick Start banner ─────────────────────────────────── */
+.docs-quickstart {
   background: var(--wb-surface);
-  border: 1px solid var(--wb-border-mid);
-  border-radius: 6px;
-  padding: 14px 16px;
+  border: 1px solid var(--wb-border-subtle);
+  border-left: 3px solid var(--wb-accent);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-bottom: 40px;
 }
-
-.docs-concept-title {
+.docs-qs-label {
+  font-size: 9px;
   font-weight: 800;
-  font-size: 0.7rem;
-  letter-spacing: 1px;
-  color: var(--wb-text);
-  margin-bottom: 6px;
-}
-
-.docs-concept-body {
-  font-size: 11px;
-  color: var(--wb-text-faint);
-  line-height: 1.65;
-  margin: 0;
-}
-
-/* ── Architecture table ──────────────────────────────────────────── */
-
-.docs-arch-table {
-  border: 1px solid var(--wb-border-mid);
-  border-radius: 6px;
-  overflow: hidden;
-  font-size: 12px;
-}
-
-.docs-arch-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
-  gap: 0;
-  border-bottom: 1px solid var(--wb-border-subtle);
-  color: var(--wb-text-muted);
-}
-
-.docs-arch-row:last-child { border-bottom: none; }
-
-.docs-arch-row > * {
-  padding: 8px 12px;
-  border-right: 1px solid var(--wb-border-subtle);
-}
-
-.docs-arch-row > *:last-child { border-right: none; }
-
-.docs-arch-row--hd {
-  background: var(--wb-surface);
-  font-weight: 800;
-  font-size: 0.5rem;
   letter-spacing: 2px;
-  color: var(--wb-text-faint);
-  text-transform: uppercase;
+  color: var(--wb-accent);
+  margin-bottom: 12px;
 }
-
-/* ── Status rows ─────────────────────────────────────────────────── */
-
-.docs-status-row {
+.docs-qs-steps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.docs-qs-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--wb-border-subtle);
-  font-size: 12px;
+  gap: 8px;
+  flex: 1;
+  min-width: 180px;
 }
-
-.docs-status-dot {
-  width: 9px;
-  height: 9px;
+.docs-qs-num {
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
+  background: var(--wb-accent);
+  color: var(--wb-accent-text);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
+.docs-qs-text {
+  font-size: 12px;
+  color: var(--wb-text-mid);
+  line-height: 1.4;
+}
 
-.docs-status-label {
+/* ── Sections ───────────────────────────────────────────── */
+.docs-section {
+  margin-bottom: 52px;
+}
+.docs-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--wb-border-mid);
+}
+.docs-section-badge {
+  font-size: 10px;
   font-weight: 800;
-  font-size: 0.58rem;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
+  color: var(--wb-accent);
+}
+.docs-section-title {
+  font-size: 19px;
+  font-weight: 800;
   color: var(--wb-text);
-  min-width: 70px;
+  margin: 0;
+  letter-spacing: 0.3px;
 }
 
-.docs-status-desc { color: var(--wb-text-faint); }
+/* ── Subsections ────────────────────────────────────────── */
+.docs-sub {
+  margin-bottom: 26px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+.docs-sub:last-child {
+  border-bottom: none;
+}
+.docs-sub-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--wb-text);
+  margin: 0 0 7px;
+}
+.docs-sub-body {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--wb-text-muted);
+  margin: 0 0 6px;
+}
 
-/* ── Lists ───────────────────────────────────────────────────────── */
+/* ── Inline ─────────────────────────────────────────────── */
+.docs-keyword {
+  color: var(--wb-text);
+  font-weight: 700;
+}
+.docs-code {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  background: var(--wb-surface-hover);
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--wb-info);
+}
 
-.docs-list {
-  margin: 0 0 12px;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
+/* ── Concept grid ───────────────────────────────────────── */
+.docs-concept-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+  margin-top: 10px;
 }
-
-.docs-list li {
-  font-size: 13px;
+.docs-concept-card {
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+.docs-concept-icon { font-size: 18px; margin-bottom: 4px; }
+.docs-concept-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wb-text);
+  margin-bottom: 4px;
+}
+.docs-concept-desc {
+  font-size: 11.5px;
+  line-height: 1.5;
   color: var(--wb-text-muted);
-  line-height: 1.7;
 }
 
-.docs-list li strong { color: var(--wb-text); }
+/* ── Architecture strip ─────────────────────────────────── */
+.docs-arch-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.docs-arch-node {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  color: var(--wb-text-mid);
+  background: var(--wb-surface);
+  line-height: 1.4;
+  text-align: center;
+}
+.docs-arch-sub {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--wb-text-faint);
+  display: block;
+}
+.docs-arch-node--cloud { border-color: var(--wb-info); color: var(--wb-info); }
+.docs-arch-arrow { font-size: 16px; color: var(--wb-text-faint); }
 
-.docs-ul {
-  margin: 0 0 12px;
-  padding-left: 18px;
+/* ── Role table ─────────────────────────────────────────── */
+.docs-role-table {
+  margin-top: 10px;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.docs-role-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 150px;
+  gap: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  font-size: 12px;
+  color: var(--wb-text-muted);
+  align-items: center;
+}
+.docs-role-row:last-child { border-bottom: none; }
+.docs-role-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--wb-text-faint);
+  background: var(--wb-surface);
+  letter-spacing: 1px;
+}
+.docs-role-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+.docs-role--admin    { background: rgba(239,83,80,0.15); color: var(--wb-negative); }
+.docs-role--driver   { background: rgba(105,240,174,0.15); color: var(--wb-positive); }
+.docs-role--stock    { background: rgba(206,147,216,0.15); color: var(--wb-queue-transit); }
+.docs-role--logistics{ background: rgba(130,177,255,0.15); color: var(--wb-info); }
+.docs-role--member   { background: rgba(255,255,255,0.08); color: var(--wb-text-muted); }
+
+/* ── Status flow ────────────────────────────────────────── */
+.docs-status-flow {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  max-width: 220px;
+}
+.docs-sf-node {
+  padding: 7px 14px;
+  border-radius: 3px;
+  border-left: 3px solid transparent;
+}
+.docs-sf-label { font-size: 11px; font-weight: 700; }
+.docs-sf-hint  { font-size: 10px; opacity: 0.7; }
+.docs-sf-arrow { font-size: 14px; color: var(--wb-text-faint); padding-left: 14px; }
+.docs-sf--pending   { background: rgba(255,171,64,0.1); border-left-color: var(--wb-queue-pending); color: var(--wb-queue-pending); }
+.docs-sf--claimed   { background: rgba(130,177,255,0.1); border-left-color: var(--wb-queue-claimed); color: var(--wb-queue-claimed); }
+.docs-sf--transit   { background: rgba(105,240,174,0.12); border-left-color: var(--wb-positive); color: var(--wb-positive); }
+.docs-sf--delivered { background: rgba(105,240,174,0.08); border-left-color: var(--wb-queue-delivered); color: var(--wb-queue-delivered); }
+.docs-sf--stocked   { background: rgba(206,147,216,0.1); border-left-color: var(--wb-queue-transit); color: var(--wb-queue-transit); }
+
+/* ── Needs bin row ──────────────────────────────────────── */
+.docs-bin-row {
+  display: flex;
   gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
+.docs-bin {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 12px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+.docs-bin-desc { font-size: 10px; font-weight: 400; margin-top: 3px; opacity: 0.8; }
+.docs-bin--available { background: rgba(0,255,122,0.07); border-color: rgba(0,255,122,0.3); color: var(--bin-available, #00ff7a); }
+.docs-bin--expected  { background: rgba(255,226,0,0.07); border-color: rgba(255,226,0,0.3); color: var(--bin-expected, #ffe200); }
+.docs-bin--offered   { background: rgba(0,229,255,0.07); border-color: rgba(0,229,255,0.3); color: var(--bin-offered, #00e5ff); }
+.docs-bin--need      { background: rgba(255,45,189,0.07); border-color: rgba(255,45,189,0.3); color: var(--bin-need, #ff2dbd); }
 
-.docs-ul li {
-  font-size: 13px;
+/* ── Lists ──────────────────────────────────────────────── */
+.docs-list { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.docs-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
   color: var(--wb-text-muted);
-  line-height: 1.7;
+  line-height: 1.5;
 }
+.docs-list-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.docs-dot--accent   { background: var(--wb-accent); }
+.docs-dot--info     { background: var(--wb-info); }
+.docs-dot--warning  { background: var(--wb-warning); }
+.docs-dot--positive { background: var(--wb-positive); }
 
-.docs-ul li strong { color: var(--wb-text); }
-
-/* ── Code blocks ─────────────────────────────────────────────────── */
-
+/* ── Code blocks ────────────────────────────────────────── */
 .docs-code-block {
   background: var(--wb-surface);
-  border: 1px solid var(--wb-border-mid);
-  border-radius: 6px;
-  padding: 14px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-top: 8px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11.5px;
+  color: var(--wb-text-mid);
+  line-height: 1.7;
   overflow-x: auto;
 }
+.docs-code-line { white-space: pre; }
+.docs-code-comment { color: var(--wb-text-faint); font-style: italic; }
+.docs-code-kw { color: var(--wb-info); font-weight: 700; }
 
-.docs-code-block--tree .docs-code-line {
-  font-family: monospace;
-  font-size: 11.5px;
-  color: var(--wb-text-muted);
-  white-space: pre;
+/* ── Requirements grid ──────────────────────────────────── */
+.docs-req-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
 }
-
-.docs-code-line {
-  font-family: monospace;
-  font-size: 11.5px;
-  color: var(--wb-text-muted);
-  white-space: pre;
+.docs-req-item {
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  padding: 8px 12px;
+  min-width: 80px;
+  text-align: center;
 }
+.docs-req-name { font-size: 10px; font-weight: 700; color: var(--wb-text-faint); }
+.docs-req-val  { font-size: 13px; font-weight: 700; color: var(--wb-text); margin-top: 2px; }
 
-.docs-code-comment { color: var(--wb-text-faint); }
-
-.code-key   { color: var(--wb-accent); }
-.code-comment { color: var(--wb-text-faint); }
-
-/* ── Adapter cards ───────────────────────────────────────────────── */
-
-.docs-adapter-grid {
+/* ── Function cards ─────────────────────────────────────── */
+.docs-fn-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
 }
+.docs-fn-card {
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  padding: 10px 12px;
+}
+.docs-fn-name { font-family: 'Roboto Mono', monospace; font-size: 11px; font-weight: 700; color: var(--wb-info); margin-bottom: 3px; }
+.docs-fn-desc { font-size: 11px; color: var(--wb-text-muted); line-height: 1.4; }
 
-.docs-adapter-card {
+/* ── Pipeline ───────────────────────────────────────────── */
+.docs-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.docs-pipe-step {
   background: var(--wb-surface);
   border: 1px solid var(--wb-border-mid);
-  border-radius: 6px;
-  padding: 14px 16px;
+  border-radius: 3px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--wb-text-mid);
+  text-align: center;
+  line-height: 1.3;
+}
+.docs-pipe-step--out { border-color: var(--wb-positive); color: var(--wb-positive); }
+.docs-pipe-sub { font-size: 9px; font-weight: 400; color: var(--wb-text-faint); display: block; }
+.docs-pipe-arrow { font-size: 14px; color: var(--wb-text-faint); }
+
+/* ── Trust nodes ────────────────────────────────────────── */
+.docs-trust-row {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
-
-.dac-icon { font-size: 18px; }
-.dac-name { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--wb-text); }
-.dac-body { font-size: 11px; color: var(--wb-text-faint); line-height: 1.6; margin: 0; }
-.dac-web3 { border-style: dashed; opacity: 0.9; }
-
-/* ── Deploy chips ─────────────────────────────────────────────────  */
-
-.docs-deploy-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 14px 0;
+.docs-trust-node {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 12px;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wb-text-mid);
+  text-align: center;
 }
+.docs-trust-sub { font-size: 10px; font-weight: 400; color: var(--wb-text-faint); display: block; margin-top: 2px; }
+.docs-trust-node--cloud { border-color: var(--wb-info); color: var(--wb-info); }
+.docs-trust-node--nile  { border-color: var(--wb-queue-transit); color: var(--wb-queue-transit); }
 
-.docs-deploy-chip {
-  display: block;
-  padding: 8px 14px;
-  border-radius: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.5;
-  border: 1px solid;
+/* ── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  /* On mobile the sidebar is hidden — restore normal page scroll */
+  .docs-page {
+    height: auto;
+    overflow: visible;
+  }
+  .docs-layout {
+    overflow: visible;
+  }
+  .docs-content {
+    overflow-y: visible;
+    padding: 20px 18px 60px;
+  }
+  .docs-sidebar { display: none; }
+  .docs-concept-grid { grid-template-columns: 1fr; }
+  .docs-fn-grid { grid-template-columns: 1fr; }
+  .docs-role-row { grid-template-columns: 1fr 1fr; }
+  .docs-role-row > div:last-child { display: none; }
 }
-
-.docs-deploy-chip--vercel {
-  background: rgba(0, 0, 0, 0.35);
-  border-color: var(--wb-border-mid);
-  color: var(--wb-text-muted);
-}
-
-.docs-deploy-chip--netlify {
-  background: rgba(0, 229, 255, 0.04);
-  border-color: color-mix(in srgb, var(--wb-info) 30%, transparent);
-  color: var(--wb-text-muted);
-}
-
 </style>

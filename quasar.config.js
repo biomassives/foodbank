@@ -79,7 +79,21 @@ module.exports = configure(function (/* ctx */) {
       // polyfillModulePreload: true,
       // distDir
 
-      // extendViteConf (viteConf) {},
+      extendViteConf (viteConf) {
+        const fs = require('fs');
+        viteConf.plugins = viteConf.plugins || [];
+        viteConf.plugins.push({
+          name: 'dump-docs-page',
+          enforce: 'post',
+          transform(code, id) {
+            if (id.includes('DocsPage')) {
+              const safe = id.replace(/[^a-z0-9]/gi,'_').slice(-80);
+              fs.writeFileSync('/tmp/dp_post_' + safe + '.js', code, 'utf8');
+            }
+            return null;
+          }
+        });
+      },
       // viteVuePluginOptions: {},
 
       
