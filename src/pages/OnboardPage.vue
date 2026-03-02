@@ -1,56 +1,151 @@
 <template>
-  <q-page class="onboard-page">
-    <div class="onboard-wrap">
 
-      <!-- Brand -->
-      <div class="onboard-brand">
-        <div class="onboard-brand-title">{{ t.app.name }}</div>
-        <div class="onboard-brand-tagline">{{ t.app.tagline }}</div>
-      </div>
+<q-page class="onboard-page">
+<div class="onboard-wrap">
 
-      <!-- ============ Card 1: Sign In (Sunset / Factory Skyline) ============ -->
-      <div
-        class="onboard-card theme-sunset q-mb-md"
-        :class="{ expanded: activeCard === 'login' }"
-        @click="toggle('login')"
-      >
-        <div class="onboard-hero">
-          <!-- Vector: Factory skyline at dusk -->
-          <svg class="hero-art" viewBox="0 0 460 180" preserveAspectRatio="none">
-            <!-- Sun -->
-            <circle cx="230" cy="52" r="40" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-dasharray="6 4" />
-            <circle cx="230" cy="52" r="28" fill="rgba(255,255,255,0.1)" />
-            <circle cx="230" cy="52" r="14" fill="rgba(255,255,255,0.07)" />
-            <!-- Horizon -->
-            <line x1="0" y1="100" x2="460" y2="100" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-            <!-- Factory blocks -->
-            <rect x="0" y="135" width="460" height="45" fill="rgba(0,0,0,0.12)" />
-            <rect x="10" y="112" width="55" height="68" fill="rgba(0,0,0,0.32)" />
-            <rect x="70" y="98" width="40" height="82" fill="rgba(0,0,0,0.28)" />
-            <rect x="118" y="118" width="62" height="62" fill="rgba(0,0,0,0.22)" />
-            <rect x="192" y="104" width="48" height="76" fill="rgba(0,0,0,0.3)" />
-            <rect x="248" y="122" width="58" height="58" fill="rgba(0,0,0,0.2)" />
-            <rect x="314" y="108" width="44" height="72" fill="rgba(0,0,0,0.26)" />
-            <rect x="364" y="120" width="72" height="60" fill="rgba(0,0,0,0.18)" />
-            <!-- Chimneys -->
-            <rect x="30" y="92" width="5" height="20" fill="rgba(0,0,0,0.35)" />
-            <rect x="85" y="78" width="4" height="20" fill="rgba(0,0,0,0.3)" />
-            <rect x="208" y="86" width="5" height="18" fill="rgba(0,0,0,0.32)" />
-            <rect x="330" y="90" width="4" height="18" fill="rgba(0,0,0,0.28)" />
-            <!-- Windows -->
-            <rect x="20" y="125" width="4" height="4" fill="rgba(255,255,255,0.08)" />
-            <rect x="30" y="125" width="4" height="4" fill="rgba(255,255,255,0.06)" />
-            <rect x="20" y="135" width="4" height="4" fill="rgba(255,255,255,0.05)" />
-            <rect x="40" y="135" width="4" height="4" fill="rgba(255,255,255,0.07)" />
-            <rect x="200" y="115" width="4" height="4" fill="rgba(255,255,255,0.06)" />
-            <rect x="210" y="115" width="4" height="4" fill="rgba(255,255,255,0.05)" />
-            <rect x="200" y="125" width="4" height="4" fill="rgba(255,255,255,0.07)" />
-            <rect x="220" y="125" width="4" height="4" fill="rgba(255,255,255,0.04)" />
-            <rect x="320" y="118" width="4" height="4" fill="rgba(255,255,255,0.06)" />
-            <rect x="330" y="128" width="4" height="4" fill="rgba(255,255,255,0.05)" />
-            <rect x="380" y="130" width="4" height="4" fill="rgba(255,255,255,0.06)" />
-            <rect x="392" y="130" width="4" height="4" fill="rgba(255,255,255,0.04)" />
-          </svg>
+<!-- Brand -->
+<div class="onboard-brand">
+<div class="onboard-brand-title">{{ t.app.name }}</div>
+<div class="onboard-brand-tagline">{{ t.app.tagline }}</div>
+</div>
+
+
+<!-- ============ Card 1: Sign In (Sunset / Factory Skyline) ============ -->
+<div
+class="onboard-card theme-sunset q-mb-md"
+:class="{ expanded: activeCard === 'login' }"
+@click="toggle('login')"
+>
+
+<div class="onboard-hero">
+<!-- Vector: Factory skyline at dusk -->
+
+
+         <svg class="hero-art" viewBox="0 0 460 180" preserveAspectRatio="none">
+  <defs>
+    <filter id="neon-glow-login" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Sun (low on horizon) -->
+  <circle cx="230" cy="178" r="55"
+    :fill="tp.sunFill" :stroke="tp.sunStroke"
+    :stroke-width="activeTheme==='neon'?1.5:0"
+    :filter="tp.filter"/>
+  <!-- Sun rays -->
+  <g :stroke="tp.sunStroke" stroke-width="1" fill="none" :filter="tp.filter" opacity="0.65">
+    <line x1="230" y1="121" x2="230" y2="110"/>
+    <line x1="257" y1="128" x2="263" y2="119"/>
+    <line x1="275" y1="153" x2="285" y2="151"/>
+    <line x1="203" y1="128" x2="197" y2="119"/>
+    <line x1="185" y1="153" x2="175" y2="151"/>
+    <line x1="246" y1="123" x2="253" y2="114"/>
+    <line x1="214" y1="123" x2="207" y2="114"/>
+  </g>
+
+  <!-- Power poles -->
+  <g :stroke="tp.outline" :stroke-width="tp.sw">
+    <line x1="95" y1="92" x2="95" y2="165"/>
+    <line x1="84" y1="95" x2="106" y2="95"/>
+    <line x1="278" y1="88" x2="278" y2="165"/>
+    <line x1="267" y1="91" x2="289" y2="91"/>
+    <line x1="415" y1="95" x2="415" y2="165"/>
+    <line x1="404" y1="98" x2="426" y2="98"/>
+  </g>
+  <!-- Power wires (catenary) -->
+  <path d="M84,97 Q188,115 267,93" fill="none" :stroke="tp.wire" stroke-width="0.8"/>
+  <path d="M267,93 Q344,111 404,101" fill="none" :stroke="tp.wire" stroke-width="0.8"/>
+  <path d="M84,99 Q188,117 267,95" fill="none" :stroke="tp.wire" stroke-width="0.7" opacity="0.55"/>
+  <path d="M267,95 Q344,113 404,103" fill="none" :stroke="tp.wire" stroke-width="0.7" opacity="0.55"/>
+
+  <!-- Building 1: left warehouse -->
+  <rect x="0" y="122" width="78" height="43" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <rect x="8"  y="130" width="11" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="24" y="130" width="11" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="40" y="130" width="11" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="56" y="130" width="11" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+
+  <!-- Building 2: tall factory -->
+  <rect x="80" y="78" width="68" height="87" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <rect x="89"  y="89"  width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="104" y="89"  width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="124" y="89"  width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="89"  y="106" width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="104" y="106" width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="124" y="106" width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <!-- smokestack 1 -->
+  <rect x="118" y="52" width="12" height="28" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <ellipse cx="124" cy="47" rx="7" ry="5" fill="none" :stroke="tp.smoke" stroke-width="0.9" opacity="0.55"/>
+  <ellipse cx="122" cy="37" rx="10" ry="6" fill="none" :stroke="tp.smoke" stroke-width="0.6" opacity="0.32"/>
+  <ellipse cx="119" cy="27" rx="13" ry="7" fill="none" :stroke="tp.smoke" stroke-width="0.5" opacity="0.17"/>
+
+  <!-- Water tower -->
+  <polygon points="152,108 192,108 184,128 160,128" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <line x1="153" y1="114" x2="191" y2="114" :stroke="tp.outline" :stroke-width="tp.sw*0.5"/>
+  <line x1="155" y1="121" x2="190" y2="121" :stroke="tp.outline" :stroke-width="tp.sw*0.5"/>
+  <rect x="164" y="128" width="5" height="37" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw*0.5"/>
+  <rect x="175" y="128" width="5" height="37" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw*0.5"/>
+
+  <!-- Building 3: main factory (tallest, center) -->
+  <rect x="197" y="65" width="118" height="100" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <!-- window grid rows -->
+  <g :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4">
+    <rect x="207" y="76"  width="12" height="10"/>
+    <rect x="225" y="76"  width="12" height="10"/>
+    <rect x="243" y="76"  width="12" height="10"/>
+    <rect x="275" y="76"  width="12" height="10"/>
+    <rect x="293" y="76"  width="12" height="10"/>
+    <rect x="207" y="93"  width="12" height="10"/>
+    <rect x="225" y="93"  width="12" height="10"/>
+    <rect x="243" y="93"  width="12" height="10"/>
+    <rect x="275" y="93"  width="12" height="10"/>
+    <rect x="293" y="93"  width="12" height="10"/>
+    <rect x="207" y="110" width="12" height="10"/>
+    <rect x="225" y="110" width="12" height="10"/>
+    <rect x="243" y="110" width="12" height="10"/>
+    <rect x="275" y="110" width="12" height="10"/>
+    <rect x="293" y="110" width="12" height="10"/>
+  </g>
+  <!-- loading bay -->
+  <rect x="242" y="138" width="28" height="27" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <!-- smokestacks 2 & 3 -->
+  <rect x="215" y="40" width="14" height="28" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <rect x="280" y="43" width="12" height="25" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <ellipse cx="222" cy="35" rx="8"  ry="5" fill="none" :stroke="tp.smoke" stroke-width="0.9" opacity="0.5"/>
+  <ellipse cx="220" cy="25" rx="11" ry="7" fill="none" :stroke="tp.smoke" stroke-width="0.6" opacity="0.28"/>
+  <ellipse cx="286" cy="38" rx="7"  ry="5" fill="none" :stroke="tp.smoke" stroke-width="0.8" opacity="0.45"/>
+  <ellipse cx="284" cy="29" rx="9"  ry="6" fill="none" :stroke="tp.smoke" stroke-width="0.5" opacity="0.24"/>
+  <!-- overhead crane rail -->
+  <line x1="197" y1="65" x2="315" y2="65" :stroke="tp.outline" :stroke-width="tp.sw*1.4"/>
+  <line x1="255" y1="65" x2="255" y2="53" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <rect x="246" y="47" width="18" height="9"  :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+
+  <!-- Building 4: right factory -->
+  <rect x="323" y="96" width="85" height="69" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <g :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4">
+    <rect x="333" y="107" width="10" height="9"/>
+    <rect x="349" y="107" width="10" height="9"/>
+    <rect x="365" y="107" width="10" height="9"/>
+    <rect x="381" y="107" width="10" height="9"/>
+    <rect x="333" y="123" width="10" height="9"/>
+    <rect x="349" y="123" width="10" height="9"/>
+    <rect x="365" y="123" width="10" height="9"/>
+    <rect x="381" y="123" width="10" height="9"/>
+  </g>
+
+  <!-- Right edge building -->
+  <rect x="415" y="108" width="45" height="57" :fill="tp.building" :stroke="tp.outline" :stroke-width="tp.sw"/>
+  <rect x="424" y="119" width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+  <rect x="440" y="119" width="10" height="9" :fill="tp.windowFill" :stroke="tp.outline" :stroke-width="tp.sw*0.4"/>
+
+  <!-- Horizon & ground -->
+  <line x1="0" y1="164" x2="460" y2="164" :stroke="tp.horizon" stroke-width="0.6" opacity="0.5"/>
+  <rect x="0" y="165" width="460" height="15" :fill="tp.ground"/>
+</svg>
+
+
           <!-- Registration marks -->
           <span class="hero-reg" style="top:8px;left:10px">+</span>
           <span class="hero-reg" style="top:8px;right:10px">+</span>
@@ -121,29 +216,54 @@
         <div class="onboard-hero">
           <!-- Vector: Angular forest canopy -->
           <svg class="hero-art" viewBox="0 0 460 180" preserveAspectRatio="none">
-            <!-- Back row trees (lighter) -->
-            <polygon points="50,180 80,55 110,180" fill="rgba(0,0,0,0.12)" />
-            <polygon points="140,180 175,40 210,180" fill="rgba(0,0,0,0.1)" />
-            <polygon points="250,180 282,48 314,180" fill="rgba(0,0,0,0.11)" />
-            <polygon points="350,180 378,52 406,180" fill="rgba(0,0,0,0.09)" />
-            <!-- Front row trees (darker, overlapping) -->
-            <polygon points="0,180 38,72 76,180" fill="rgba(0,0,0,0.24)" />
-            <polygon points="85,180 128,45 171,180" fill="rgba(0,0,0,0.2)" />
-            <polygon points="180,180 220,60 260,180" fill="rgba(0,0,0,0.22)" />
-            <polygon points="275,180 318,50 361,180" fill="rgba(0,0,0,0.18)" />
-            <polygon points="370,180 405,65 440,180" fill="rgba(0,0,0,0.2)" />
+            <defs>
+              <filter id="neon-glow-forest" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- Moon (neon mode: cyan ring; light mode: faint circle) -->
+            <circle cx="380" cy="38" r="16"
+              :fill="activeTheme==='neon'?'none':'rgba(255,255,255,0.06)'"
+              :stroke="activeTheme==='neon'?'#00e5ff':'rgba(255,255,255,0.12)'"
+              :stroke-width="activeTheme==='neon'?1.2:0.5"
+              :filter="tp.filterF"/>
+            <!-- Back row trees -->
+            <g :stroke="tp.treeStroke" :stroke-width="tp.sw" :filter="tp.filterF">
+              <polygon points="50,180 80,55 110,180"  :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.12)'"/>
+              <polygon points="140,180 175,40 210,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.1)'"/>
+              <polygon points="250,180 282,48 314,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.11)'"/>
+              <polygon points="350,180 378,52 406,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.09)'"/>
+            </g>
+            <!-- Front row trees -->
+            <g :stroke="tp.treeStroke" :stroke-width="tp.sw" :filter="tp.filterF">
+              <polygon points="0,180 38,72 76,180"    :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.24)'"/>
+              <polygon points="85,180 128,45 171,180"  :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.2)'"/>
+              <polygon points="180,180 220,60 260,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.22)'"/>
+              <polygon points="275,180 318,50 361,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.18)'"/>
+              <polygon points="370,180 405,65 440,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.2)'"/>
+            </g>
             <!-- Trunks -->
-            <rect x="33" y="140" width="6" height="40" fill="rgba(0,0,0,0.3)" />
-            <rect x="124" y="130" width="6" height="50" fill="rgba(0,0,0,0.28)" />
-            <rect x="216" y="135" width="6" height="45" fill="rgba(0,0,0,0.25)" />
-            <rect x="314" y="128" width="6" height="52" fill="rgba(0,0,0,0.27)" />
-            <rect x="401" y="132" width="6" height="48" fill="rgba(0,0,0,0.22)" />
-            <!-- Ground plane -->
-            <rect x="0" y="165" width="460" height="15" fill="rgba(0,0,0,0.1)" />
-            <!-- Stars (Warhol touch) -->
-            <text x="95" y="35" fill="rgba(255,255,255,0.08)" font-size="14" font-family="serif">&#x2605;</text>
-            <text x="310" y="30" fill="rgba(255,255,255,0.06)" font-size="10" font-family="serif">&#x2605;</text>
-            <text x="420" y="42" fill="rgba(255,255,255,0.07)" font-size="8" font-family="serif">&#x2605;</text>
+            <rect x="33"  y="140" width="6" height="40" :fill="tp.trunkFill" :stroke="tp.trunkStroke" :stroke-width="tp.sw"/>
+            <rect x="124" y="130" width="6" height="50" :fill="tp.trunkFill" :stroke="tp.trunkStroke" :stroke-width="tp.sw"/>
+            <rect x="216" y="135" width="6" height="45" :fill="tp.trunkFill" :stroke="tp.trunkStroke" :stroke-width="tp.sw"/>
+            <rect x="314" y="128" width="6" height="52" :fill="tp.trunkFill" :stroke="tp.trunkStroke" :stroke-width="tp.sw"/>
+            <rect x="401" y="132" width="6" height="48" :fill="tp.trunkFill" :stroke="tp.trunkStroke" :stroke-width="tp.sw"/>
+            <!-- Ground -->
+            <rect x="0" y="165" width="460" height="15"
+              :fill="activeTheme==='neon'?'rgba(0,30,15,0.8)':'rgba(0,0,0,0.1)'"/>
+            <!-- Fireflies / stars -->
+            <text x="95"  y="35" :fill="tp.star" font-size="14" font-family="serif">&#x2605;</text>
+            <text x="310" y="30" :fill="tp.star" font-size="10" font-family="serif">&#x2605;</text>
+            <text x="420" y="42" :fill="tp.star" font-size="8"  font-family="serif">&#x2605;</text>
+            <!-- Extra fireflies in neon mode -->
+            <g v-if="activeTheme==='neon'" :filter="tp.filterF">
+              <circle cx="60"  cy="95"  r="1.5" fill="#00ff7a" opacity="0.7"/>
+              <circle cx="145" cy="80"  r="1.2" fill="#ff00ff" opacity="0.6"/>
+              <circle cx="305" cy="88"  r="1.4" fill="#00ff7a" opacity="0.65"/>
+              <circle cx="200" cy="70"  r="1"   fill="#ffff00" opacity="0.55"/>
+              <circle cx="440" cy="100" r="1.3" fill="#00ff7a" opacity="0.6"/>
+            </g>
           </svg>
           <span class="hero-reg" style="top:8px;left:10px">+</span>
           <span class="hero-reg" style="top:8px;right:10px">+</span>
@@ -247,25 +367,47 @@
         <div class="onboard-hero">
           <!-- Vector: Mountain ridgeline -->
           <svg class="hero-art" viewBox="0 0 460 180" preserveAspectRatio="none">
+            <defs>
+              <filter id="neon-glow-mt" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- Stars / sky dots -->
+            <g :filter="tp.filterM">
+              <circle cx="40"  cy="30" r="1"   :fill="activeTheme==='neon'?'#00e5ff':'rgba(255,255,255,0.2)'"/>
+              <circle cx="180" cy="22" r="0.8" :fill="activeTheme==='neon'?'#ff2dbd':'rgba(255,255,255,0.15)'"/>
+              <circle cx="290" cy="18" r="1.2" :fill="activeTheme==='neon'?'#00e5ff':'rgba(255,255,255,0.18)'"/>
+              <circle cx="430" cy="28" r="0.9" :fill="activeTheme==='neon'?'#ff2dbd':'rgba(255,255,255,0.12)'"/>
+            </g>
             <!-- Back range -->
-            <polygon points="0,180 65,62 130,180" fill="rgba(0,0,0,0.1)" />
-            <polygon points="110,180 195,42 280,180" fill="rgba(0,0,0,0.08)" />
-            <polygon points="240,180 335,55 430,180" fill="rgba(0,0,0,0.09)" />
-            <!-- Front range (dramatic) -->
-            <polygon points="0,180 45,85 90,135 145,58 200,180" fill="rgba(0,0,0,0.22)" />
-            <polygon points="170,180 230,78 295,128 355,52 460,180" fill="rgba(0,0,0,0.18)" />
+            <g :stroke="tp.mtStroke" :stroke-width="tp.sw" :filter="tp.filterM">
+              <polygon points="0,180 65,62 130,180"   :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.1)'"/>
+              <polygon points="110,180 195,42 280,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.08)'"/>
+              <polygon points="240,180 335,55 430,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.09)'"/>
+            </g>
+            <!-- Front range -->
+            <g :stroke="tp.mtStroke" :stroke-width="tp.sw" :filter="tp.filterM">
+              <polygon points="0,180 45,85 90,135 145,58 200,180"   :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.22)'"/>
+              <polygon points="170,180 230,78 295,128 355,52 460,180" :fill="activeTheme==='neon'?'none':'rgba(0,0,0,0.18)'"/>
+            </g>
             <!-- Snow caps -->
-            <polygon points="45,85 56,100 34,100" fill="rgba(255,255,255,0.14)" />
-            <polygon points="145,58 158,76 132,76" fill="rgba(255,255,255,0.12)" />
-            <polygon points="230,78 243,94 217,94" fill="rgba(255,255,255,0.1)" />
-            <polygon points="355,52 370,72 340,72" fill="rgba(255,255,255,0.12)" />
-            <!-- Summit flag on highest peak -->
-            <line x1="355" y1="52" x2="355" y2="35" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
-            <polygon points="355,35 370,40 355,45" fill="rgba(255,255,255,0.15)" />
-            <!-- Ridge texture lines -->
-            <line x1="50" y1="88" x2="85" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-            <line x1="148" y1="62" x2="190" y2="150" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
-            <line x1="358" y1="56" x2="420" y2="145" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
+            <g :fill="tp.snowFill" :filter="tp.filterM">
+              <polygon points="45,85 56,100 34,100"/>
+              <polygon points="145,58 158,76 132,76"/>
+              <polygon points="230,78 243,94 217,94"/>
+              <polygon points="355,52 370,72 340,72"/>
+            </g>
+            <!-- Summit flag -->
+            <line x1="355" y1="52" x2="355" y2="35" :stroke="tp.flagPole" stroke-width="1.5" :filter="tp.filterM"/>
+            <polygon points="355,35 372,41 355,47" :fill="tp.flag" :filter="tp.filterM"/>
+            <!-- Ridge texture -->
+            <line x1="50"  y1="88" x2="85"  y2="130" :stroke="tp.ridge" stroke-width="1"/>
+            <line x1="148" y1="62" x2="190" y2="150" :stroke="tp.ridge" stroke-width="1"/>
+            <line x1="358" y1="56" x2="420" y2="145" :stroke="tp.ridge" stroke-width="1"/>
+            <!-- Ground -->
+            <rect x="0" y="170" width="460" height="10"
+              :fill="activeTheme==='neon'?'rgba(0,15,30,0.8)':'rgba(0,0,0,0.12)'"/>
           </svg>
           <span class="hero-reg" style="top:8px;left:10px">+</span>
           <span class="hero-reg" style="top:8px;right:10px">+</span>
@@ -396,7 +538,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { supabase, provisionUserDatabase } from 'src/dbManagement';
 import { useRouter, useRoute } from 'vue-router';
 import { useAddressStore } from 'src/store/store';
@@ -410,6 +552,40 @@ const store = useAddressStore();
 const mts = useMts();
 const $q = useQuasar();
 const { t } = useI18n();
+
+const activeTheme = computed(() => $q.dark.isActive ? 'neon' : 'default');
+const tp = computed(() => {
+  const n = activeTheme.value === 'neon';
+  return {
+    // login / factory skyline
+    sunFill:     n ? 'none'                   : 'rgba(255,150,50,0.12)',
+    sunStroke:   n ? '#ff00ff'                : 'rgba(255,200,100,0.28)',
+    building:    n ? '#0d1117'                : 'rgba(0,0,0,0.22)',
+    outline:     n ? '#00ffff'                : 'rgba(255,255,255,0.12)',
+    sw:          n ? 1.5                      : 0.5,
+    windowFill:  n ? '#001a1a'               : 'rgba(255,255,255,0.07)',
+    smoke:       n ? '#ff00ff'                : 'rgba(255,255,255,0.6)',
+    wire:        n ? '#ffff00'                : 'rgba(255,255,255,0.2)',
+    ground:      n ? '#00ffff'                : 'rgba(0,0,0,0.22)',
+    horizon:     n ? '#00ffff'                : 'rgba(255,255,255,0.15)',
+    // forest
+    treeStroke:  n ? '#00ff7a'                : 'rgba(255,255,255,0.07)',
+    trunkFill:   n ? 'none'                   : 'rgba(0,0,0,0.3)',
+    trunkStroke: n ? '#00ff7a'                : 'none',
+    star:        n ? '#ff00ff'                : 'rgba(255,255,255,0.08)',
+    // mountain
+    mtStroke:    n ? '#00e5ff'                : 'rgba(255,255,255,0.08)',
+    snowFill:    n ? '#ff2dbd'                : 'rgba(255,255,255,0.14)',
+    ridge:       n ? '#00e5ff'                : 'rgba(255,255,255,0.04)',
+    flagPole:    n ? '#ff2dbd'                : 'rgba(255,255,255,0.2)',
+    flag:        n ? '#ff2dbd'                : 'rgba(255,255,255,0.15)',
+    // shared
+    filter:      n ? 'url(#neon-glow-login)'  : '',
+    filterF:     n ? 'url(#neon-glow-forest)' : '',
+    filterM:     n ? 'url(#neon-glow-mt)'     : '',
+  };
+});
+
 
 // ---- Accordion state ----
 type CardName = 'login' | 'invite' | 'create';

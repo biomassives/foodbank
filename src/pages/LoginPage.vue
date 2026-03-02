@@ -11,14 +11,14 @@
         <q-input
           v-if="inviteCode"
           v-model="inviteCode"
-          filled dark color="yellow"
+          filled :dark="darkInputs" color="yellow"
           label="Invite code"
           @update:model-value="v => inviteCode = String(v).toUpperCase()"
         />
 
         <q-input
           v-model="email"
-          filled dark color="yellow"
+          filled :dark="darkInputs" color="yellow"
           type="email"
           placeholder="you@example.com"
           :hint="inviteCode ? 'Enter the email for your account' : 'We\'ll send a sign-in link — no password needed'"
@@ -44,8 +44,8 @@
 
       <template v-else>
         <q-icon name="mark_email_read" size="48px" color="yellow" class="self-center" />
-        <p class="text-center text-yellow text-weight-bold">Check your inbox!</p>
-        <p class="text-center text-grey-4" style="font-size: 0.85rem; line-height: 1.5">
+        <p class="text-center text-weight-bold" style="color: var(--wb-accent)">Check your inbox!</p>
+        <p class="text-center" style="font-size: 0.85rem; line-height: 1.5; color: var(--wb-text-muted)">
           A sign-in link was sent to <strong>{{ email }}</strong>.<br>
           Click it and you'll be signed in automatically.
         </p>
@@ -57,9 +57,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { supabase } from 'src/dbManagement';
+import { useTheme } from 'src/composables/useTheme';
+
+const { isDark } = useTheme();
+const darkInputs = computed(() => isDark.value === 'dark' || isDark.value === 'bauhaus');
 
 const route = useRoute();
 const email = ref('');
@@ -140,11 +144,21 @@ async function submit() {
   text-align: center;
 }
 .login-link {
-  color: var(--wb-text-muted, #aaa);
+  color: var(--wb-text-muted, #888);
   font-size: 0.8rem;
   text-decoration: none;
 }
 .login-link:hover {
   color: var(--wb-accent, #fdd835);
 }
+
+/* Light / mondrian-dawn: paragraph text must be dark */
+:global([data-theme="light"]) .login-sub,
+:global([data-theme="mondrian-dawn"]) .login-sub { color: var(--wb-text-muted, #555); }
+
+:global([data-theme="light"]) .login-link,
+:global([data-theme="mondrian-dawn"]) .login-link { color: var(--wb-text-muted, #555); }
+
+:global([data-theme="light"]) .login-link:hover,
+:global([data-theme="mondrian-dawn"]) .login-link:hover { color: var(--wb-accent); }
 </style>

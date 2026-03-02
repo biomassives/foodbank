@@ -73,6 +73,8 @@ export const useAddressStore = defineStore('address', () => {
             body: { code: pending.code, userId: user.id },
           });
           if (claimResult?.ok) {
+            // Signal the UI to show a welcome dialog on next render
+            localStorage.setItem('wb-just-joined', JSON.stringify({ orgId: pending.orgId }));
             // Fire welcome + admin-join notifications (fire-and-forget)
             const memberEmail = user.email ?? undefined;
             supabase.functions.invoke('mts', {

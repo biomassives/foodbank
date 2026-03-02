@@ -235,6 +235,28 @@ onMounted(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) notifStore.subscribeRealtime(user.id);
   }
+
+  // Show welcome dialog after invite redemption
+  const joinedRaw = localStorage.getItem('wb-just-joined');
+  if (joinedRaw) {
+    localStorage.removeItem('wb-just-joined');
+    const pantryName = localStorage.getItem('pantryName') || 'your pantry';
+    const role = store.userRole;
+    const nextSteps: Record<string, string[]> = {
+      admin:  ['Visit /admin to configure your pantry', 'Add locations and set a schedule', 'Create invites for your team'],
+      editor: ['Browse the community board on the home page', 'Add entries for needs or offerings', 'Check the calendar for upcoming pickups'],
+      driver: ['Check the Logistics page for your queue', 'Claim pickups and mark them in transit', 'Mark deliveries complete when done'],
+      stocker: ['Check the Logistics page for deliveries awaiting shelving', 'Mark items as stocked when shelved'],
+      member: ['Browse the community board', 'Add your needs or offerings', 'Check the Info page for pantry hours'],
+    };
+    const steps = nextSteps[role] ?? nextSteps.member;
+    $q.dialog({
+      title: `Welcome to ${pantryName}!`,
+      message: `You're signed in as <strong>${role}</strong>.<br><br><ul style="margin:8px 0 0 16px;padding:0">${steps.map(s => `<li style="margin-bottom:4px">${s}</li>`).join('')}</ul>`,
+      html: true,
+      ok: { label: 'Get started', color: 'yellow', textColor: 'black', unelevated: true },
+    });
+  }
 });
 
 onUnmounted(() => {
