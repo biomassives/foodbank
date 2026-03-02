@@ -670,16 +670,25 @@
             v-model="inviteNewEmail"
             dense filled
             type="email"
-            label="Recipient email"
+            label="Recipient email *"
             placeholder="dan@example.com"
             class="welcome-input"
+          />
+          <q-input
+            v-model="inviteNewPhone"
+            dense filled
+            type="tel"
+            label="Cell number (optional — for SMS)"
+            placeholder="+1 555 000 0000"
+            class="welcome-input"
+            hint="Twilio SMS verification — coming soon"
           />
           <div class="invite-role-row">
             <label class="invite-role-label">Role</label>
             <select v-model="inviteNewRole" class="role-select" style="flex:1;">
               <option value="member">member</option>
               <option value="driver">driver</option>
-              <option value="stocker">stocker</option>
+              <option value="stocker">pantry ops</option>
               <option value="editor">editor</option>
               <option value="admin">admin</option>
             </select>
@@ -1989,6 +1998,7 @@ async function createAndSendInvite() {
         org_id: store.userOrgId,
         created_by: user?.id,
         email: inviteNewEmail.value.trim(),
+        phone: inviteNewPhone.value.trim() || null,
         display_name: name,
         role,
       }]);
@@ -2018,6 +2028,7 @@ async function createAndSendInvite() {
     $q.notify({ color: 'positive', icon: 'vpn_key', message: `Invite created for ${name}` });
     inviteNewName.value  = '';
     inviteNewEmail.value = '';
+    inviteNewPhone.value = '';
     inviteNewRole.value  = 'member';
   } catch (e: any) {
     $q.notify({ color: 'negative', message: e.message || 'Failed to create invite' });
@@ -2043,6 +2054,7 @@ function copyLink(code: string) {
 
 const inviteNewName  = ref('');
 const inviteNewEmail = ref('');
+const inviteNewPhone = ref('');
 const inviteNewRole  = ref('member');
 
 // ── Email preview ───────────────────────────────────────────────

@@ -47,12 +47,12 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'Invalid or already-used invite code.' }, 400);
       }
 
-      // If the invite is locked to a specific email, enforce it
-      if (invite.email && invite.email.toLowerCase() !== (email as string).toLowerCase()) {
-        return jsonResponse(
-          { error: 'This invite code is assigned to a different email address.' },
-          400,
-        );
+      // Email is always required — invite codes are personal, not shareable
+      if (!invite.email) {
+        return jsonResponse({ error: 'This invite has no email on record. Contact your pantry admin.' }, 400);
+      }
+      if (invite.email.toLowerCase() !== (email as string).toLowerCase()) {
+        return jsonResponse({ error: 'This invite code is assigned to a different email address.' }, 400);
       }
 
       // Create or find the user and send them a magic link.

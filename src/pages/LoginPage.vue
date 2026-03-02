@@ -3,32 +3,42 @@
     <div class="login-card column q-gutter-md">
 
       <div class="text-center">
-        <div class="login-title">WELCOME BACK</div>
-        <div class="login-sub">Sign in to your pantry</div>
+        <div class="login-title">{{ inviteCode ? 'JOIN PANTRY' : 'WELCOME BACK' }}</div>
+        <div class="login-sub">{{ inviteCode ? 'Accept your invitation' : 'Sign in to your pantry' }}</div>
       </div>
 
       <template v-if="!magicSent">
+        <q-input
+          v-if="inviteCode"
+          v-model="inviteCode"
+          filled dark color="yellow"
+          label="Invite code"
+          @update:model-value="v => inviteCode = String(v).toUpperCase()"
+        />
+
         <q-input
           v-model="email"
           filled dark color="yellow"
           type="email"
           placeholder="you@example.com"
-          hint="We'll send a sign-in link — no password needed"
-          @keyup.enter="sendMagicLink"
+          :hint="inviteCode ? 'Enter the email for your account' : 'We\'ll send a sign-in link — no password needed'"
+          @keyup.enter="submit"
+          autofocus
         />
 
         <q-btn
-          label="SEND SIGN-IN LINK"
+          :label="inviteCode ? 'ACCEPT INVITE' : 'SEND SIGN-IN LINK'"
           color="yellow"
           text-color="black"
           :loading="loading"
-          @click="sendMagicLink"
+          @click="submit"
         />
 
         <div v-if="errorMessage" class="login-error text-caption">{{ errorMessage }}</div>
 
         <div class="text-center q-mt-sm">
-          <router-link to="/join" class="login-link">Join with an invite code</router-link>
+          <router-link v-if="!inviteCode" to="/join" class="login-link">Have an invite code?</router-link>
+          <a v-else href="#" class="login-link" @click.prevent="inviteCode = ''">Sign in without a code</a>
         </div>
       </template>
 
@@ -39,12 +49,7 @@
           A sign-in link was sent to <strong>{{ email }}</strong>.<br>
           Click it and you'll be signed in automatically.
         </p>
-        <q-btn
-          flat dense no-caps
-          label="Use a different email"
-          color="grey-5"
-          @click="magicSent = false"
-        />
+        <q-btn flat dense no-caps label="Use a different email" color="grey-5" @click="magicSent = false" />
       </template>
 
     </div>
@@ -52,15 +57,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { supabase } from 'src/dbManagement';
 
+const route = useRoute();
 const email = ref('');
+const inviteCode = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
 const magicSent = ref(false);
 
-async function sendMagicLink() {
+onMounted(() => {
+  const code = route.query.code;
+  if (typeof code === 'string' && code.trim()) {
+    inviteCode.value = code.trim().toUpperCase();
+  }
+});
+
+async function submit() {
   if (!email.value.trim()) {
     errorMessage.value = 'Please enter your email address.';
     return;
@@ -68,15 +83,32 @@ async function sendMagicLink() {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.value.trim(),
-      options: { emailRedirectTo: window.location.origin + '/' },
-    });
-    if (error) {
-      errorMessage.value = error.message;
+    if (inviteCode.value.trim()) {
+      // Invite flow — edge function creates/finds auth user and sends magic link
+      const { data, error } = await supabase.functions.invoke('claim-invite', {
+        body: {
+          action: 'send-magic-link',
+          code: inviteCode.value.trim(),
+          email: email.value.trim(),
+          redirectTo: window.location.origin + '/',
+        },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+      localStorage.setItem('pendingInvite', JSON.stringify({
+        code: inviteCode.value.trim(),
+        orgId: data.orgId,
+      }));
     } else {
-      magicSent.value = true;
+      // Plain sign-in — existing user
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.value.trim(),
+        options: { emailRedirectTo: window.location.origin + '/' },
+      });
+      if (error) throw error;
     }
+    magicSent.value = true;
+  } catch (err: unknown) {
+    errorMessage.value = err instanceof Error ? err.message : 'Something went wrong';
   } finally {
     loading.value = false;
   }
