@@ -550,7 +550,7 @@ import { SIMULATIONS } from 'src/data/simulations/index';
 
 const store = useAddressStore();
 const $q = useQuasar();
-const { isDark, theme, set: themeSet } = useTheme();
+const { isDark, set: themeSet } = useTheme();
 
 const themeOptions = [
   { value: 'dark' as const,          icon: 'dark_mode',        label: 'Dark Mode',      hint: 'Warhol Factory — stark & bold' },
@@ -585,6 +585,10 @@ const DEMO_SIMS = [
   {
     ...SIMULATIONS.find(s => s.id === 'driver-notify')!,
     icon: 'notifications_active',
+  },
+  {
+    ...SIMULATIONS.find(s => s.id === 'logistics14day')!,
+    icon: 'local_shipping',
   },
 ];
 
@@ -755,9 +759,6 @@ async function handleRestoreLocal() {
     loadingDemo.value = false;
   }
 }
-
-// Keep alias for any external callers
-const handleLoadDemo = () => handleLoadSim('basic-demo');
 
 async function handleClearDemo() {
   loadingDemo.value = true;

@@ -93,11 +93,11 @@ Deno.serve(async (req) => {
 
     if (profileError) throw profileError;
 
-    // 3. Burn the code (single-use)
+    // 3. Burn the code (single-use) — code is the PK, no id column
     await supabase
       .from('invites')
       .update({ is_used: true, accepted_at: new Date().toISOString() })
-      .eq('id', invite.id);
+      .eq('code', invite.code);
 
     return jsonResponse({ ok: true, orgId: invite.org_id });
   } catch (err) {

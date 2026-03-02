@@ -24,8 +24,8 @@ const CONTACTS: Address[] = [
   { id: 'lg-c7', name: { first: 'Sam',    last: 'Okafor'   }, email: 'sam@logistics.org',        phone: '(303) 555-0107' },
 ];
 
-const DRIVERS   = ['Jake Thompson', 'Aisha Patel', 'Devon Park'];
-const STOCKERS  = ['Ben Wright', 'Rosa Martinez'];
+const DRIVERS       = ['Jake Thompson', 'Aisha Patel', 'Devon Park'];
+const PANTRY_OPS    = ['Ben Wright', 'Rosa Martinez'];
 
 // ── 33 Locations ──────────────────────────────────────────────────
 // Location 0 = Central Distribution Center (stocking destination)
@@ -156,7 +156,7 @@ function generateQueueEntries(locations: Location[]): Entry[] {
       const hub = pick(pickupHubs, day * 7 + i * 11);
       const desc = pick(ITEM_DESCRIPTIONS, day * 3 + i * 7);
       const driver = pick(DRIVERS, day + i);
-      const stocker = pick(STOCKERS, day + i + 1);
+      const pantryOps = pick(PANTRY_OPS, day + i + 1);
 
       // Age determines status: older items are further along the pipeline
       // day 13 (oldest) → stocked; day 0 (today) → pending/claimed
@@ -169,17 +169,17 @@ function generateQueueEntries(locations: Location[]): Entry[] {
       let completedAt: string | undefined;
 
       if (ageHours > 10 * 24) {
-        // > 10 days old: fully stocked
+        // > 10 days old: fully stocked — pantry inventory & ops team received it
         queueStatus = 'stocked';
         status = 'fulfilled';
-        claimedBy = driver;
+        claimedBy = pantryOps;
         claimedAt = ts(ageHours - 8);
         completedAt = ts(ageHours - 4);
       } else if (ageHours > 7 * 24) {
-        // 7–10 days: delivered, awaiting shelf
+        // 7–10 days: delivered, awaiting pantry ops to shelve
         queueStatus = 'delivered';
         status = 'fulfilled';
-        claimedBy = driver;
+        claimedBy = pantryOps;
         claimedAt = ts(ageHours - 6);
         completedAt = ts(ageHours - 2);
       } else if (ageHours > 4 * 24) {
