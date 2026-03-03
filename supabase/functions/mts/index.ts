@@ -6,20 +6,30 @@ const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY') || '';
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN') || '';
 const FROM_EMAIL = Deno.env.get('NOTIFY_FROM_EMAIL') || `notify@${MAILGUN_DOMAIN}`;
 
+// Twilio — set as Supabase edge function secrets:
+//   supabase secrets set TWILIO_ACCOUNT_SID=ACxxxx TWILIO_AUTH_TOKEN=xxxx TWILIO_FROM_NUMBER=+1xxxxxxxxxx
+// For SMS OTP sign-in, also enable Phone provider in Supabase Auth dashboard
+//   (Auth → Providers → Phone → enable → paste the same SID/token/number)
+const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID') || '';
+const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')  || '';
+const TWILIO_FROM_NUMBER = Deno.env.get('TWILIO_FROM_NUMBER') || ''; // E.164: +1xxxxxxxxxx
+
 type MtsType = 'welcome' | 'admin-join' | 'pickup-claimed' | 'pickup-delivered' | 'pickup-stocked' | 'daily-digest' | 'custom' | 'test' | 'driver-invite';
 
 interface MtsRequest {
   type: MtsType;
   orgId: string;
   recipientEmail?: string;
+  recipientPhone?: string;  // direct E.164 phone recipient
   recipientRole?: string[];
-  transports?: ('email' | 'site' | 'webhook')[];
+  transports?: ('email' | 'sms' | 'site' | 'webhook')[];
   data?: Record<string, unknown>;
 }
 
 interface Recipient {
   userId: string;
   email: string | null;
+  phone: string | null;
   orgId: string;
 }
 
@@ -91,6 +101,9 @@ Deno.serve(async (req) => {
     if (activeTransports.includes('email') && MAILGUN_API_KEY) {
       transportPromises.push(emailTransport(supabase, orgId, recipients, message).then(r => { results.email = r; }));
     }
+    if (activeTransports.includes('sms') && TWILIO_ACCOUNT_SID) {
+      transportPromises.push(smsTransport(supabase, orgId, recipients, message).then(r => { results.sms = r; }));
+    }
     if (activeTransports.includes('site')) {
       transportPromises.push(siteTransport(supabase, recipients, message).then(r => { results.site = r; }));
     }
@@ -116,9 +129,23 @@ Deno.serve(async (req) => {
 // ── Helper: Setup Test Logic ──────────────────────────────────
 async function handleSetupTest(body: MtsRequest) {
   const testOrgName = String(body.data?.orgName || 'Setup Test');
-  if (!body.recipientEmail) return jsonResponse({ error: 'recipientEmail required for test' }, 200);
-  
   const message = renderMessage('test', testOrgName, body.data || {});
+  const transports = body.transports || ['email'];
+
+  // SMS test path
+  if (transports.includes('sms')) {
+    if (!body.recipientPhone) return jsonResponse({ error: 'recipientPhone required for SMS test' }, 400);
+    if (!TWILIO_ACCOUNT_SID)   return jsonResponse({ error: 'Twilio not configured — set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER as Supabase secrets' }, 502);
+    try {
+      await sendTwilio(body.recipientPhone, `${testOrgName}: SMS test from MTS. Twilio is working.`);
+      return jsonResponse({ ok: true, twilio: { from: TWILIO_FROM_NUMBER } });
+    } catch (err) {
+      return jsonResponse({ ok: false, error: err.message }, 502);
+    }
+  }
+
+  // Email test path
+  if (!body.recipientEmail) return jsonResponse({ error: 'recipientEmail required for email test' }, 400);
   try {
     await sendMailgun(body.recipientEmail, message.subject, buildEmailHtml(testOrgName, message.heading, message.bodyHtml));
     return jsonResponse({ ok: true, mailgun: { domain: MAILGUN_DOMAIN, from: FROM_EMAIL } });
@@ -346,6 +373,58 @@ async function sendMailgun(to: string, subject: string, html: string) {
   }
 }
 
+// ── SMS Transport (Twilio) ───────────────────────────────────────
+
+async function sendTwilio(to: string, body: string): Promise<void> {
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+  const form = new URLSearchParams();
+  form.set('From', TWILIO_FROM_NUMBER);
+  form.set('To', to);
+  form.set('Body', body.slice(0, 1600)); // SMS segment limit
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: form.toString(),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Twilio ${resp.status}: ${text}`);
+  }
+}
+
+async function smsTransport(
+  supabase: ReturnType<typeof createClient>,
+  orgId: string,
+  recipients: Recipient[],
+  message: RenderedMessage,
+): Promise<TransportResult> {
+  let sent = 0, errors = 0;
+  const smsRecipients = recipients.filter(r => r.phone);
+
+  for (const r of smsRecipients) {
+    try {
+      await sendTwilio(r.phone!, message.bodyText);
+      sent++;
+      supabase.from('message_log').insert({
+        org_id: orgId, event_type: 'sent', transport: 'sms',
+        recipient: r.phone, subject: message.subject,
+      }).then(({ error }: { error: unknown }) => {
+        if (error) console.error('message_log sms insert failed:', (error as Error).message);
+      });
+    } catch (e) {
+      console.error(`SMS failed for ${r.phone}:`, e);
+      errors++;
+    }
+  }
+
+  return { sent, errors };
+}
+
 // ── Site Transport (in-app messages) ────────────────────────────
 
 async function siteTransport(
@@ -440,22 +519,26 @@ async function resolveRecipients(
   body: MtsRequest,
 ): Promise<Recipient[]> {
   const recipients: Recipient[] = [];
+
   if (body.recipientEmail) {
-    recipients.push({ userId: '', email: body.recipientEmail, orgId: body.orgId });
+    recipients.push({ userId: '', email: body.recipientEmail, phone: null, orgId: body.orgId });
+  }
+  if (body.recipientPhone) {
+    recipients.push({ userId: '', email: null, phone: body.recipientPhone, orgId: body.orgId });
   }
 
   const roles = body.recipientRole || defaultRolesForType(body.type);
   if (roles.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email')
+      .select('id, email, phone')
       .eq('org_id', body.orgId)
       .in('role', roles)
       .not('email_bounced', 'eq', true);
 
     for (const p of (profiles || [])) {
-      if (!recipients.some(r => r.email === p.email)) {
-        recipients.push({ userId: p.id, email: p.email || null, orgId: body.orgId });
+      if (!recipients.some(r => r.email === p.email && r.email !== null)) {
+        recipients.push({ userId: p.id, email: p.email || null, phone: p.phone || null, orgId: body.orgId });
       }
     }
   }

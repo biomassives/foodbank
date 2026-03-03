@@ -341,17 +341,17 @@
           <div class="integ-sub-label">SUPABASE</div>
           <div class="integ-env-row">
             <span class="integ-env-key">VITE_SUPABASE_URL</span>
-            <span class="integ-env-val" :class="envSupabaseUrl ? '' : 'integ-env-val--missing'">
-              {{ envSupabaseUrl ? supabaseProjectRef : 'not set' }}
+            <span class="integ-env-val" :class="envSupabaseUrl ? 'integ-env-val--deployment' : 'integ-env-val--missing'">
+              {{ envSupabaseUrl ? 'configured in deployment' : 'not set' }}
             </span>
           </div>
           <div class="integ-env-row">
             <span class="integ-env-key">VITE_SUPABASE_ANON_KEY</span>
-            <span class="integ-env-val" :class="envAnonKey ? '' : 'integ-env-val--missing'">
-              {{ envAnonKey ? maskedAnonKey : 'not set' }}
+            <span class="integ-env-val" :class="envAnonKey ? 'integ-env-val--deployment' : 'integ-env-val--missing'">
+              {{ envAnonKey ? 'configured in deployment' : 'not set' }}
             </span>
           </div>
-          <div class="integ-hint">Set in Vercel / Netlify environment variables. Never stored in the browser.</div>
+          <div class="integ-hint">Managed via Vercel / Netlify environment variables — not exposed in the browser.</div>
 
           <div class="integ-divider" />
 
@@ -389,6 +389,55 @@
             <q-icon :name="mailgunTestResult.status === 'ok' ? 'check_circle' : 'error'" size="14px" />
             <span>{{ mailgunTestResult.message }}</span>
             <span class="integ-test-ts">{{ mailgunTestResult.timestamp }}</span>
+          </div>
+
+          <div class="integ-divider" />
+
+          <!-- Twilio — secrets stay server-side -->
+          <div class="integ-sub-label">TWILIO · SMS</div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">TWILIO_ACCOUNT_SID</span>
+            <span class="integ-env-val integ-env-val--server">
+              <q-icon name="lock" size="11px" /> server-side · Supabase secrets
+            </span>
+          </div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">TWILIO_AUTH_TOKEN</span>
+            <span class="integ-env-val integ-env-val--server">
+              <q-icon name="lock" size="11px" /> server-side · Supabase secrets
+            </span>
+          </div>
+          <div class="integ-env-row">
+            <span class="integ-env-key">TWILIO_FROM_NUMBER</span>
+            <span class="integ-env-val integ-env-val--server">
+              <q-icon name="lock" size="11px" /> server-side · Supabase secrets
+            </span>
+          </div>
+          <div class="integ-hint q-mb-xs">
+            Set via <code>supabase secrets set</code>. For SMS sign-in OTP, also enable
+            the Phone provider in Supabase Auth → Providers → Phone using the same credentials.
+            Then set <code>VITE_SMS_ENABLED=true</code> in your deployment.
+          </div>
+          <div class="integ-test-row q-mt-sm">
+            <q-input
+              v-model="twilioTestPhone"
+              dense filled
+              placeholder="+1 555 000 0000"
+              class="integ-input integ-test-input"
+              type="tel"
+            />
+            <q-btn flat no-caps dense icon="sms"
+              label="Test"
+              class="conn-btn conn-btn--test"
+              :loading="twilioTesting"
+              :disable="twilioTestPhone.length < 10"
+              @click="testTwilioConnection"
+            />
+          </div>
+          <div v-if="twilioTestResult" class="integ-test-result" :class="'integ-test-result--' + twilioTestResult.status">
+            <q-icon :name="twilioTestResult.status === 'ok' ? 'check_circle' : 'error'" size="14px" />
+            <span>{{ twilioTestResult.message }}</span>
+            <span class="integ-test-ts">{{ twilioTestResult.timestamp }}</span>
           </div>
 
           <div class="integ-divider" />
@@ -625,6 +674,47 @@ const webhookExpanded = ref(false);
 const mailgunTestEmail = ref('');
 const mailgunTesting = ref(false);
 const mailgunTestResult = ref<{ status: 'ok' | 'fail'; message: string; timestamp: string } | null>(null);
+
+const twilioTestPhone  = ref('');
+const twilioTesting    = ref(false);
+const twilioTestResult = ref<{ status: 'ok' | 'fail'; message: string; timestamp: string } | null>(null);
+
+async function testTwilioConnection() {
+  twilioTesting.value = true;
+  twilioTestResult.value = null;
+  try {
+    const { data, error } = await supabase.functions.invoke('mts', {
+      body: {
+        type: 'test',
+        orgId: store.userOrgId || '__setup_test__',
+        recipientPhone: twilioTestPhone.value.trim(),
+        transports: ['sms'],
+      },
+    });
+    if (error) throw new Error(error.message);
+    if (data?.ok) {
+      twilioTestResult.value = {
+        status: 'ok',
+        message: `SMS sent to ${twilioTestPhone.value}`,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    } else {
+      twilioTestResult.value = {
+        status: 'fail',
+        message: data?.error || 'Twilio credentials not configured or send failed',
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    }
+  } catch (e: unknown) {
+    twilioTestResult.value = {
+      status: 'fail',
+      message: e instanceof Error ? e.message : 'Could not reach MTS function',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+  } finally {
+    twilioTesting.value = false;
+  }
+}
 
 async function testMailgunConnection() {
   mailgunTesting.value = true;
@@ -1480,6 +1570,13 @@ onMounted(async () => {
 .integ-env-val--missing {
   color: var(--wb-text-faint);
   font-style: italic;
+}
+
+.integ-env-val--deployment {
+  color: var(--wb-text-muted);
+  font-style: italic;
+  font-family: var(--wb-font);
+  font-size: 0.65rem;
 }
 
 .integ-env-val--server {

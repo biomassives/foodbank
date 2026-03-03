@@ -163,30 +163,104 @@ class="onboard-card theme-sunset q-mb-md"
 
         <q-slide-transition>
           <div v-show="activeCard === 'login'" class="onboard-body" @click.stop>
-            <div v-if="!otpSent">
-              <q-input
-                v-model="phone"
-                filled dense dark
-                :label="t.onboard.phoneLabel"
-                mask="+############"
-                :hint="t.onboard.phoneHint"
-                color="deep-orange-4"
-              />
+
+            <!-- Method toggle -->
+            <div class="login-method-row q-mb-md">
+              <button
+                class="login-method-btn"
+                :class="{ active: loginMethod === 'email' }"
+                @click="loginMethod = 'email'; loginStep = 'input'"
+              >
+                <q-icon name="email" size="14px" class="q-mr-xs"/>Email
+              </button>
+              <button
+                class="login-method-btn"
+                :class="{ active: loginMethod === 'sms', disabled: !SMS_ENABLED }"
+                :title="SMS_ENABLED ? '' : 'SMS sign-in coming soon'"
+                @click="if (SMS_ENABLED) { loginMethod = 'sms'; loginStep = 'input' }"
+              >
+                <q-icon name="phone_iphone" size="14px" class="q-mr-xs"/>SMS
+                <span v-if="!SMS_ENABLED" class="login-method-soon">soon</span>
+              </button>
+            </div>
+
+            <!-- ── Step: input ── -->
+            <div v-if="loginStep === 'input'">
+
+              <!-- Email input -->
+              <template v-if="loginMethod === 'email'">
+                <q-input
+                  v-model="loginEmail"
+                  filled dense dark
+                  label="Email address"
+                  hint="We'll send a one-click sign-in link — no password needed"
+                  type="email"
+                  color="deep-orange-4"
+                  autofocus
+                />
+                <q-btn
+                  label="Send sign-in link"
+                  icon="send"
+                  class="onboard-btn full-width q-mt-md"
+                  @click="sendEmailLink"
+                  :loading="loginLoading"
+                  :disable="!loginEmail.trim()"
+                  no-caps
+                />
+              </template>
+
+              <!-- SMS input (guarded) -->
+              <template v-else>
+                <q-input
+                  v-model="phone"
+                  filled dense dark
+                  :label="t.onboard.phoneLabel"
+                  mask="+############"
+                  :hint="t.onboard.phoneHint"
+                  color="deep-orange-4"
+                  :disable="!SMS_ENABLED"
+                />
+                <q-btn
+                  :label="t.onboard.sendCode"
+                  class="onboard-btn full-width q-mt-md"
+                  @click="sendOTP"
+                  :loading="loginLoading"
+                  :disable="!SMS_ENABLED"
+                  no-caps
+                />
+                <p class="login-sms-notice q-mt-xs">
+                  <q-icon name="construction" size="13px" class="q-mr-xs"/>
+                  SMS sign-in requires Twilio — available soon
+                </p>
+              </template>
+            </div>
+
+            <!-- ── Step: email link sent ── -->
+            <div v-else-if="loginStep === 'email-sent'" class="login-magic-sent">
+              <q-icon name="mark_email_read" size="36px" color="deep-orange-4" class="q-mb-sm"/>
+              <p class="login-magic-msg">Check your inbox!</p>
+              <p class="login-magic-hint">
+                We sent a sign-in link to <strong>{{ loginEmail }}</strong>.
+                Click it to sign in — no password needed.
+              </p>
               <q-btn
-                :label="t.onboard.sendCode"
-                class="onboard-btn full-width q-mt-md"
-                @click="sendOTP"
-                :loading="loginLoading"
-                no-caps
+                flat dense no-caps
+                label="Use a different email"
+                class="full-width q-mt-sm"
+                style="color: var(--wb-text-muted); font-family: var(--wb-font); font-size: 0.72rem;"
+                @click="loginStep = 'input'"
               />
             </div>
-            <div v-else>
+
+            <!-- ── Step: SMS verify ── -->
+            <div v-else-if="loginStep === 'sms-verify'">
               <q-input
                 v-model="token"
                 filled dense dark
                 :label="t.onboard.codeLabel"
                 mask="######"
                 color="deep-orange-4"
+                autofocus
               />
               <q-btn
                 :label="t.onboard.verify"
@@ -200,9 +274,10 @@ class="onboard-card theme-sunset q-mb-md"
                 :label="t.onboard.back"
                 class="full-width q-mt-xs"
                 style="color: var(--wb-text-muted)"
-                @click="otpSent = false"
+                @click="loginStep = 'input'"
               />
             </div>
+
           </div>
         </q-slide-transition>
       </div>
@@ -618,11 +693,35 @@ onMounted(() => {
   }
 });
 
-// ---- Sign In (OTP) ----
-const phone = ref('');
-const token = ref('');
-const otpSent = ref(false);
+// ---- Sign In ----
+// Set VITE_SMS_ENABLED=true in .env.local once Twilio is configured
+const SMS_ENABLED = import.meta.env.VITE_SMS_ENABLED === 'true';
+
+type LoginMethod = 'email' | 'sms';
+type LoginStep   = 'input' | 'email-sent' | 'sms-verify';
+
+const loginMethod  = ref<LoginMethod>('email');
+const loginStep    = ref<LoginStep>('input');
+const loginEmail   = ref('');
+const phone        = ref('');
+const token        = ref('');
 const loginLoading = ref(false);
+
+async function sendEmailLink() {
+  if (!loginEmail.value.trim()) return;
+  loginLoading.value = true;
+  const { error } = await supabase.auth.signInWithOtp({
+    email: loginEmail.value.trim(),
+    options: { emailRedirectTo: window.location.origin + '/' },
+  });
+  if (error) {
+    $q.notify({ color: 'negative', message: error.message });
+  } else {
+    loginStep.value = 'email-sent';
+    $q.notify({ color: 'positive', icon: 'mark_email_read', message: 'Sign-in link sent!', caption: 'Check your inbox', timeout: 5000 });
+  }
+  loginLoading.value = false;
+}
 
 async function sendOTP() {
   loginLoading.value = true;
@@ -630,7 +729,7 @@ async function sendOTP() {
   if (error) {
     $q.notify({ color: 'negative', message: error.message });
   } else {
-    otpSent.value = true;
+    loginStep.value = 'sms-verify';
     $q.notify({ color: 'positive', icon: 'sms', message: 'Code sent!', caption: 'Check your phone for a 6-digit verification code', timeout: 5000 });
   }
   loginLoading.value = false;
@@ -873,6 +972,87 @@ async function saveCustomConnection() {
 </script>
 
 <style scoped>
+/* ── Login method toggle ── */
+.login-method-row {
+  display: flex;
+  gap: 6px;
+}
+.login-method-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.login-method-btn.active {
+  background: rgba(255,100,60,0.18);
+  border-color: rgba(255,120,80,0.5);
+  color: var(--wb-text);
+}
+.login-method-btn.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.login-method-soon {
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.login-sms-notice {
+  font-family: var(--wb-font);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--wb-text-faint);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Email link sent state ── */
+.login-magic-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0;
+}
+.login-magic-msg {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: var(--wb-positive);
+  margin: 4px 0;
+}
+.login-magic-hint {
+  font-family: var(--wb-font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+.login-magic-hint strong {
+  color: var(--wb-text);
+}
+
 .invite-magic-sent {
   display: flex;
   flex-direction: column;
