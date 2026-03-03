@@ -16,12 +16,7 @@
 <!-- 1. About -->
 <section class="terms-section">
   <h2 class="terms-h2">1. About This Platform</h2>
- To enhance the safety measures and provide a more comprehensive set of terms and conditions for the Ward Food Pantry platform, we can expand the sections with detailed safety measures and best practices. Here's an expanded version of your terms and conditions:
 
-```html
-<!-- 1. About -->
-<section class="terms-section">
-  <h2 class="terms-h2">1. About This Platform</h2>
   <p>Funky Pony (&ldquo;the App&rdquo;, &ldquo;we&rdquo;, &ldquo;the platform&rdquo;) is a community-operated food coordination tool. It is released as free and open-source software under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="\_blank" rel="noopener noreferrer" class="terms-link">GNU General Public License v3.0</a>.</p>
   <p>Source code is publicly available at:</p>
   <ul class="terms-source-links">
@@ -184,7 +179,7 @@
   <ul class="terms-list">
     <li><strong>Support Channels:</strong> We provide multiple support channels, including email, GitHub issues, and GitLab issues, to address user inquiries and concerns.</li>
     <li><strong>Response Time:</strong> We aim to respond to user inquiries and support requests within a reasonable timeframe.</li>
-    <li<strong>FAQ Section:</strong> We maintain a frequently asked questions (FAQ) section to address common queries and provide quick answers to users.</li>
+    <li><strong>FAQ Section:</strong> We maintain a frequently asked questions (FAQ) section to address common queries and provide quick answers to users.</li>
     <li><strong>Community Forum:</strong> We have a community forum where users can discuss issues, share knowledge, and support each other.</li>
     <li><strong>Regular Updates:</strong> We regularly update our support resources to ensure they are accurate and up-to-date.</li>
   </ul>
