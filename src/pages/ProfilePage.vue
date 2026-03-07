@@ -219,6 +219,60 @@
         />
       </section>
 
+      <!-- ── ROUTE WINDOWS ── -->
+      <section class="profile-section">
+        <div class="section-hd">ROUTE WINDOWS</div>
+        <div class="section-sub">Mark when you make runs — pick up in Boulder or deliver to Ward Food Pantry</div>
+
+        <!-- Boulder pickup grid -->
+        <div class="route-grid-lbl route-grid-lbl--boulder">
+          <q-icon name="place" size="13px" />
+          <span>BOULDER — pickup windows</span>
+        </div>
+        <div class="avail-grid">
+          <div class="avail-corner" />
+          <div v-for="day in DAYS" :key="day" class="avail-day-hd">{{ day }}</div>
+          <template v-for="slot in SLOTS" :key="slot.key">
+            <div class="avail-slot-hd">
+              <q-icon :name="slot.icon" size="13px" />
+              <span>{{ slot.label }}</span>
+            </div>
+            <div
+              v-for="day in DAYS" :key="day"
+              class="avail-cell"
+              :class="{ 'avail-cell--boulder': driverRoutes.boulder[day]?.[slot.key] }"
+              @click="toggleRouteAvail('boulder', day, slot.key)"
+            >
+              <q-icon v-if="driverRoutes.boulder[day]?.[slot.key]" name="check" size="11px" />
+            </div>
+          </template>
+        </div>
+
+        <!-- Mountain delivery grid -->
+        <div class="route-grid-lbl route-grid-lbl--mountain">
+          <q-icon name="landscape" size="13px" />
+          <span>MOUNTAIN — delivery to Ward Food Pantry</span>
+        </div>
+        <div class="avail-grid">
+          <div class="avail-corner" />
+          <div v-for="day in DAYS" :key="day" class="avail-day-hd">{{ day }}</div>
+          <template v-for="slot in SLOTS" :key="slot.key">
+            <div class="avail-slot-hd">
+              <q-icon :name="slot.icon" size="13px" />
+              <span>{{ slot.label }}</span>
+            </div>
+            <div
+              v-for="day in DAYS" :key="day"
+              class="avail-cell"
+              :class="{ 'avail-cell--mountain': driverRoutes.mountain[day]?.[slot.key] }"
+              @click="toggleRouteAvail('mountain', day, slot.key)"
+            >
+              <q-icon v-if="driverRoutes.mountain[day]?.[slot.key]" name="check" size="11px" />
+            </div>
+          </template>
+        </div>
+      </section>
+
       <!-- ── NEEDS & ITEMS ── -->
       <section class="profile-section">
         <needs-bin-board />
@@ -340,7 +394,8 @@ const form = ref({
   off_week_notes: '',
 });
 
-const availability = ref(makeDefaultAvailability());
+const availability  = ref(makeDefaultAvailability());
+const driverRoutes  = ref(makeDefaultDriverRoutes());
 const avatarPreview = ref<string | null>(null);
 const avatarFile    = ref<File | null>(null);
 const avatarInput   = ref<HTMLInputElement | null>(null);
@@ -536,7 +591,7 @@ onMounted(async () => {
 
   const { data } = await supabase
     .from('profiles')
-    .select('display_name, bio, location_label, interests, availability, off_week_notes, avatar_url, role')
+    .select('display_name, bio, location_label, interests, availability, off_week_notes, driver_routes, avatar_url, role')
     .eq('id', user.id)
     .single();
 
@@ -549,6 +604,13 @@ onMounted(async () => {
 
     if (data.availability && Object.keys(data.availability).length) {
       availability.value = { ...makeDefaultAvailability(), ...data.availability };
+    }
+    if (data.driver_routes) {
+      const defaults = makeDefaultDriverRoutes();
+      driverRoutes.value = {
+        boulder:  { ...defaults.boulder,  ...data.driver_routes.boulder  },
+        mountain: { ...defaults.mountain, ...data.driver_routes.mountain },
+      };
     }
     if (data.avatar_url) avatarPreview.value = data.avatar_url;
 
@@ -582,6 +644,7 @@ function saveLocalProfile() {
       interests:      form.value.interests,
       availability:   availability.value,
       off_week_notes: form.value.off_week_notes,
+      driver_routes:  driverRoutes.value,
     }));
   } catch { /* storage quota */ }
 }
@@ -594,6 +657,7 @@ function loadLocalProfile() {
       display_name?: string; bio?: string; location_label?: string;
       interests?: string[]; availability?: Record<string, Record<string, boolean>>;
       off_week_notes?: string;
+      driver_routes?: { boulder?: Record<string, Record<string, boolean>>; mountain?: Record<string, Record<string, boolean>> };
     };
     form.value.display_name   = local.display_name   ?? '';
     form.value.bio            = local.bio            ?? '';
@@ -602,6 +666,13 @@ function loadLocalProfile() {
     form.value.off_week_notes = local.off_week_notes ?? '';
     if (local.availability) {
       availability.value = { ...makeDefaultAvailability(), ...local.availability };
+    }
+    if (local.driver_routes) {
+      const defaults = makeDefaultDriverRoutes();
+      driverRoutes.value = {
+        boulder:  { ...defaults.boulder,  ...local.driver_routes.boulder  },
+        mountain: { ...defaults.mountain, ...local.driver_routes.mountain },
+      };
     }
   } catch { /* ignore malformed cache */ }
 }
@@ -617,6 +688,19 @@ function makeDefaultAvailability(): Record<string, Record<string, boolean>> {
 
 function toggleAvail(day: string, slot: string) {
   availability.value[day][slot] = !availability.value[day][slot];
+}
+
+function makeDefaultDriverRoutes() {
+  const blank = () => {
+    const avail: Record<string, Record<string, boolean>> = {};
+    for (const day of DAYS) avail[day] = { morning: false, afternoon: false, evening: false };
+    return avail;
+  };
+  return { boulder: blank(), mountain: blank() };
+}
+
+function toggleRouteAvail(leg: 'boulder' | 'mountain', day: string, slot: string) {
+  driverRoutes.value[leg][day][slot] = !driverRoutes.value[leg][day][slot];
 }
 
 // ── Save ──────────────────────────────────────────────────────────
@@ -655,6 +739,7 @@ async function saveProfile() {
       interests:      form.value.interests,
       availability:   availability.value,
       off_week_notes: form.value.off_week_notes || null,
+      driver_routes:  driverRoutes.value,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     });
 
@@ -1162,6 +1247,35 @@ function entryTypeLabel(type: string): string {
   background: rgba(253, 216, 53, 0.18);
   border-color: var(--wb-accent);
   color: var(--wb-accent);
+}
+
+/* ── Route windows ── */
+.route-grid-lbl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.route-grid-lbl--boulder {
+  color: var(--wb-info);
+}
+.route-grid-lbl--mountain {
+  color: var(--wb-positive);
+  margin-top: 14px;
+}
+.avail-cell--boulder {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--wb-info);
+  color: var(--wb-info);
+}
+.avail-cell--mountain {
+  background: rgba(105, 240, 174, 0.15);
+  border-color: var(--wb-positive);
+  color: var(--wb-positive);
 }
 
 /* ── Entries mosaic ── */

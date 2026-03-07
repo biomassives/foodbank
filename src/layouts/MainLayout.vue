@@ -100,7 +100,7 @@
               </div>
             </router-link>
 
-            <router-link v-if="store.canEdit" to="/admin" custom v-slot="{ navigate, isActive }">
+            <router-link v-if="store.isAdmin" to="/admin" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
                 <q-icon name="token" /><span>{{ t.nav.manager }}</span>
               </div>

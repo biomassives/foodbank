@@ -68,6 +68,7 @@ export interface AddressState {
   role: string;
   user: any;
   userOrgId: string | null;
+  displayName: string | null;
 }
 
 export interface ParamsType {
@@ -79,6 +80,12 @@ export interface ParamsType {
 
 export type DaySlot = 'morning' | 'afternoon' | 'evening';
 export type WeekAvailability = Record<DayOfWeek, Record<DaySlot, boolean>>;
+
+// Route paradigms for drivers who pick up in Boulder and deliver to the mountain pantry
+export interface DriverRoutes {
+  boulder:  WeekAvailability;  // times available for Boulder-side pickups
+  mountain: WeekAvailability;  // times available to drive up to Ward Food Pantry
+}
 
 export type NeedBinType = 'available' | 'expected' | 'offered' | 'need';
 export type NeedItemStatus = 'active' | 'fulfilled' | 'paused' | 'cancelled';
@@ -107,6 +114,7 @@ export interface UserProfile {
   interests: string[];
   availability: WeekAvailability | Record<string, never>;
   off_week_notes: string | null;
+  driver_routes: DriverRoutes | null;
   avatar_url: string | null;
   digest_opt_in: boolean;
   created_at: string;

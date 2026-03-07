@@ -9,7 +9,9 @@
       </div>
 
       <div class="app-footer-center">
-        <router-link to="/terms" class="app-footer-link">Terms &amp; Conditions</router-link>
+        <router-link to="/terms" class="app-footer-link">Terms</router-link>
+        <span class="app-footer-sep">&middot;</span>
+        <router-link to="/launch" class="app-footer-link">Run Your Own</router-link>
       </div>
 
       <div class="app-footer-right">
@@ -55,6 +57,8 @@
       <div class="app-footer-drawer-brand">{{ appName }}</div>
       <div class="app-footer-drawer-links">
         <router-link to="/terms" class="app-footer-drawer-link">Terms</router-link>
+        <span class="app-footer-sep">&middot;</span>
+        <router-link to="/launch" class="app-footer-drawer-link">Run Your Own</router-link>
         <span class="app-footer-sep">&middot;</span>
         <a href="https://github.com/biomassives/foodbank" target="_blank" rel="noopener noreferrer" class="app-footer-drawer-link">GitHub</a>
         <span class="app-footer-sep">&middot;</span>

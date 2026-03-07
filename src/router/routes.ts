@@ -20,9 +20,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'wizard', component: () => import('pages/WizardPage.vue'), meta: { title: 'Setup Wizard' } },
       { path: 'calendar', component: () => import('pages/CalendarPage.vue'), meta: { title: 'Calendar' } },
       { path: 'terms', component: () => import('pages/TermsPage.vue'), meta: { title: 'Terms & Conditions' } },
+      { path: 'launch', component: () => import('pages/LaunchPage.vue'), meta: { title: 'Run Your Own' } },
       { path: 'info', component: () => import('pages/OpsPage.vue'), meta: { title: 'Pantry Info' } },
       { path: 'docs', component: () => import('pages/DocsPage.vue'), meta: { title: 'Docs' } },
       { path: 'logistics', component: () => import('pages/LogisticsPage.vue'), meta: { title: 'Logistics' } },
+      { path: 'audio', component: () => import('pages/AudioSequenceBuilder.vue'), meta: { title: 'Audio Sequences' } },
       {
         path: 'setup',
         component: () => import('pages/SetupPage.vue'),
@@ -47,7 +49,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/AdminPage.vue'),
         beforeEnter: (to, from, next) => {
           const store = useAddressStore();
-          if (store.canEdit) next();
+          if (store.isAdmin) next();
           else next('/login');
         }
       }

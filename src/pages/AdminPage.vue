@@ -547,6 +547,28 @@
         </template>
       </div>
 
+      <!-- AUDIO SEQUENCES -->
+      <div v-if="tab === 'audio'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">AUDIO SEQUENCES</span>
+          <span class="panel-count">Twilio call scripts</span>
+        </div>
+        <div class="sched-edit-hint">
+          Build TwiML sequences for automated phone calls — mix pre-recorded audio files with
+          dynamically generated TTS fields (invite codes, delivery status, driver names, pickup locations).
+          The deployed manifest is read by the MTS edge function to assemble the call.
+        </div>
+        <div class="q-mt-md">
+          <q-btn
+            unelevated
+            icon="graphic_eq"
+            label="Open Audio Sequence Builder"
+            color="primary"
+            to="/audio"
+          />
+        </div>
+      </div>
+
       <!-- SCHEDULE -->
       <div v-if="tab === 'schedule'" class="admin-panel">
         <div class="panel-head">
@@ -1176,6 +1198,7 @@ const tabs = [
   { key: 'members',  icon: 'group',          label: 'MEMBERS' },
   { key: 'announce', icon: 'campaign',       label: 'ANNOUNCE' },
   { key: 'messages', icon: 'mark_email_read', label: 'MESSAGES' },
+  { key: 'audio',    icon: 'graphic_eq',     label: 'AUDIO' },
   { key: 'schedule', icon: 'event',          label: 'SCHEDULE' },
   { key: 'locations',icon: 'map',            label: 'LOCATIONS' },
   { key: 'invites',  icon: 'vpn_key',        label: 'INVITES' },
@@ -1253,7 +1276,7 @@ const isAdmin = computed(() => store.userRole === 'admin');
 const cloudProfiles = ref<Member[]>([]);
 
 const localMembers = computed<Member[]>(() => {
-  return (store.getData as any[]).map(c => {
+  return store.getData.map(c => {
     const base: Omit<Member, 'hasAlias'> = {
       id:             c.id,
       name:           `${c.name.first} ${c.name.last}`.trim() || c.id,
@@ -1309,6 +1332,16 @@ async function changeRole(id: string, newRole: string) {
   }
 }
 
+interface ProfileRow {
+  id: string;
+  display_name: string | null;
+  bio: string | null;
+  location_label: string | null;
+  phone: string | null;
+  role: string | null;
+  avatar_url: string | null;
+}
+
 async function fetchCloudProfiles() {
   if (!store.canSync) return;
   try {
@@ -1316,7 +1349,7 @@ async function fetchCloudProfiles() {
       .from('profiles')
       .select('id, display_name, bio, location_label, phone, role, avatar_url')
       .eq('org_id', store.userOrgId);
-    cloudProfiles.value = (data || []).map((p: any) => {
+    cloudProfiles.value = (data || []).map((p: ProfileRow) => {
       const base: Omit<Member, 'hasAlias'> = {
         id:             p.id,
         name:           p.display_name || p.phone || 'Anonymous',
@@ -1613,8 +1646,8 @@ async function sendStagedMessage(msg: StagedMessage) {
     }
     $q.notify({ color: 'positive', icon: 'campaign', message: 'Announcement posted' });
     await fetchAnnounceHistory();
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to post' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: e instanceof Error ? e.message : 'Failed to post' });
   } finally {
     announceSending.value = false;
   }
@@ -1647,8 +1680,8 @@ async function sendAnnouncement() {
     announceTitle.value = '';
     announceBody.value = '';
     $q.notify({ color: 'positive', icon: 'campaign', message: 'Announcement posted' });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to post announcement' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: e instanceof Error ? e.message : 'Failed to post announcement' });
   } finally {
     announceSending.value = false;
   }
@@ -1665,7 +1698,12 @@ async function fetchAnnounceHistory() {
       .is('user_id', null)
       .order('created_at', { ascending: false })
       .limit(10);
-    announceHistory.value = (data || []).map((r: any) => ({
+    interface AnnounceHistoryRow {
+      title: string;
+      created_at: string;
+      data: { targetRoles?: string[] } | null;
+    }
+    announceHistory.value = (data || []).map((r: AnnounceHistoryRow) => ({
       title: r.title,
       created_at: r.created_at,
       role: 'all',
@@ -1877,8 +1915,8 @@ async function addNewLocation() {
 }
 
 async function removeLocation(loc: Location) {
-  const calEntries = (store.getEntries as any[]).filter(
-    (e: any) => e.type === 'calendar_event' && e.calendarLocationId === loc.id
+  const calEntries = store.getEntries.filter(
+    (e: Entry) => e.type === 'calendar_event' && e.calendarLocationId === loc.id
   );
   for (const ev of calEntries) await store.deleteEntry(ev.id);
   await store.deleteLocation(loc.id);
@@ -1891,19 +1929,19 @@ const calRegening = ref(false);
 
 const upcomingCalEvents = computed(() => {
   const now = new Date();
-  return (store.getEntries as any[])
-    .filter((e: any) => e.type === 'calendar_event' && e.status === 'active' && e.calendarDate && new Date(e.calendarDate) >= now)
-    .sort((a: any, b: any) => a.calendarDate.localeCompare(b.calendarDate));
+  return store.getEntries
+    .filter((e: Entry) => e.type === 'calendar_event' && e.status === 'active' && e.calendarDate && new Date(e.calendarDate) >= now)
+    .sort((a: Entry, b: Entry) => (a.calendarDate ?? '').localeCompare(b.calendarDate ?? ''));
 });
 
-interface CalGroup { label: string; events: any[] }
+interface CalGroup { label: string; events: Entry[] }
 
 const calEventGroups = computed<CalGroup[]>(() => {
   const events = upcomingCalEvents.value;
   if (!events.length) return [];
-  const groupMap = new Map<string, any[]>();
+  const groupMap = new Map<string, Entry[]>();
   for (const ev of events) {
-    const d = new Date(ev.calendarDate);
+    const d = new Date(ev.calendarDate ?? '');
     // Get the Monday of this event's week
     const day = d.getDay();
     const monday = new Date(d);
@@ -1911,7 +1949,8 @@ const calEventGroups = computed<CalGroup[]>(() => {
     monday.setHours(0, 0, 0, 0);
     const key = monday.toISOString().slice(0, 10);
     if (!groupMap.has(key)) groupMap.set(key, []);
-    groupMap.get(key)!.push(ev);
+    const bucket = groupMap.get(key);
+    if (bucket) bucket.push(ev);
   }
   return Array.from(groupMap.entries()).map(([key, evs]) => {
     const mon = new Date(key);
@@ -1937,7 +1976,7 @@ async function regenAllCalendar() {
   calRegening.value = true;
   try {
     // Delete all existing calendar entries
-    const toDelete = (store.getEntries as any[]).filter((e: any) => e.type === 'calendar_event');
+    const toDelete = store.getEntries.filter((e: Entry) => e.type === 'calendar_event');
     for (const ev of toDelete) await store.deleteEntry(ev.id);
     // Regenerate for all locations that have schedule days
     const locs = store.getLocations as LocType[];
@@ -2030,8 +2069,8 @@ async function createAndSendInvite() {
     inviteNewEmail.value = '';
     inviteNewPhone.value = '';
     inviteNewRole.value  = 'member';
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to create invite' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: e instanceof Error ? e.message : 'Failed to create invite' });
   } finally {
     genLoading.value = false;
   }
@@ -2177,7 +2216,17 @@ async function fetchCloudInvites() {
   if (!store.canSync) return;
   try {
     const { data } = await supabase.from('invites').select('*').order('created_at', { ascending: false });
-    cloudInvites.value = (data || []).map((inv: any) => ({
+    interface InviteRow {
+      code: string;
+      is_used: boolean;
+      created_at: string;
+      email: string | null;
+      display_name: string | null;
+      role: string | null;
+      notified_at: string | null;
+      accepted_at: string | null;
+    }
+    cloudInvites.value = (data || []).map((inv: InviteRow) => ({
       code: inv.code,
       is_used: inv.is_used,
       created_at: inv.created_at,
@@ -2334,7 +2383,7 @@ async function probeMailgunViaTest() {
       updateCheckItem('mailgun', 'fail', 'Secrets not set');
     } else {
       // Any non-401 response (ok, or SMTP rejection of test.invalid) means Mailgun is configured
-      updateCheckItem('mailgun', 'ok', `Configured (${(d as any)?.mailgun?.domain || 'active'})`);
+      updateCheckItem('mailgun', 'ok', `Configured (${(d?.mailgun as { domain?: string })?.domain || 'active'})`);
     }
   } catch {
     updateCheckItem('mailgun', 'warn', 'Could not verify — MTS unreachable');
@@ -2416,7 +2465,8 @@ async function sendTestEmail() {
     });
     if (status === 401) throw new Error('JWT auth failed — check your Supabase anon key');
     if (status >= 400) throw new Error(`MTS returned ${status}`);
-    if ((data as any)?.ok) {
+    const result = data as { ok?: boolean; error?: string } | null;
+    if (result?.ok) {
       testEmailResult.value = {
         status: 'ok',
         message: `Test email sent to ${testEmailAddress.value}`,
@@ -2425,7 +2475,7 @@ async function sendTestEmail() {
     } else {
       testEmailResult.value = {
         status: 'fail',
-        message: (data as any)?.error || 'Unknown error',
+        message: result?.error || 'Unknown error',
         timestamp: new Date().toLocaleTimeString(),
       };
     }
@@ -2604,7 +2654,7 @@ function moveOpsSection(idx: number, dir: -1 | 1) {
   const arr = opsPage.sections;
   const newIdx = idx + dir;
   if (newIdx < 0 || newIdx >= arr.length) return;
-  [arr[idx], arr[newIdx]] = [arr[newIdx]!, arr[idx]!];
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
 }
 
 const infoPageUrl = computed(() => `${window.location.origin}/#/info`);

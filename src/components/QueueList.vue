@@ -48,9 +48,9 @@
             <span class="queue-time">{{ timeAgo(task.createdAt) }}</span>
           </div>
 
-          <!-- Action buttons -->
+          <!-- Action buttons — canEdit roles only (drivers, stockers, admin, editor) -->
           <div class="queue-actions">
-            <template v-if="task.queueStatus === 'pending'">
+            <template v-if="store.canEdit && task.queueStatus === 'pending'">
               <q-btn
                 flat no-caps dense
                 label="CLAIM"
@@ -60,7 +60,7 @@
               />
             </template>
 
-            <template v-else-if="task.queueStatus === 'claimed'">
+            <template v-else-if="store.canEdit && task.queueStatus === 'claimed'">
               <q-btn
                 flat no-caps dense
                 label="IN TRANSIT"
@@ -77,7 +77,7 @@
               />
             </template>
 
-            <template v-else-if="task.queueStatus === 'in_transit'">
+            <template v-else-if="store.canEdit && task.queueStatus === 'in_transit'">
               <q-btn
                 flat no-caps dense
                 label="DELIVERED"
@@ -135,10 +135,12 @@ const $q = useQuasar();
 
 const filterMode = ref('all');
 
+const myName = computed(() => store.displayName || 'You');
+
 const queue = computed(() => {
   let items = store.getQueueEntries;
   if (filterMode.value === 'mine') {
-    items = items.filter(e => e.claimedBy === 'You' && e.queueStatus !== 'delivered' && e.queueStatus !== 'stocked');
+    items = items.filter(e => e.claimedBy === myName.value && e.queueStatus !== 'delivered' && e.queueStatus !== 'stocked');
   }
   const order: Record<string, number> = { pending: 0, claimed: 1, in_transit: 2, delivered: 3, stocked: 4 };
   return [...items].sort((a, b) =>
@@ -169,7 +171,7 @@ function timeAgo(iso: string): string {
 }
 
 async function claim(task: Entry) {
-  const name = store.demoMode ? 'You' : 'You';
+  const name = store.displayName || 'You';
   await store.claimEntry(task.id, name);
   mts.send({
     type: 'pickup-claimed',
@@ -472,14 +474,16 @@ async function stock(task: Entry) {
   letter-spacing: 2px;
   color: var(--wb-accent);
   padding: 7px 14px;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .filter-tab:hover {
-  color: #fff;
+  color: var(--wb-text);
+  background: var(--wb-surface-hover);
 }
 .filter-tab--active {
-  box-shadow: inset 0 0 0 2px #fff;
-  color: #fff;
+  box-shadow: inset 0 0 0 2px var(--wb-accent);
+  color: var(--wb-text);
+  background: var(--wb-surface-hover);
 }
 
 /* Stocked */

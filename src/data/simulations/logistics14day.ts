@@ -15,13 +15,13 @@ import type { Simulation } from './index';
 // ── People ────────────────────────────────────────────────────────
 
 const CONTACTS: Address[] = [
-  { id: 'lg-c1', name: { first: 'Maria',  last: 'Chen'      }, email: 'maria@cityfoodhub.org',   phone: '(303) 555-0101' },
-  { id: 'lg-c2', name: { first: 'Jake',   last: 'Thompson'  }, email: 'jake@routes.org',          phone: '(303) 555-0102' },
-  { id: 'lg-c3', name: { first: 'Aisha',  last: 'Patel'     }, email: 'aisha@volunteer.org',      phone: '(303) 555-0103' },
-  { id: 'lg-c4', name: { first: 'Devon',  last: 'Park'      }, email: 'devon@driver.org',         phone: '(303) 555-0104' },
-  { id: 'lg-c5', name: { first: 'Ben',    last: 'Wright'    }, email: 'ben@stock.org',            phone: '(303) 555-0105' },
-  { id: 'lg-c6', name: { first: 'Rosa',   last: 'Martinez'  }, email: 'rosa@community.org',       phone: '(303) 555-0106' },
-  { id: 'lg-c7', name: { first: 'Sam',    last: 'Okafor'   }, email: 'sam@logistics.org',        phone: '(303) 555-0107' },
+  { id: 'lg-c1', name: { first: 'Maria',  last: 'Chen'      }, email: 'maria@wardfoodpantry.org',   phone: '(303) 555-0101' },
+  { id: 'lg-c2', name: { first: 'Jake',   last: 'Thompson'  }, email: 'jake@wardvolunteer.org',     phone: '(303) 555-0102' },
+  { id: 'lg-c3', name: { first: 'Aisha',  last: 'Patel'     }, email: 'aisha@wardvolunteer.org',    phone: '(303) 555-0103' },
+  { id: 'lg-c4', name: { first: 'Devon',  last: 'Park'      }, email: 'devon@wardvolunteer.org',    phone: '(303) 555-0104' },
+  { id: 'lg-c5', name: { first: 'Ben',    last: 'Wright'    }, email: 'ben@wardfoodpantry.org',     phone: '(303) 555-0105' },
+  { id: 'lg-c6', name: { first: 'Rosa',   last: 'Martinez'  }, email: 'rosa@wardvolunteer.org',     phone: '(303) 555-0106' },
+  { id: 'lg-c7', name: { first: 'Sam',    last: 'Okafor'   }, email: 'sam@wardfoodpantry.org',     phone: '(303) 555-0107' },
 ];
 
 const DRIVERS       = ['Jake Thompson', 'Aisha Patel', 'Devon Park'];
@@ -247,13 +247,13 @@ function build(): Simulation {
 
   return {
     id: 'logistics-14day',
-    name: '7 Drivers · 33 Hubs · 14 Days',
+    name: 'Ward Food Pantry — Driver Data Demo',
     subtitle: 'A regional network at full operational scale',
     description:
       'Simulates two weeks of food distribution across 33 pickup hubs, ' +
       'one central stocking facility, and a rotating crew of 7. ' +
       'Every status lane is active — ideal for exploring the logistics diagram, ' +
-      'pipeline counts, and multi-hub routing.',
+      'pipeline counts, and multi-hub routing at ward scale.',
     tags: ['advanced', '33 hubs', '7 people', '14 days', '~140 queue items'],
 
     contacts: CONTACTS,
@@ -262,20 +262,20 @@ function build(): Simulation {
 
     localStorageContent: {
       'pantry-welcome': JSON.stringify({
-        name: 'City Food Hub Network',
+        name: 'Ward Food Distribution Network',
         tagline: '33 hubs · 7 crew · serving 1,200+ households',
         about:
-          'A coordinated city-wide food distribution network linking surplus from restaurants, ' +
+          'A coordinated ward-wide food distribution network linking surplus from restaurants, ' +
           'farms, grocery stores, and community donors to families in need across all five districts. ' +
           'All coordination runs through one central distribution center with daily routing to hubs.',
       }),
       'pantry-ops-page': JSON.stringify({
-        pageTitle: 'City Food Hub Network',
-        intro: 'Operating 33 pickup locations across Northside, Eastside, Southside, Westside, and Downtown. Deliveries run Monday–Saturday.',
+        pageTitle: 'Ward Food Distribution Network',
+        intro: 'Operating 33 pickup locations across North Ward, East Ward, South Ward, West Ward, and Downtown. Deliveries run Monday–Saturday.',
         sections: [
           { id: 'hubs', title: '33 Pickup Hubs', body: 'Hubs operate on rotating schedules. Check the Schedule and Logistics pages for live status and active routes.' },
           { id: 'central', title: 'Central Distribution Center', body: 'All deliveries consolidate at the Central Distribution Center. Stockers process and redistribute Mon–Fri. Receiving 6am–4pm.' },
-          { id: 'volunteer', title: 'Join the Crew', body: 'We need drivers (M/W/F and weekends) and stockers (Tue/Thu). Contact your district coordinator or use an invite code.' },
+          { id: 'volunteer', title: 'Join the Crew', body: 'We need drivers (M/W/F and weekends) and stockers (Tue/Thu). Contact your ward coordinator or use an invite code.' },
         ],
       }),
       'pantry-weekly-schedule': JSON.stringify({

@@ -1,0 +1,16 @@
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["node", "scripts/serve-spa.js"]
+deploymentTarget = "cloudrun"
+
+# Build the Quasar SPA before deploying
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[env]
+PORT = "3000"

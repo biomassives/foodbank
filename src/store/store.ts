@@ -50,6 +50,7 @@ export const useAddressStore = defineStore('address', () => {
     role: 'viewer',
     user: null,
     userOrgId: null,
+    displayName: null,
   });
 
   async function fetchUserRole() {
@@ -91,9 +92,10 @@ export const useAddressStore = defineStore('address', () => {
         }
       }
 
-      const { data } = await supabase.from('profiles').select('role, org_id').maybeSingle();
+      const { data } = await supabase.from('profiles').select('role, org_id, display_name').maybeSingle();
       state.role = data?.role || 'viewer';
       state.userOrgId = data?.org_id || null;
+      state.displayName = data?.display_name || null;
     } catch {
       // Network unavailable (e.g. offline or dev without Supabase) — keep current state
     }
@@ -107,7 +109,15 @@ export const useAddressStore = defineStore('address', () => {
   const demoMode = computed(() => !!localStorage.getItem('demoMode'));
   const activeSimulationId = computed(() => localStorage.getItem('activeSimulationId') ?? '');
   const canEdit = computed(() => state.role === 'admin' || state.role === 'editor' || state.role === 'driver' || state.role === 'stocker' || localMode.value || demoMode.value);
+  // isAdmin gates /admin route and silo manager nav — drivers/stockers are directed via daily digest email, not this panel
+  const isAdmin = computed(() => state.role === 'admin' || state.role === 'editor' || localMode.value || demoMode.value);
   const userRole = computed(() => state.role);
+  const userId = computed(() => (state.user as { id?: string } | null)?.id ?? null);
+  const displayName = computed(() => {
+    if (state.displayName) return state.displayName;
+    if (localMode.value || demoMode.value) return localStorage.getItem('wb-display-name') || 'You';
+    return 'You';
+  });
 
   function search(payload: string) {
     state.searchStr = payload;
@@ -425,9 +435,12 @@ export const useAddressStore = defineStore('address', () => {
     getData,
     getSearchStr,
     canEdit,
+    isAdmin,
     canSync,
     isLoggedIn,
     userRole,
+    userId,
+    displayName,
     userEmail,
     localMode,
     userOrgId,

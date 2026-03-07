@@ -20,10 +20,48 @@
     </div>
 
     <!-- Scrollable content -->
-    <div class="index-content" :class="{ 'mondrian-grid': isDesktop && !activeFilter }">
+    <div class="index-content" :class="[
+      isDesktop && !activeFilter ? 'mondrian-grid' : '',
+      isDesktop && !activeFilter ? roleGridClass : '',
+    ]">
 
-      <!-- === SCHEDULE cell (desktop top-left, row 1) === -->
-      <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--schedule">
+      <!-- === MY TASKS cell — drivers & stockers, desktop only === -->
+      <div v-if="isDesktop && !activeFilter && (isDriver || isStocker)" class="mondrian-cell mondrian-cell--mytasks">
+        <div class="mondrian-cell-header">
+          {{ myTasksLabel }}
+          <span v-if="myActiveTasks.length" class="mytasks-count">{{ myActiveTasks.length }}</span>
+        </div>
+
+        <!-- Active task rows -->
+        <div v-if="myActiveTasks.length" class="mytasks-list">
+          <div v-for="task in myActiveTasks" :key="task.id" class="mytask-row">
+            <div class="mytask-status-bar" :class="'mytask-status-bar--' + (task.queueStatus || 'claimed')" />
+            <div class="mytask-body">
+              <div class="mytask-desc">{{ task.description }}</div>
+              <div class="mytask-meta">
+                <span v-if="task.location" class="mytask-loc">
+                  <q-icon name="location_on" size="11px" /> {{ task.location }}
+                </span>
+                <span class="mytask-chip" :class="'mytask-chip--' + task.queueStatus">
+                  {{ statusLabel(task.queueStatus || 'claimed') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div v-else class="mytasks-empty">
+          <q-icon name="task_alt" size="24px" />
+          <div class="mytasks-empty-text">NO ACTIVE TASKS</div>
+          <div class="mytasks-empty-sub">
+            {{ isDriver ? 'See the queue to claim a delivery' : 'See the queue to pick up a shift' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- === SCHEDULE cell (desktop top-left, row 1) — hidden for driver/stocker === -->
+      <div v-if="isDesktop && !activeFilter && !isDriver && !isStocker" class="mondrian-cell mondrian-cell--schedule">
         <div class="mondrian-cell-header">
           SCHEDULE
           <router-link to="/calendar" class="cell-header-link" title="Full calendar">
@@ -33,8 +71,8 @@
         <pantry-schedule-cell />
       </div>
 
-      <!-- === WELCOME cell (desktop top-right, row 1) === -->
-      <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--welcome">
+      <!-- === WELCOME cell (desktop top-right, row 1) — hidden for driver/stocker === -->
+      <div v-if="isDesktop && !activeFilter && !isDriver && !isStocker" class="mondrian-cell mondrian-cell--welcome">
         <div class="mondrian-cell-header">
           ABOUT THE PANTRY
           <router-link v-if="store.canEdit" to="/admin?tab=welcome" class="cell-header-link" title="Edit pantry info">
@@ -53,27 +91,62 @@
         <queue-list />
       </div>
 
-      <!-- === ACTIVITY cell — summary stats (desktop only, no filter) === -->
+      <!-- === ACTIVITY cell — role-aware (desktop only, no filter) === -->
       <div v-if="isDesktop && !activeFilter" class="mondrian-cell mondrian-cell--activity">
-        <div class="mondrian-cell-header">ACTIVITY</div>
-        <div class="activity-stats">
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.pending }}</span>
-            <span class="activity-stat-label">PENDING</span>
+        <div class="mondrian-cell-header">{{ activityLabel }}</div>
+
+        <!-- Admin / editor / driver: team-wide pipeline stats -->
+        <template v-if="!isViewer">
+          <div class="activity-stats" :class="{ 'activity-stats--driver': isDriver }">
+            <div class="activity-stat">
+              <span class="activity-stat-num">{{ queueStats.pending }}</span>
+              <span class="activity-stat-label">PENDING</span>
+            </div>
+            <div class="activity-stat">
+              <span class="activity-stat-num">{{ queueStats.claimed }}</span>
+              <span class="activity-stat-label">CLAIMED</span>
+            </div>
+            <div class="activity-stat">
+              <span class="activity-stat-num">{{ queueStats.transit }}</span>
+              <span class="activity-stat-label">IN TRANSIT</span>
+            </div>
+            <div class="activity-stat">
+              <span class="activity-stat-num">{{ queueStats.delivered }}</span>
+              <span class="activity-stat-label">DELIVERED</span>
+            </div>
+            <div v-if="isStocker" class="activity-stat activity-stat--stocked">
+              <span class="activity-stat-num">{{ queueStats.stocked }}</span>
+              <span class="activity-stat-label">STOCKED</span>
+            </div>
           </div>
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.claimed }}</span>
-            <span class="activity-stat-label">CLAIMED</span>
+
+          <!-- Driver: recent community items -->
+          <div v-if="isDriver && filteredEntries.length" class="activity-feed">
+            <div class="activity-feed-label">COMMUNITY</div>
+            <div v-for="e in filteredEntries.slice(0, 3)" :key="e.id" class="activity-feed-row">
+              <q-icon :name="entryIcon(e.type)" size="13px" :style="{ color: entryColor(e.type) }" />
+              <span class="activity-feed-desc">{{ e.description.slice(0, 55) }}</span>
+            </div>
           </div>
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.transit }}</span>
-            <span class="activity-stat-label">IN TRANSIT</span>
+        </template>
+
+        <!-- Viewer: community panel -->
+        <template v-else>
+          <div class="community-panel">
+            <div v-if="pantryAbout.tagline" class="community-panel-tagline">{{ pantryAbout.tagline }}</div>
+            <div v-if="pantryAbout.about" class="community-panel-about">{{ pantryAbout.about }}</div>
+            <div v-if="activeEntries.length" class="community-panel-needs">
+              <div class="community-panel-needs-label">COMMUNITY NEEDS</div>
+              <div v-for="e in activeEntries.filter(e => e.type === 'need').slice(0, 3)" :key="e.id" class="community-panel-need-row">
+                <q-icon name="volunteer_activism" size="12px" style="color: var(--wb-negative)" />
+                <span>{{ e.description.slice(0, 60) }}</span>
+              </div>
+            </div>
+            <router-link to="/info" class="community-panel-link">
+              <q-icon name="info_outline" size="13px" /> PANTRY INFO
+            </router-link>
           </div>
-          <div class="activity-stat">
-            <span class="activity-stat-num">{{ queueStats.delivered }}</span>
-            <span class="activity-stat-label">DELIVERED</span>
-          </div>
-        </div>
+        </template>
       </div>
 
 
@@ -352,14 +425,63 @@ function onResize() { isDesktop.value = window.innerWidth >= 960; }
 window.addEventListener('resize', onResize);
 onUnmounted(() => window.removeEventListener('resize', onResize));
 
+// Role helpers
+const isDriver  = computed(() => store.userRole === 'driver');
+const isStocker = computed(() => store.userRole === 'stocker');
+const isViewer  = computed(() => !store.canEdit && !store.localMode && !store.demoMode);
+
+const roleGridClass = computed(() => {
+  if (isDriver.value)  return 'mondrian-grid--driver';
+  if (isStocker.value) return 'mondrian-grid--stocker';
+  return '';
+});
+
+const myTasksLabel = computed(() => {
+  if (isDriver.value)  return 'MY DELIVERIES';
+  if (isStocker.value) return 'MY SHIFTS';
+  return 'MY TASKS';
+});
+
+const activityLabel = computed(() => {
+  if (isDriver.value)  return 'TEAM ACTIVITY';
+  if (isStocker.value) return 'PANTRY STATUS';
+  return 'ACTIVITY';
+});
+
+// My active tasks (claimed or in_transit by the current user)
+const myActiveTasks = computed(() =>
+  store.getQueueEntries.filter(e =>
+    e.claimedBy === store.displayName &&
+    e.queueStatus !== 'delivered' &&
+    e.queueStatus !== 'stocked'
+  )
+);
+
+function statusLabel(s: string): string {
+  const map: Record<string, string> = {
+    pending: 'PENDING', claimed: 'CLAIMED',
+    in_transit: 'IN TRANSIT', delivered: 'DELIVERED', stocked: 'STOCKED',
+  };
+  return map[s] || s;
+}
+
+// Pantry about text for viewer community panel
+const pantryAbout = computed(() => {
+  try {
+    const w = JSON.parse(localStorage.getItem('pantry-welcome') || '{}');
+    return { name: w.name || '', about: w.about || '', tagline: w.tagline || '' };
+  } catch { return { name: '', about: '', tagline: '' }; }
+});
+
 // Queue stats for activity panel
 const queueStats = computed(() => {
   const q = store.getQueueEntries;
   return {
-    pending: q.filter((e: Entry) => e.queueStatus === 'pending').length,
-    claimed: q.filter((e: Entry) => e.queueStatus === 'claimed').length,
-    transit: q.filter((e: Entry) => e.queueStatus === 'in_transit').length,
+    pending:   q.filter((e: Entry) => e.queueStatus === 'pending').length,
+    claimed:   q.filter((e: Entry) => e.queueStatus === 'claimed').length,
+    transit:   q.filter((e: Entry) => e.queueStatus === 'in_transit').length,
     delivered: q.filter((e: Entry) => e.queueStatus === 'delivered').length,
+    stocked:   q.filter((e: Entry) => e.queueStatus === 'stocked').length,
   };
 });
 const fabOpen = ref(false);
@@ -1020,6 +1142,195 @@ onMounted(async () => {
   font-size: 0.75rem;
   letter-spacing: 2px;
 }
+
+/* ---- MY TASKS cell ---- */
+.mytasks-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wb-accent);
+  color: #000;
+  font-family: var(--wb-font);
+  font-weight: 900;
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  padding: 1px 5px;
+  min-width: 16px;
+}
+
+.mytasks-list {
+  padding: 4px 0;
+}
+
+.mytask-row {
+  display: flex;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  transition: background 0.15s;
+}
+.mytask-row:hover { background: var(--wb-surface-hover); }
+
+.mytask-status-bar {
+  width: 3px;
+  flex-shrink: 0;
+}
+.mytask-status-bar--claimed    { background: var(--wb-queue-claimed); }
+.mytask-status-bar--in_transit { background: var(--wb-queue-transit); }
+
+.mytask-body {
+  flex: 1;
+  padding: 8px 10px 7px;
+  min-width: 0;
+}
+
+.mytask-desc {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--wb-text);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mytask-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.mytask-loc {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.63rem;
+  color: var(--wb-text-muted);
+}
+.mytask-loc :deep(.q-icon) { color: var(--wb-text-faint); }
+
+.mytask-chip {
+  padding: 1px 5px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.45rem;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.mytask-chip--claimed    { color: var(--wb-queue-claimed);  border-color: var(--wb-queue-claimed); }
+.mytask-chip--in_transit { color: var(--wb-queue-transit);  border-color: var(--wb-queue-transit); }
+
+.mytasks-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  color: var(--wb-text-faint);
+  text-align: center;
+}
+.mytasks-empty-text {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  margin-top: 8px;
+}
+.mytasks-empty-sub {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.65rem;
+  color: var(--wb-text-faint);
+  margin-top: 4px;
+}
+
+/* ---- Activity feed (driver community items) ---- */
+.activity-feed {
+  padding: 8px 12px 4px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+.activity-feed-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.48rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  margin-bottom: 5px;
+}
+.activity-feed-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 3px 0;
+}
+.activity-feed-desc {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  line-height: 1.3;
+}
+.activity-feed-row :deep(.q-icon) { flex-shrink: 0; margin-top: 1px; }
+
+/* ---- Community panel (viewer) ---- */
+.community-panel {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.community-panel-tagline {
+  font-family: var(--wb-font);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--wb-accent);
+  letter-spacing: 1px;
+}
+.community-panel-about {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--wb-text-mid);
+  line-height: 1.45;
+}
+.community-panel-needs { margin-top: 4px; }
+.community-panel-needs-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.45rem;
+  letter-spacing: 3px;
+  color: var(--wb-text-faint);
+  margin-bottom: 4px;
+}
+.community-panel-need-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 2px 0;
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+}
+.community-panel-need-row :deep(.q-icon) { flex-shrink: 0; margin-top: 1px; }
+.community-panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  color: var(--wb-info);
+  text-decoration: none;
+}
+.community-panel-link:hover { color: var(--wb-accent); }
 
 /* ---- Community entries ---- */
 .entry-row {

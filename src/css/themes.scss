@@ -995,7 +995,7 @@
   @media (min-width: 960px) {
     display: grid;
     grid-template-columns: 1fr 1.4fr 0.8fr;
-    grid-template-rows: auto minmax(180px, 28vh) 1fr 1fr auto;
+    grid-template-rows: auto minmax(320px, 52vh) 1fr 1fr auto;
     gap: 3px;
     min-height: calc(100vh - 60px);
     padding: 3px;
@@ -1014,62 +1014,15 @@
   }
 }
 
-// Row 1: SCHEDULE (col 1)  +  WELCOME (cols 2-3)
-// Row 2: QUEUE spans all cols
-// Row 3: LOCATIONS (col 1) +  DIRECTORY (cols 2-3)
-// Row 4: COMMUNITY spans all cols
-// Row 5: ACTIVITY spans all cols
-.mondrian-cell--schedule {
-  @media (min-width: 960px) {
-    grid-column: 1;
-    grid-row: 1;
-    border-color: var(--wb-accent);
-    overflow: hidden;
-  }
-}
-.mondrian-cell--welcome {
-  @media (min-width: 960px) {
-    grid-column: 2 / 4;  // cols 2+3
-    grid-row: 1;
-    border-color: var(--wb-info);
-    overflow-y: visible;
-  }
-}
-.mondrian-cell--queue {
-  @media (min-width: 960px) {
-    grid-column: 1 / 4;  // full width
-    grid-row: 2;
-    border-color: var(--wb-positive);
-  }
-}
-.mondrian-cell--locations {
-  @media (min-width: 960px) {
-    grid-column: 1;
-    grid-row: 3;
-    border-color: var(--wb-warning);
-  }
-}
-.mondrian-cell--directory {
-  @media (min-width: 960px) {
-    grid-column: 2 / 4;  // cols 2+3
-    grid-row: 3;
-    border-color: var(--wb-info);
-  }
-}
-.mondrian-cell--community {
-  @media (min-width: 960px) {
-    grid-column: 1 / 4;  // full width
-    grid-row: 4;
-    border-color: var(--wb-negative);
-  }
-}
-.mondrian-cell--activity {
-  @media (min-width: 960px) {
-    grid-column: 1 / 4;  // full width
-    grid-row: 5;
-    border-color: var(--wb-border);
-  }
-}
+// Cells use grid-area names (see role-aware grid section below for assignments).
+// Border colors and overflow per cell:
+.mondrian-cell--schedule  { @media (min-width: 960px) { border-color: var(--wb-accent);   overflow: hidden;   } }
+.mondrian-cell--welcome   { @media (min-width: 960px) { border-color: var(--wb-info);     overflow-y: visible; } }
+.mondrian-cell--queue     { @media (min-width: 960px) { border-color: var(--wb-positive); } }
+.mondrian-cell--locations { @media (min-width: 960px) { border-color: var(--wb-warning);  } }
+.mondrian-cell--directory { @media (min-width: 960px) { border-color: var(--wb-info);     } }
+.mondrian-cell--community { @media (min-width: 960px) { border-color: var(--wb-negative); } }
+.mondrian-cell--activity  { @media (min-width: 960px) { border-color: var(--wb-border);   } }
 
 // Cell headers
 .mondrian-cell-header {
@@ -1144,3 +1097,90 @@
   color: var(--wb-text-faint);
   margin-top: 2px;
 }
+
+.activity-stat--stocked .activity-stat-num { color: var(--wb-positive); }
+
+// ── Role-aware grid layouts ────────────────────────────────────────────────
+
+// Default: assign named grid areas to existing cell classes
+@media (min-width: 960px) {
+  .mondrian-grid {
+    grid-template-areas:
+      "schedule welcome  welcome  "
+      "queue    queue    queue    "
+      "locations directory directory"
+      "community community community"
+      "activity activity activity  ";
+  }
+
+  .mondrian-cell--schedule  { grid-area: schedule;  }
+  .mondrian-cell--welcome   { grid-area: welcome;   }
+  .mondrian-cell--queue     { grid-area: queue;     }
+  .mondrian-cell--locations { grid-area: locations; }
+  .mondrian-cell--directory { grid-area: directory; }
+  .mondrian-cell--community { grid-area: community; }
+  .mondrian-cell--activity  { grid-area: activity;  }
+  .mondrian-cell--mytasks   { grid-area: mytasks;   }
+
+  // Driver: personal strip top, queue + activity side-by-side
+  .mondrian-grid--driver {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto minmax(300px, 48vh) 1fr 1fr;
+    grid-template-areas:
+      "mytasks   mytasks   mytasks  "
+      "queue     queue     activity "
+      "locations directory directory"
+      "community community community";
+  }
+
+  // Stocker: personal strip top, full-width queue, stocked stats below
+  .mondrian-grid--stocker {
+    grid-template-columns: 1fr 1.4fr 0.8fr;
+    grid-template-rows: auto minmax(300px, 48vh) 1fr 1fr auto;
+    grid-template-areas:
+      "mytasks   mytasks   mytasks  "
+      "queue     queue     queue    "
+      "locations directory directory"
+      "community community community"
+      "activity  activity  activity ";
+  }
+}
+
+// ── MY TASKS cell styles ──────────────────────────────────────────────────
+
+.mondrian-cell--mytasks {
+  border-color: var(--wb-accent);
+
+  @media (min-width: 960px) {
+    border-width: 3px;
+    min-height: 110px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}
+
+// mondrian-dawn override — terracotta strip, warm feel
+[data-theme="mondrian-dawn"] .mondrian-cell--mytasks {
+  background: #FFF3E8;
+  border-color: #E2725B;
+}
+[data-theme="mondrian-dawn"] .mondrian-cell--mytasks .mondrian-cell-header {
+  color: #C14E35;
+  border-bottom-color: rgba(226, 114, 91, 0.25);
+}
+
+// bauhaus override — bold blue strip
+[data-theme="bauhaus"] .mondrian-cell--mytasks {
+  background: #1a56db;
+  color: #fff;
+  border-color: #1a56db;
+}
+[data-theme="bauhaus"] .mondrian-cell--mytasks .mondrian-cell-header {
+  color: rgba(255,255,255,0.85);
+  border-bottom-color: rgba(255,255,255,0.2);
+}
+[data-theme="bauhaus"] .mondrian-cell--mytasks .mytasks-empty,
+[data-theme="bauhaus"] .mondrian-cell--mytasks .mytask-desc { color: #fff; }
+[data-theme="bauhaus"] .mondrian-cell--mytasks .mytask-loc,
+[data-theme="bauhaus"] .mondrian-cell--mytasks .mytasks-empty-sub,
+[data-theme="bauhaus"] .mondrian-cell--mytasks .mytasks-empty-text { color: rgba(255,255,255,0.7); }
