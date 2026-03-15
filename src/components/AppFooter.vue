@@ -9,6 +9,8 @@
       </div>
 
       <div class="app-footer-center">
+        <router-link to="/docs" class="app-footer-link">Docs</router-link>
+        <span class="app-footer-sep">&middot;</span>
         <router-link to="/terms" class="app-footer-link">Terms</router-link>
         <span class="app-footer-sep">&middot;</span>
         <router-link to="/launch" class="app-footer-link">Run Your Own</router-link>
@@ -56,6 +58,8 @@
       <!-- Compact drawer variant -->
       <div class="app-footer-drawer-brand">{{ appName }}</div>
       <div class="app-footer-drawer-links">
+        <router-link to="/docs" class="app-footer-drawer-link">Docs</router-link>
+        <span class="app-footer-sep">&middot;</span>
         <router-link to="/terms" class="app-footer-drawer-link">Terms</router-link>
         <span class="app-footer-sep">&middot;</span>
         <router-link to="/launch" class="app-footer-drawer-link">Run Your Own</router-link>

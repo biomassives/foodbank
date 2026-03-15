@@ -12,6 +12,8 @@ const config: Config = {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   testTimeout: 30000,
+  // E2E tests share a single browser — run serially to prevent page state bleed
+  maxWorkers: 1,
   // These globals are injected by jest-puppeteer (page, browser, context)
   globals: {},
 };

@@ -12,10 +12,14 @@
  *   Drivers do not log into /admin; they follow links and take action inline.
  *   These tests verify those deep-links render the correct content.
  */
-import { goto, setLocalMode } from './helpers';
+import { goto, setLocalMode, clearAuth } from './helpers';
 
 // ── 1. Public visitor ─────────────────────────────────────────────────────────
 describe('Workflow — public visitor', () => {
+  beforeAll(async () => {
+    await clearAuth();
+  });
+
   it('homepage renders the pantry welcome cell', async () => {
     await goto('/');
     const body = await page.$eval('body', (el) => el.innerText);
@@ -55,11 +59,13 @@ describe('Workflow — public visitor', () => {
       localStorage.removeItem('demoMode');
     });
     await page.reload({ waitUntil: 'networkidle0' });
-    const bodyHtml = await page.content();
-    // The SILO MANAGER link is v-if="store.isAdmin" — should not render for anon
-    // Check by looking for the /admin anchor in the rendered DOM
-    const adminAnchor = await page.$('a[href="/admin"]');
-    expect(adminAnchor).toBeNull();
+    // The admin nav item renders as div.drawer-nav-item (custom router-link slot), not <a>.
+    // v-if="store.isAdmin" removes it from the DOM for non-admin sessions.
+    const hasManagerLink = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.drawer-nav-item'));
+      return items.some((el) => el.textContent?.includes('Manager'));
+    });
+    expect(hasManagerLink).toBe(false);
   });
 });
 
@@ -76,8 +82,13 @@ describe('Workflow — admin/editor (localMode)', () => {
 
   it('SILO MANAGER nav link is present', async () => {
     await goto('/');
-    const adminLink = await page.$('a[href="/admin"]');
-    expect(adminLink).not.toBeNull();
+    // Admin nav renders as div.drawer-nav-item (custom router-link slot, v-if="store.isAdmin").
+    // Quasar keeps drawer content in the DOM even when the drawer is closed.
+    const hasManagerLink = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.drawer-nav-item'));
+      return items.some((el) => el.textContent?.includes('Manager'));
+    });
+    expect(hasManagerLink).toBe(true);
   });
 
   it('/admin loads the SILO MANAGER panel', async () => {
@@ -94,9 +105,13 @@ describe('Workflow — admin/editor (localMode)', () => {
   });
 
   it('homepage shows "add" buttons for entries/locations/contacts', async () => {
+    // cell-add-btn is inside v-if="isDesktop" (≥960px) — ensure desktop viewport
+    await page.setViewport({ width: 1280, height: 800 });
     await goto('/');
+    await page.waitForSelector('.cell-add-btn', { timeout: 5000 });
     const addBtns = await page.$$('.cell-add-btn');
     expect(addBtns.length).toBeGreaterThan(0);
+    await page.setViewport({ width: 800, height: 600 }); // restore default
   });
 
   it('/info shows "Edit in Admin" shortcut for editors', async () => {
@@ -110,6 +125,9 @@ describe('Workflow — admin/editor (localMode)', () => {
 describe('Workflow — driver/stocker (digest email links)', () => {
   // Drivers don't use localMode or /admin. They follow links from the daily digest.
   // We test the deep-link destinations render correctly for an unauthenticated/viewer session.
+  beforeAll(async () => {
+    await clearAuth();
+  });
 
   it('/ (homepage) renders the queue section drivers act on', async () => {
     await goto('/');
@@ -149,8 +167,11 @@ describe('Workflow — driver/stocker (digest email links)', () => {
       localStorage.removeItem('demoMode');
     });
     await page.reload({ waitUntil: 'networkidle0' });
-    const adminLink = await page.$('a[href="/admin"]');
-    expect(adminLink).toBeNull();
+    const hasManagerLink = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.drawer-nav-item'));
+      return items.some((el) => el.textContent?.includes('Manager'));
+    });
+    expect(hasManagerLink).toBe(false);
   });
 });
 
@@ -174,7 +195,7 @@ describe('Workflow — invite recipient (/join)', () => {
     // Both are acceptable — we just verify the form doesn't silently submit
     if (!isDisabled) {
       await btn.click();
-      await page.waitForTimeout(300);
+      await new Promise((r) => setTimeout(r, 300));
       const body = await page.$eval('body', (el) => el.innerText);
       // Should show some form of error or stay on the page
       expect(page.url()).toContain('/join');
@@ -207,7 +228,7 @@ describe('Workflow — invite recipient (/join)', () => {
       const disabled = await btn.evaluate((el) => (el as HTMLButtonElement).disabled);
       if (!disabled) {
         await btn.click();
-        await page.waitForTimeout(1500);
+        await new Promise((r) => setTimeout(r, 1500));
         const body = await page.$eval('body', (el) => el.innerText);
         // Should show an error from the server or the client validation
         expect(body.toLowerCase()).toMatch(/invalid|error|not found|wrong|code/);

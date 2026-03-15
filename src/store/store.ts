@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue';
+import { reactive, computed, ref } from 'vue';
 import { createPinia, defineStore } from 'pinia';
 import {
   openIndexedDB,
@@ -42,6 +42,9 @@ export interface SearchResult {
 }
 
 export const useAddressStore = defineStore('address', () => {
+  // UI flags (layout-level signals)
+  const hideHeader = ref(false);
+
   const state = reactive<AddressState>({
     searchStr: '',
     addressList: [],
@@ -292,6 +295,27 @@ export const useAddressStore = defineStore('address', () => {
     return await exportAllData();
   }
 
+  async function importData(payload: {
+    addresses?: Address[];
+    entries?: Entry[];
+    locations?: Location[];
+  }): Promise<{ contacts: number; entries: number; locations: number }> {
+    if (payload.addresses?.length) await bulkAddContacts(payload.addresses);
+    if (payload.entries?.length)   await bulkAddEntries(payload.entries);
+    if (payload.locations?.length) await bulkAddLocations(payload.locations);
+    await loadData();
+    await loadEntries();
+    await loadLocations();
+    if (state.userOrgId) {
+      try { await syncAllData(); } catch { /* non-fatal — local import still succeeds */ }
+    }
+    return {
+      contacts: payload.addresses?.length ?? 0,
+      entries: payload.entries?.length ?? 0,
+      locations: payload.locations?.length ?? 0,
+    };
+  }
+
   async function syncAllData() {
     if (!state.userOrgId) throw new Error('No org connected — join or create a pantry first.');
     const client = getCustomSupabaseClient();
@@ -472,9 +496,11 @@ export const useAddressStore = defineStore('address', () => {
     hasCustomConnection,
     searchResults,
     exportData,
+    importData,
     syncAllData,
     clearSingleStore,
     createSharedPantry,
+    hideHeader,
   };
 });
 

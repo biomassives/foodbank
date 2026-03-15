@@ -119,6 +119,29 @@
         </div>
       </div>
 
+      <!-- ── LANGUAGE ── -->
+      <div class="settings-section">
+        <div class="settings-section-label">LANGUAGE</div>
+        <div class="lang-block">
+          <div
+            v-for="opt in localeOptions"
+            :key="opt.code"
+            class="appearance-row"
+            :class="{ 'appearance-row--active': currentLocale === opt.code }"
+            @click="switchLocale(opt.code)"
+          >
+            <div class="appearance-info">
+              <span class="lang-flag">{{ opt.flag }}</span>
+              <div>
+                <div class="appearance-title">{{ opt.label }}</div>
+                <div class="appearance-hint">{{ opt.native }}</div>
+              </div>
+            </div>
+            <q-icon v-if="currentLocale === opt.code" name="check_circle" size="18px" style="color: var(--wb-positive)" />
+          </div>
+        </div>
+      </div>
+
       <!-- ── ABOUT ── -->
       <div class="settings-section">
         <div class="settings-section-label">ABOUT</div>
@@ -508,11 +531,11 @@
 
       <!-- ── EXPORT ── -->
       <div class="settings-section">
-        <div class="settings-section-label">EXPORT</div>
+        <div class="settings-section-label">EXPORT &amp; IMPORT</div>
         <div class="export-block">
           <div class="export-desc">
-            Download all your local data (contacts, entries, locations)
-            as a JSON file. Useful for backup or migration.
+            Download all your data (contacts, entries, locations, pantry settings)
+            as a JSON file to back up or share with another pantry.
           </div>
           <q-btn
             flat no-caps dense
@@ -521,6 +544,28 @@
             class="export-btn"
             :loading="exporting"
             @click="handleExport"
+          />
+        </div>
+        <div class="export-block" style="margin-top:12px">
+          <div class="export-desc">
+            Merge data from a previously exported JSON file into your
+            current data{{ store.userOrgId ? ' and connected pantry' : '' }}.
+            Existing records are updated; nothing is deleted.
+          </div>
+          <q-btn
+            flat no-caps dense
+            icon="upload"
+            label="Import JSON"
+            class="export-btn"
+            :loading="importing"
+            @click="importFileRef?.click()"
+          />
+          <input
+            ref="importFileRef"
+            type="file"
+            accept=".json,application/json"
+            style="display:none"
+            @change="handleImportFile"
           />
         </div>
       </div>
@@ -596,10 +641,33 @@ import { supabase } from 'src/dbManagement';
 import { useQuasar } from 'quasar';
 import { useTheme } from 'src/composables/useTheme';
 import { SIMULATIONS } from 'src/data/simulations/index';
+import { useI18n, setLocale, registerLangPack } from 'src/i18n';
 
 const store = useAddressStore();
 const $q = useQuasar();
 const { isDark, set: themeSet } = useTheme();
+const { locale } = useI18n();
+const currentLocale = locale;
+
+const localeOptions = [
+  { code: 'en', label: 'English',   native: 'English',    flag: '🇺🇸' },
+  { code: 'es', label: 'Spanish',   native: 'Español',    flag: '🇪🇸' },
+  { code: 'sw', label: 'Swahili',   native: 'Kiswahili',  flag: '🇰🇪' },
+];
+
+async function switchLocale(code: string) {
+  if (code === currentLocale.value) return;
+  if (code === 'es') {
+    const { default: esPack } = await import('src/i18n/es');
+    registerLangPack('es', esPack);
+  }
+  if (code === 'sw') {
+    const { default: swPack } = await import('src/i18n/sw');
+    registerLangPack('sw', swPack);
+  }
+  setLocale(code);
+  localStorage.setItem('locale', code);
+}
 
 const themeOptions = [
   { value: 'dark' as const,          icon: 'dark_mode',        label: 'Dark Mode',      hint: 'Warhol Factory — stark & bold' },
@@ -646,6 +714,8 @@ const activeSimName = computed(() => {
   return SIMULATIONS.find(s => s.id === id)?.name ?? 'Demo';
 });
 const exporting = ref(false);
+const importing = ref(false);
+const importFileRef = ref<HTMLInputElement | null>(null);
 const syncing = ref(false);
 const userEmail = ref('');
 const digestOptIn = ref(true);
@@ -865,7 +935,11 @@ async function handleClearDemo() {
 async function handleExport() {
   exporting.value = true;
   try {
-    const data = await store.exportData();
+    const dbData = await store.exportData();
+    const settingsKeys = ['pantry-welcome', 'pantry-ops-page', 'pantry-weekly-schedule'] as const;
+    const settings: Record<string, string | null> = {};
+    for (const k of settingsKeys) settings[k] = localStorage.getItem(k);
+    const data = { version: 1, exportedAt: new Date().toISOString(), ...dbData, settings };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -878,6 +952,46 @@ async function handleExport() {
     $q.notify({ color: 'negative', message: e.message || 'Export failed.' });
   } finally {
     exporting.value = false;
+  }
+}
+
+async function handleImportFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  importing.value = true;
+  // Reset the input so the same file can be re-selected if needed
+  if (importFileRef.value) importFileRef.value.value = '';
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    // Accept both the enriched export format (version+settings) and bare { addresses, entries, locations }
+    const result = await store.importData({
+      addresses: Array.isArray(payload.addresses) ? payload.addresses : [],
+      entries:   Array.isArray(payload.entries)   ? payload.entries   : [],
+      locations: Array.isArray(payload.locations) ? payload.locations : [],
+    });
+    // Restore pantry settings if present
+    if (payload.settings) {
+      const settingsKeys = ['pantry-welcome', 'pantry-ops-page', 'pantry-weekly-schedule'] as const;
+      for (const k of settingsKeys) {
+        if (payload.settings[k]) localStorage.setItem(k, payload.settings[k]);
+      }
+    }
+    const parts = [
+      result.contacts  ? `${result.contacts} contacts`  : '',
+      result.entries   ? `${result.entries} entries`    : '',
+      result.locations ? `${result.locations} locations` : '',
+    ].filter(Boolean).join(', ') || 'No records found in file';
+    $q.notify({
+      color: 'positive',
+      icon: 'upload',
+      message: `Imported: ${parts}${store.userOrgId ? ' — synced to cloud' : ''}`,
+      timeout: 5000,
+    });
+  } catch (e: any) {
+    $q.notify({ color: 'negative', message: 'Import failed — ' + (e.message || 'check the file format.') });
+  } finally {
+    importing.value = false;
   }
 }
 
@@ -1063,6 +1177,17 @@ onMounted(async () => {
   color: rgba(255,255,255,0.7);
   margin-top: 4px;
   text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+}
+
+/* ---- Language switcher ---- */
+.lang-block {
+  padding: 8px 4px;
+}
+.lang-flag {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 /* ---- Appearance / theme toggle ---- */

@@ -1,5 +1,36 @@
 <template>
   <q-page class="docs-page">
+
+    <!-- ── Docs-owned sticky bar — overlays the main header ───────── -->
+    <div class="docs-fixed-bar">
+      <button class="docs-bar-back" @click="router.push('/')" aria-label="Back to app">
+        <q-icon name="arrow_back" size="18px" />
+      </button>
+      <router-link to="/" class="docs-bar-brand">FUNKY PONY</router-link>
+      <span class="docs-bar-section" :title="activeLabel">{{ activeLabel }}</span>
+      <div class="docs-bar-spacer" />
+      <div class="docs-bar-actions">
+        <a
+          href="https://github.com/biomassives/foodbank/archive/refs/heads/master.zip"
+          class="docs-bar-action docs-bar-action--zip"
+          title="Download source ZIP (GPL licensed)"
+          target="_blank" rel="noopener noreferrer"
+        >
+          <q-icon name="download" size="15px" />
+          <span class="docs-bar-zip-label">ZIP</span>
+        </a>
+        <router-link to="/settings" class="docs-bar-action" title="Change language">
+          <q-icon name="translate" size="15px" />
+        </router-link>
+        <a :href="githubIssueUrl" class="docs-bar-action" title="File a GitHub issue" target="_blank" rel="noopener noreferrer">
+          <q-icon name="bug_report" size="15px" />
+        </a>
+        <a :href="gitlabIssueUrl" class="docs-bar-action" title="File a GitLab issue" target="_blank" rel="noopener noreferrer">
+          <q-icon name="code" size="15px" />
+        </a>
+      </div>
+    </div>
+
     <div class="docs-layout">
 
       <!-- ── Sidebar — its own scroll zone, never leaves view -->
@@ -286,6 +317,9 @@
               <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>SCHEDULE</strong> — set your weekly pantry operating hours</div>
               <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>LOCATIONS</strong> — manage physical pickup and drop-off hubs</div>
               <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>INVITES</strong> — generate and manage invite codes</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>DATA</strong> — export and import pantry data; view sync status</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>LAUNCH</strong> — configure cloud settings and deploy edge functions</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>CALENDAR</strong> — 12-week schedule overview with all event sources</div>
               <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>ORACLE</strong> — diagnostic and integrity tools</div>
             </div>
           </div>
@@ -346,6 +380,46 @@
               <span class="docs-keyword">stock_pantry</span>,
               <span class="docs-keyword">logistics_outreach</span>, or
               <span class="docs-keyword">admin</span>.
+            </p>
+          </div>
+
+          <div id="data-portability" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Export &amp; Import</h3>
+            <p class="docs-sub-body">
+              From <code class="docs-code">Settings → EXPORT &amp; IMPORT</code> you can back
+              up and restore all local data:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Export as JSON</strong> — downloads a single file containing all contacts, entries, locations, and pantry settings keys (<code class="docs-code">pantry-welcome</code>, <code class="docs-code">pantry-ops-page</code>, <code class="docs-code">pantry-weekly-schedule</code>)</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Import JSON</strong> — merges records from the file into IndexedDB using idempotent puts (existing records with the same ID are overwritten, nothing else is deleted); restores saved settings keys</div>
+            </div>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              Import is non-destructive. Uploading an empty file or a file with no matching
+              records is safe. If the JSON is malformed, an error notification is shown.
+              In cloud mode, imported records are synced to Supabase automatically after the merge.
+            </p>
+          </div>
+
+          <div id="daily-digest" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Daily Digest Email</h3>
+            <p class="docs-sub-body">
+              The MTS <code class="docs-code">daily-digest</code> type sends a morning network
+              status email containing:
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Queue pipeline counts — pending, claimed, in-transit, delivered, stocked</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Today's active locations with addresses</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Community board summary — open needs and offerings</div>
+            </div>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              Send it via curl or a cron job targeting
+              <code class="docs-code">POST /functions/v1/mts</code> with
+              <code class="docs-code">type: "daily-digest"</code>,
+              <code class="docs-code">orgId</code>,
+              <code class="docs-code">recipientEmail</code>, and a
+              <code class="docs-code">data</code> object carrying the counts and locations array.
+              All email types render with the pogo logo header on a cream background with a
+              Mondrian accent stripe.
             </p>
           </div>
 
@@ -446,7 +520,7 @@
               </div>
               <div class="docs-fn-card">
                 <div class="docs-fn-name">daily-digest</div>
-                <div class="docs-fn-desc">Scheduled summary sent to configured recipients</div>
+                <div class="docs-fn-desc">Morning network status email — queue counts, today's locations, community board summary. Triggered via <code class="docs-code">mts</code> with <code class="docs-code">type: "daily-digest"</code></div>
               </div>
               <div class="docs-fn-card">
                 <div class="docs-fn-name">mailgun-webhook</div>
@@ -462,7 +536,7 @@
           <div id="alternative-stacks" data-docs-section class="docs-sub">
             <h3 class="docs-sub-title">Alternative Stacks</h3>
             <p class="docs-sub-body">
-              The E8 integrity layer has adapters for Supabase, IndexedDB, and Mongoose/MongoDB.
+              The E8 ZK Lattice has adapters for Supabase, IndexedDB, and Mongoose/MongoDB.
               Auth can be swapped out — the store's <code class="docs-code">fetchUserRole()</code>
               function is the integration point. Nile (multi-tenant Postgres) is a planned
               adapter. If you replace Supabase, you need to replicate the four edge function
@@ -471,13 +545,107 @@
           </div>
 
           <div id="vercel-functions" data-docs-section class="docs-sub">
-            <h3 class="docs-sub-title">Vercel Functions</h3>
+            <h3 class="docs-sub-title">Serverless &amp; CI Functions</h3>
             <p class="docs-sub-body">
-              If you deploy to Vercel, serverless functions in <code class="docs-code">api/</code>
-              can substitute for the Supabase edge functions. The function signatures are
-              compatible. Set environment variables in the Vercel dashboard rather than
-              <code class="docs-code">.env.local</code>.
+              Worldbridger Pantry is a pure client-side Quasar SPA — there is no application
+              server. All server-side logic runs in short-lived functions at the edges of three
+              different runtimes depending on how you deploy.
             </p>
+
+            <!-- ── Tier 1: Supabase Edge (Deno) ─────────────────────────── -->
+            <div class="docs-fn-tier">
+              <div class="docs-fn-tier-label">SUPABASE EDGE FUNCTIONS <span class="docs-fn-runtime">Deno · TypeScript</span></div>
+              <p class="docs-sub-body">
+                The primary runtime. Four functions live in
+                <code class="docs-code">supabase/functions/</code> and run as Deno isolates
+                close to your Postgres instance — giving them direct access to
+                <code class="docs-code">SUPABASE_SERVICE_ROLE_KEY</code> and the database
+                without an extra network hop. They are invoked from the Quasar app via
+                <code class="docs-code">supabase.functions.invoke('mts', { body })</code>
+                or triggered by Supabase webhooks (Mailgun delivery events).
+              </p>
+              <div class="docs-fn-grid">
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">mts</div>
+                  <div class="docs-fn-desc">Message Transport System — routes all 9 outbound email types through Mailgun; handles <code class="docs-code">announce</code>, <code class="docs-code">driver-invite</code>, <code class="docs-code">daily-digest</code>, and more</div>
+                </div>
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">claim-invite</div>
+                  <div class="docs-fn-desc">Burns one-time invite codes and writes the role assignment to <code class="docs-code">profiles</code> on first sign-in</div>
+                </div>
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">daily-digest</div>
+                  <div class="docs-fn-desc">Morning status email — queue counts, today's locations, community board summary; triggered by calling <code class="docs-code">mts</code> with <code class="docs-code">type: "daily-digest"</code></div>
+                </div>
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">mailgun-webhook</div>
+                  <div class="docs-fn-desc">Receives Mailgun delivery, bounce, and spam events; writes results to <code class="docs-code">message_log</code></div>
+                </div>
+              </div>
+              <p class="docs-sub-body" style="margin-top:8px;">
+                Deploy via the in-app Setup page (<code class="docs-code">/setup</code>) or
+                <code class="docs-code">supabase functions deploy --project-ref YOUR_REF</code>.
+                The Admin LAUNCH tab probes each function and shows live green/red status.
+              </p>
+            </div>
+
+            <!-- ── Tier 2: Vercel Functions (Node / Edge) ────────────────── -->
+            <div class="docs-fn-tier">
+              <div class="docs-fn-tier-label">VERCEL FUNCTIONS <span class="docs-fn-runtime">Node.js · Edge Runtime</span></div>
+              <p class="docs-sub-body">
+                If you deploy to Vercel without Supabase, create an
+                <code class="docs-code">api/</code> directory at the repo root. Each file
+                becomes a serverless endpoint — Vercel routes
+                <code class="docs-code">/api/mts</code>,
+                <code class="docs-code">/api/claim-invite</code>, etc. automatically.
+                The Quasar app calls them via
+                <code class="docs-code">fetch('/api/mts', { method: 'POST', body })</code>
+                — the same contract as the Supabase edge functions, just a different host.
+              </p>
+              <p class="docs-sub-body">
+                Two runtimes are available: <strong>Node.js</strong> (full Node API, slower cold
+                start, good for Mailgun SDK) and <strong>Edge Runtime</strong> (V8 isolates,
+                near-zero cold start, no Node builtins — mirror of the Deno environment).
+                Set secrets in the Vercel dashboard under
+                <code class="docs-code">Settings → Environment Variables</code> rather than
+                <code class="docs-code">.env.local</code>.
+              </p>
+            </div>
+
+            <!-- ── Tier 3: GitHub / GitLab CI ────────────────────────────── -->
+            <div class="docs-fn-tier">
+              <div class="docs-fn-tier-label">GITHUB &amp; GITLAB CI/CD <span class="docs-fn-runtime">Pre-deployment · Test pipeline</span></div>
+              <p class="docs-sub-body">
+                CI pipelines run before every deployment — not as runtime functions, but as
+                pre-flight gates that build, test, and optionally record the app before
+                pushing to production.
+              </p>
+              <div class="docs-fn-grid">
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">Build &amp; lint</div>
+                  <div class="docs-fn-desc"><code class="docs-code">quasar build</code> compiles the SPA to <code class="docs-code">dist/spa/</code>. The build script runs <code class="docs-code">npm run test:report</code> first — a failed test suite blocks the deploy</div>
+                </div>
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">E2E test suite</div>
+                  <div class="docs-fn-desc">Puppeteer + jest-puppeteer runs all test suites against either the local dev server or a staging URL via <code class="docs-code">BASE_URL</code>. Results write to <code class="docs-code">public/test-results.json</code> and are viewable at <code class="docs-code">/tests</code></div>
+                </div>
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">Recording pipeline</div>
+                  <div class="docs-fn-desc"><code class="docs-code">npm run test:e2e:record</code> runs the four <code class="docs-code">record-*.test.ts</code> suites, captures mp4 walkthroughs per persona, copies them to <code class="docs-code">public/recordings/</code>, and serves them at <code class="docs-code">/recordings</code></div>
+                </div>
+                <div class="docs-fn-card">
+                  <div class="docs-fn-name">Deploy to host</div>
+                  <div class="docs-fn-desc">After tests pass, the pipeline pushes <code class="docs-code">dist/spa/</code> to Vercel, Netlify, Appwrite Sites, or any static host. GitHub Actions uses <code class="docs-code">.github/workflows/</code>; GitLab CI uses <code class="docs-code">.gitlab-ci.yml</code></div>
+                </div>
+              </div>
+              <p class="docs-sub-body" style="margin-top:8px;">
+                Both GitHub (<code class="docs-code">github.com/biomassives/foodbank</code>)
+                and GitLab (<code class="docs-code">gitlab.com/foodpantry/ward</code>) mirror
+                this repository. Issues filed on either tracker are monitored — use the
+                feedback links on the <code class="docs-code">/recordings</code> page to
+                attach a specific walkthrough to your report.
+              </p>
+            </div>
           </div>
 
           <div id="messaging-providers" data-docs-section class="docs-sub">
@@ -486,8 +654,20 @@
               MTS ships with Mailgun support for email. To enable: set
               <code class="docs-code">MAILGUN_API_KEY</code> and
               <code class="docs-code">MAILGUN_DOMAIN</code> as edge function secrets in Supabase.
-              SMS delivery via Twilio can be added by extending the MTS function.
               The mailgun-webhook function handles bounce and delivery callbacks automatically.
+            </p>
+            <p class="docs-sub-body">
+              Supported <code class="docs-code">type</code> values:
+              <code class="docs-code">driver-invite</code>,
+              <code class="docs-code">welcome</code>,
+              <code class="docs-code">test</code>,
+              <code class="docs-code">admin-join</code>,
+              <code class="docs-code">pickup-claimed</code>,
+              <code class="docs-code">pickup-delivered</code>,
+              <code class="docs-code">pickup-stocked</code>,
+              <code class="docs-code">announce</code>,
+              <code class="docs-code">daily-digest</code>.
+              Preview all types at <code class="docs-code">/email-preview.html</code> on any running deployment.
             </p>
           </div>
 
@@ -523,9 +703,13 @@
               <div class="docs-code-line">  utils/          <span class="docs-code-comment"># calendar, date helpers</span></div>
               <div class="docs-code-line">  lib/e8-integrity/<span class="docs-code-comment"># crypto commitment layer</span></div>
               <div class="docs-code-line">  boot/           <span class="docs-code-comment"># supabase, pinia init</span></div>
+              <div class="docs-code-line">public/</div>
+              <div class="docs-code-line">  email-preview.html  <span class="docs-code-comment"># proof all MTS email templates</span></div>
+              <div class="docs-code-line">  funlyponyspace_pogo.webp  <span class="docs-code-comment"># org logo (oval watercolor)</span></div>
               <div class="docs-code-line">supabase/</div>
               <div class="docs-code-line">  migrations/     <span class="docs-code-comment"># SQL schema files</span></div>
               <div class="docs-code-line">  functions/      <span class="docs-code-comment"># Deno edge functions</span></div>
+              <div class="docs-code-line">tests/e2e/       <span class="docs-code-comment"># Puppeteer e2e test suite</span></div>
             </div>
           </div>
 
@@ -566,11 +750,114 @@
             </p>
           </div>
 
-          <div id="e8-lattice" data-docs-section class="docs-sub">
-            <h3 class="docs-sub-title">E8 Lattice Security</h3>
+          <div id="i18n" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Internationalization</h3>
             <p class="docs-sub-body">
-              An optional integrity layer in <code class="docs-code">src/lib/e8-integrity/</code>
-              maps record content through an E8 lattice commitment. A passphrase is processed
+              The app uses a lightweight custom i18n composable — no external dependency, no vue-i18n.
+              All language packs live in <code class="docs-code">src/i18n/</code> and are lazy-loaded
+              on demand so the default English bundle stays small.
+            </p>
+
+            <!-- Language coverage table -->
+            <table class="docs-i18n-table">
+              <thead>
+                <tr>
+                  <th>File</th><th>Language</th><th>Native</th><th>Speakers</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code class="docs-code">en.ts</code></td>
+                  <td>English</td><td>English</td><td>~1.5 B</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--complete">complete</span></td>
+                </tr>
+                <tr>
+                  <td><code class="docs-code">es.ts</code></td>
+                  <td>Spanish</td><td>Español</td><td>~560 M</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--complete">complete</span></td>
+                </tr>
+                <tr>
+                  <td><code class="docs-code">sw.ts</code></td>
+                  <td>Swahili</td><td>Kiswahili</td><td>~200 M</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--complete">complete</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Key structure -->
+            <p class="docs-sub-body" style="margin-top:12px;">
+              Every pack implements the <code class="docs-code">LangPack</code> type exported from
+              <code class="docs-code">en.ts</code>. TypeScript will error on missing or extra keys,
+              making new translations easy to review:
+            </p>
+            <div class="docs-code-block">
+              <div class="docs-code-line"><span class="docs-code-comment">// src/i18n/sw.ts</span></div>
+              <div class="docs-code-line"><span class="docs-code-kw">import type</span> { LangPack } from './en';</div>
+              <div class="docs-code-line"><span class="docs-code-kw">const</span> sw: LangPack = { <span class="docs-code-comment">/* ... */</span> };</div>
+              <div class="docs-code-line"><span class="docs-code-kw">export default</span> sw;</div>
+            </div>
+
+            <!-- Usage -->
+            <div class="docs-code-block" style="margin-top:10px;">
+              <div class="docs-code-line"><span class="docs-code-comment">// use in any component</span></div>
+              <div class="docs-code-line"><span class="docs-code-kw">import</span> { useI18n } from 'src/i18n';</div>
+              <div class="docs-code-line"><span class="docs-code-kw">const</span> { t, locale } = useI18n();</div>
+              <div class="docs-code-line"><span class="docs-code-comment">// t.value.nav.home → 'Home' / 'Inicio' / 'Nyumbani'</span></div>
+            </div>
+
+            <!-- Key namespaces -->
+            <div class="docs-list" style="margin-top:10px;">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>app</strong> — name, tagline, brand, footer</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>onboard</strong> — login, join, create, wizard link</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>wizard</strong> — setup wizard steps and mode labels</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>nav / entries / sections / status / actions</strong> — UI chrome</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>queue / needs / admin.tabs</strong> — role-specific labels</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>settings / export / welcome / notifications / agent</strong> — feature areas</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>locale</strong> — language picker labels (must include every registered code)</div>
+            </div>
+
+            <p class="docs-sub-body" style="margin-top:10px;">
+              Switch locale from <strong>Settings → LANGUAGE</strong>. Preference is saved to
+              <code class="docs-code">localStorage['locale']</code> and restored on next boot via
+              <code class="docs-code">src/boot/pinia.ts</code>.
+              To add a new language: copy <code class="docs-code">en.ts</code>, translate every value,
+              then add the code to <code class="docs-code">localeOptions</code> in
+              <code class="docs-code">SettingsPage.vue</code> and the lazy-load switch in
+              <code class="docs-code">switchLocale()</code>.
+            </p>
+          </div>
+
+          <div id="agent-api" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Agent API</h3>
+            <p class="docs-sub-body">
+              External agents and automation can interact with the community board and queue
+              via the Supabase REST API and the MTS edge function. All operations are
+              org-scoped and authenticated with the anon key.
+            </p>
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Read needs</strong> — <code class="docs-code">GET /rest/v1/community_need_feed?bin_type=eq.need</code></div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Read available resources</strong> — <code class="docs-code">?bin_type=eq.available</code> or <code class="docs-code">eq.offered</code></div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Post a resource or need</strong> — <code class="docs-code">POST /rest/v1/need_items</code> with <code class="docs-code">bin_type</code>, <code class="docs-code">title</code>, <code class="docs-code">org_id</code></div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Send notification</strong> — <code class="docs-code">POST /functions/v1/mts</code> with <code class="docs-code">type=announce</code> or <code class="docs-code">type=daily-digest</code></div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Read queue</strong> — <code class="docs-code">GET /rest/v1/community_entries?type=eq.offering&amp;queue_status=eq.pending</code></div>
+            </div>
+            <p class="docs-sub-body" style="margin-top:8px;">
+              <strong>Category vectors</strong> — the <code class="docs-code">category_vec</code>
+              field on <code class="docs-code">need_items</code> is a float[8] E8 basis vector
+              for semantic tagging. Dimensions:
+              <code class="docs-code">[grains, proteins, produce, dairy, prepared, household, childcare, medical]</code>.
+              Use <code class="docs-code">1.0</code> = primary, <code class="docs-code">0.5</code> = secondary, <code class="docs-code">0.0</code> = not applicable.
+            </p>
+            <p class="docs-sub-body" style="margin-top:4px;">
+              Full reference: <a href="https://github.com/biomassives/foodbank/blob/master/docs/agent-api.md" target="_blank" rel="noopener" class="docs-sub-link">docs/agent-api.md</a>
+            </p>
+          </div>
+
+          <div id="e8-lattice" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">E8 ZK Lattice</h3>
+            <p class="docs-sub-body">
+              An optional zero-knowledge commitment layer in <code class="docs-code">src/lib/e8-integrity/</code>
+              maps record content through the E8 ZK Lattice. A passphrase is processed
               via HKDF-SHA256 into eight Chern-Simons roots. Those roots are fed through
               a theta function to produce a deterministic commitment hash stored alongside
               the record. If the record is modified, re-deriving the hash produces a different
@@ -605,18 +892,295 @@
             </p>
           </div>
 
-          <div id="trust-architecture" data-docs-section class="docs-sub">
-            <h3 class="docs-sub-title">Trust Architecture</h3>
+          <div id="centralized-arch" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Centralized Architecture</h3>
+
+            <!-- IndexedDB backbone callout -->
+            <div class="docs-decentral-zone docs-decentral-zone--2" style="margin-bottom:12px;">
+              <div class="docs-decentral-zone-label">BACKBONE · ALWAYS ON</div>
+              <div class="docs-decentral-zone-title">IndexedDB + Localhost</div>
+              <p class="docs-sub-body" style="margin-top:6px; margin-bottom:0;">
+                IndexedDB is the primary data store for every deployment — not a cache,
+                not a fallback. All reads and writes hit the local store first.
+                Cloud backends (Supabase, Nile) and distributed backends (Arweave, IPFS,
+                BitTorrent) are <strong>write-targets and read-sources</strong>, not
+                requirements. The app is fully functional with no network at all.
+              </p>
+              <div class="docs-list" style="margin-top:8px;">
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>Contacts, entries, locations, queue, and calendar data all persist to IDB first</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>E8 ZK Lattice commitment is computed and stored locally before any sync</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>Export → JSON at any time; import back without touching a server</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span>Incoming data from any backend (cloud, NFT metadata, torrent, airdrop) normalises through the same IDB write path</div>
+              </div>
+            </div>
+
             <p class="docs-sub-body">
-              Three storage nodes form a trust triangle. Commitments written to one are
-              verifiable against any other — sync conflicts are detected cryptographically
-              rather than relying on timestamps alone.
+              On top of the local backbone, an optional cloud layer adds multi-device sync
+              and team collaboration. Commitments written to one node are verifiable against
+              any other — sync conflicts are caught cryptographically.
             </p>
             <div class="docs-trust-row">
-              <div class="docs-trust-node">IndexedDB<div class="docs-trust-sub">local, always available</div></div>
-              <div class="docs-trust-node docs-trust-node--cloud">Supabase<div class="docs-trust-sub">cloud, optional</div></div>
-              <div class="docs-trust-node docs-trust-node--nile">Nile<div class="docs-trust-sub">multi-tenant, planned</div></div>
+              <div class="docs-trust-node">IndexedDB<div class="docs-trust-sub">backbone · always on</div></div>
+              <div class="docs-trust-node docs-trust-node--cloud">Supabase<div class="docs-trust-sub">cloud · optional</div></div>
+              <div class="docs-trust-node docs-trust-node--nile">Nile<div class="docs-trust-sub">multi-tenant · planned</div></div>
             </div>
+            <div class="docs-list" style="margin-top:10px;">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>Supabase</strong> — Postgres + Row Level Security; community-hostable on any Supabase project</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>Nile</strong> — multi-tenant Postgres; E8 adapter wired, deployment guide in progress</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>GPL escape hatch</strong> — any org can fork and self-host; code sovereignty is built in from day one</div>
+            </div>
+          </div>
+
+          <div id="decentralized-arch" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Decentralized Architecture</h3>
+            <p class="docs-sub-body">
+              Because IndexedDB is the backbone, the app is <strong>backend-agnostic</strong>
+              by design — data flowing in from Arweave, IPFS, NFT.storage, BitTorrent,
+              or a partner NFT airdrop all arrives through the same normalised import path
+              and gets committed to the local store with an E8 seal.
+              A community keeps running and keeps proving it ran correctly regardless of
+              which backends are reachable.
+            </p>
+
+            <div class="docs-decentral-grid">
+
+              <div class="docs-decentral-zone docs-decentral-zone--2">
+                <div class="docs-decentral-zone-label">LIVE · E8 ZK LATTICE</div>
+                <div class="docs-decentral-zone-title">Cryptographic Integrity Bridge</div>
+                <div class="docs-list" style="margin-top:6px;">
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Local tamper detection</strong> — Jacobi-θ commitment catches record modification without querying any server</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Adapter-portable</strong> — the same commitment verifies identically across every backend; the seal travels with the data</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Open verification</strong> — <code class="docs-code">crypto/test_vectors.c</code> fixes the algorithm at 0 ULP; any party can reimplement and verify independently</div>
+                </div>
+              </div>
+
+              <div class="docs-decentral-zone docs-decentral-zone--3">
+                <div class="docs-decentral-zone-label">ROADMAP · DISTRIBUTED STORAGE BACKENDS</div>
+                <div class="docs-decentral-zone-title">Backend-Agnostic Archive Layer</div>
+                <p class="docs-sub-body" style="margin-top:4px; margin-bottom:6px; font-size:12px;">
+                  All of the following write to and read from IndexedDB through the same
+                  adapter interface — switching or combining backends requires no changes
+                  to application logic.
+                </p>
+                <div class="docs-list">
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>Arweave</strong> — operations metadata as permanent AR transactions; no expiry, no operator dependency</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>IPFS / Pinata</strong> — sealed records pinned to a content-addressed CID; any gateway serves them</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>NFT.storage</strong> — free, IPFS-backed permanent storage for NFT metadata; ideal for community token records and airdrop provenance</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>BitTorrent</strong> — community data bundles seeded as torrents; resilient to server takedown and useful for large-scale data sharing across orgs</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span><strong>Polygon / Base L2</strong> — E8 commitment hash minted as ERC-721 metadata; public on-chain timestamp for every record seal</div>
+                </div>
+                <p class="docs-sub-body" style="margin-top:8px; font-size:11px; color:var(--wb-text-faint);">
+                  Archive writes are async and off the hot write path — triggered after the E8 seal completes.
+                  Adapter stubs and zone diagram live in <code class="docs-code">AdminOraclePanel</code>.
+                </p>
+              </div>
+
+              <!-- Partner integration -->
+              <div class="docs-decentral-zone docs-decentral-zone--partner">
+                <div class="docs-decentral-zone-label">PARTNER · WORLDBRIDGER ONE CULTURAL</div>
+                <div class="docs-decentral-zone-title">NFT Airdrop Metadata Pipeline</div>
+                <p class="docs-sub-body" style="margin-top:6px; margin-bottom:8px;">
+                  Worldbridger One Cultural is a community arts and cultural sovereignty
+                  partner that distributes resources, announcements, and community data
+                  through NFT airdrops on EVM-compatible chains. Each token's metadata
+                  file (standard ERC-721 / ERC-1155 JSON) carries structured fields
+                  that map directly into the pantry data model.
+                </p>
+                <div class="docs-list">
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Metadata ingestion</strong> — the app fetches the token URI (IPFS CID or Arweave txId) for airdropped tokens, parses the JSON metadata, and normalises it into local contacts, entries, or announcements</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Provenance preserved</strong> — the source CID or txId is stored alongside the imported record so the airdrop origin is always traceable</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>E8 sealed on arrival</strong> — imported metadata goes through the standard commitment pipeline before being written to IndexedDB; tamper detection applies from the moment of ingestion</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>No wallet required</strong> — community members don't need a wallet to benefit; the pantry admin imports the airdrop data on their behalf</div>
+                </div>
+                <div class="docs-code-block" style="margin-top:10px;">
+                  <div class="docs-code-line"><span class="docs-code-comment">// planned import shape</span></div>
+                  <div class="docs-code-line"><span class="docs-code-kw">const</span> meta = <span class="docs-code-kw">await</span> fetchTokenMetadata(tokenURI); <span class="docs-code-comment">// CID or txId</span></div>
+                  <div class="docs-code-line"><span class="docs-code-kw">const</span> entry = normaliseAirdropMeta(meta);          <span class="docs-code-comment">// → Entry | Address</span></div>
+                  <div class="docs-code-line"><span class="docs-code-kw">await</span> plugin.wrap(<span class="docs-code-str">'entries'</span>, entry);              <span class="docs-code-comment">// E8 seal</span></div>
+                  <div class="docs-code-line"><span class="docs-code-kw">await</span> store.addEntry(entry);                       <span class="docs-code-comment">// → IndexedDB</span></div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Full adapter table -->
+            <table class="docs-i18n-table" style="margin-top:14px;">
+              <thead>
+                <tr><th>Adapter / Source</th><th>Arch</th><th>Status</th><th>Trust model</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>IndexedDB</td><td>Backbone</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--complete">live</span></td>
+                  <td>Device-local; primary store for all data</td>
+                </tr>
+                <tr>
+                  <td>E8 ZK Lattice</td><td>Bridge</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--complete">live</span></td>
+                  <td>Local tamper detection; open algorithm</td>
+                </tr>
+                <tr>
+                  <td>Supabase</td><td>Centralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--complete">live</span></td>
+                  <td>Community-hosted Postgres + RLS</td>
+                </tr>
+                <tr>
+                  <td>Nile</td><td>Centralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">planned</span></td>
+                  <td>Tenant-isolated Postgres</td>
+                </tr>
+                <tr>
+                  <td>IPFS / Pinata</td><td>Decentralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">roadmap</span></td>
+                  <td>Content-addressed; gateway-independent</td>
+                </tr>
+                <tr>
+                  <td>NFT.storage</td><td>Decentralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">roadmap</span></td>
+                  <td>Free permanent IPFS storage; NFT provenance</td>
+                </tr>
+                <tr>
+                  <td>Arweave</td><td>Decentralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">roadmap</span></td>
+                  <td>Permanent blockweave; no expiry</td>
+                </tr>
+                <tr>
+                  <td>BitTorrent</td><td>Decentralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">roadmap</span></td>
+                  <td>P2P seeding; resilient to server takedown</td>
+                </tr>
+                <tr>
+                  <td>Polygon / Base L2</td><td>Decentralized</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">roadmap</span></td>
+                  <td>On-chain timestamp + ERC-721 seal proof</td>
+                </tr>
+                <tr>
+                  <td>Worldbridger NFT airdrop</td><td>Partner</td>
+                  <td><span class="docs-i18n-badge docs-i18n-badge--partial">roadmap</span></td>
+                  <td>Metadata ingested → E8 sealed → IndexedDB</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="privacy-security" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">Privacy &amp; Security</h3>
+            <p class="docs-sub-body">
+              Community food-pantry data is sensitive — names, addresses, dietary needs,
+              and pickup schedules. The app is designed to keep that data under community
+              control at every layer, from local-only operation through optional cloud sync
+              and on to permanent decentralised archive.
+            </p>
+
+            <!-- Datadog -->
+            <div class="docs-decentral-zone docs-decentral-zone--2" style="margin-bottom:10px;">
+              <div class="docs-decentral-zone-label">LIVE · MONITORING</div>
+              <div class="docs-decentral-zone-title">Datadog Security Scanning</div>
+              <div class="docs-list" style="margin-top:6px;">
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>SAST / dependency scans</strong> — Datadog runs static analysis and CVE checks on every push; findings are triaged before merge</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Runtime observability</strong> — APM traces and error logs give visibility into edge function behaviour without exposing PII in log payloads</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>RLS enforcement</strong> — Supabase Row Level Security is the primary access gate; Datadog alerts on any query that bypasses policy</div>
+              </div>
+            </div>
+
+            <!-- E8 data validity -->
+            <div class="docs-decentral-zone docs-decentral-zone--2" style="margin-bottom:10px;">
+              <div class="docs-decentral-zone-label">LIVE · E8 ZK LATTICE</div>
+              <div class="docs-decentral-zone-title">Data Validity Guarantee</div>
+              <p class="docs-sub-body" style="margin-top:6px; margin-bottom:6px;">
+                Every record written to any storage backend carries an E8 ZK Lattice
+                commitment — a Jacobi-θ hash derived from the record's content and a
+                passphrase. Re-deriving the hash on read and comparing it to the stored
+                value proves the record has not been tampered with since it was sealed,
+                without revealing the passphrase or the record content to a third party.
+              </p>
+              <div class="docs-list">
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Tamper detection</strong> — a changed field shifts the commitment by ~5×10⁻³, far above floating-point noise (10⁻¹⁰); mismatches are flagged in the Oracle TRUST panel</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Cross-backend portability</strong> — the seal travels with the record; it verifies the same way in IndexedDB, Supabase, Arweave, or an NFT metadata file</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--positive"></span><strong>Open algorithm</strong> — <code class="docs-code">crypto/test_vectors.c</code> pins the C and TypeScript implementations at 0 ULP; any auditor can reproduce every commitment independently</div>
+              </div>
+            </div>
+
+            <!-- Local / private use -->
+            <div class="docs-decentral-zone docs-decentral-zone--partner" style="margin-bottom:10px;">
+              <div class="docs-decentral-zone-label">LOCAL · PRIVATE USE PATTERN</div>
+              <div class="docs-decentral-zone-title">Offline-Only &amp; Encrypted Export</div>
+              <p class="docs-sub-body" style="margin-top:6px; margin-bottom:8px;">
+                For communities that cannot or do not want to use cloud sync, the app
+                runs entirely in the browser with no outbound connections. Data lives
+                in IndexedDB only and never leaves the device unless the user explicitly
+                exports it.
+              </p>
+              <div class="docs-list">
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Export as JSON</strong> — <strong>Settings → Export as JSON</strong> downloads a complete snapshot of contacts, entries, and locations</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>Encrypt before sharing</strong> — zip the export file with a password (7-Zip, macOS Archive Utility, or <code class="docs-code">zip -e</code>) and share via email, Signal, or USB; the recipient imports through <strong>Settings → Import JSON</strong></div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>E8 integrity on import</strong> — the importer re-derives every commitment from the received file; any record altered in transit is rejected before it touches the local store</div>
+                <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span><strong>No account required</strong> — local mode needs no email, phone, or identity; community members are identified only within their own IDB instance</div>
+              </div>
+              <div class="docs-code-block" style="margin-top:10px;">
+                <div class="docs-code-line"><span class="docs-code-comment"># encrypt export for sharing (any zip tool works)</span></div>
+                <div class="docs-code-line">zip -e pantry-export.zip pantry-data.json</div>
+                <div class="docs-code-line"><span class="docs-code-comment"># recipient: unzip, then import via Settings → Import JSON</span></div>
+              </div>
+            </div>
+
+            <!-- Supabase RLS summary -->
+            <div class="docs-list">
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>No PII in logs</strong> — edge functions log operation types and status codes, never names or addresses</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>Invite-only communities</strong> — joining requires a short code issued by an existing member; no public sign-up</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>Anonymous posting</strong> — needs-feed entries can be posted without attaching a name; the flag is stored as a boolean, never stripped, so the preference is immutable</div>
+              <div class="docs-list-item"><span class="docs-list-dot docs-dot--accent"></span><strong>Data deletion</strong> — <strong>Settings → Clear All Local Data</strong> wipes IndexedDB immediately; cloud records are deleted via standard Supabase RLS-gated delete calls</div>
+            </div>
+          </div>
+
+          <div id="mcp-chatops" data-docs-section class="docs-sub">
+            <h3 class="docs-sub-title">MCP &amp; Chat Ops</h3>
+            <p class="docs-sub-body">
+              FoodBank is a <strong>community infrastructure project</strong> — it does not depend on AI
+              to function. Every feature works entirely offline, in your browser, with no external AI calls.
+              That said, the MCP (Model Context Protocol) adapter and chat-ops integrations are
+              optional tooling layers that let developers and operators connect AI assistants to
+              the pantry corpus for research, documentation, or workflow support.
+            </p>
+
+            <div class="docs-decentral-grid">
+              <div class="docs-decentral-zone docs-decentral-zone--2">
+                <div class="docs-decentral-zone-label">CORE PRINCIPLE</div>
+                <div class="docs-decentral-zone-title">AI is additive, not required</div>
+                <p class="docs-sub-body" style="margin-top:6px;">
+                  The corpus, the MCP server, and any chat-ops hook are entirely optional.
+                  Remove them and the pantry still runs, still syncs, and still seals records
+                  with E8 ZK Lattice commitments. Operators decide whether to expose any
+                  of these endpoints.
+                </p>
+              </div>
+              <div class="docs-decentral-zone docs-decentral-zone--3">
+                <div class="docs-decentral-zone-label">MCP SERVER (PLANNED)</div>
+                <div class="docs-decentral-zone-title">Model Context Protocol adapter</div>
+                <div class="docs-list" style="margin-top:6px;">
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Exposes read-only tools: <code class="docs-code">get_entries</code>, <code class="docs-code">search_contacts</code>, <code class="docs-code">list_locations</code></div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Corpus: markdown docs + anonymised entry summaries (no PII exposed)</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Auth: same Supabase JWT gate as the rest of the API</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--warning"></span>Works with any MCP-compatible client (Claude Desktop, Continue.dev, custom)</div>
+                </div>
+              </div>
+              <div class="docs-decentral-zone docs-decentral-zone--partner">
+                <div class="docs-decentral-zone-label">CHAT OPS (PLANNED)</div>
+                <div class="docs-decentral-zone-title">Webhook &amp; bot integrations</div>
+                <div class="docs-list" style="margin-top:6px;">
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Outbound webhooks for queue state changes (new pickup, delivered, stocked)</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Slack / Discord bot: <code class="docs-code">/pantry needs</code>, <code class="docs-code">/pantry status</code> slash commands</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>Daily digest can route to a channel instead of email (or both)</div>
+                  <div class="docs-list-item"><span class="docs-list-dot docs-dot--info"></span>All bot responses are templated strings — no AI generation in the data path</div>
+                </div>
+              </div>
+            </div>
+
+            <p class="docs-sub-body" style="margin-top:14px;">
+              A dedicated reference page covers the full corpus structure, tool schemas,
+              and deployment options:
+              <router-link to="/mcp-docs" class="docs-inline-link">MCP &amp; Chat Ops Reference →</router-link>
+            </p>
           </div>
 
           <div id="contributing" data-docs-section class="docs-sub">
@@ -642,15 +1206,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'src/i18n'
 
 interface TocItem  { id: string; label: string }
 interface TocGroup { id: string; label: string; items: TocItem[] }
 
+const router = useRouter()
+const { t } = useI18n()
 const activeId = ref('')
 const contentEl = ref<HTMLElement | null>(null)
 
-const TOC: TocGroup[] = [
+const GITHUB_REPO = 'https://github.com/biomassives/foodbank'
+const githubIssueUrl = `${GITHUB_REPO}/issues/new?labels=docs&title=Docs+feedback`
+const gitlabIssueUrl = 'https://gitlab.com/foodpantry/ward/-/issues/new?issue%5Btitle%5D=Docs+feedback&issue%5Blabels%5D=docs'
+
+// Static structure — IDs are stable anchors; labels come from i18n
+const TOC_DEF: TocGroup[] = [
   {
     id: 'overview',
     label: 'OVERVIEW',
@@ -682,6 +1255,8 @@ const TOC: TocGroup[] = [
       { id: 'managing-locations', label: 'Managing Locations' },
       { id: 'invites-members',    label: 'Invites & Members' },
       { id: 'announcements',      label: 'Announcements & MTS' },
+      { id: 'data-portability',   label: 'Export & Import' },
+      { id: 'daily-digest',       label: 'Daily Digest Email' },
       { id: 'admin-oracle',       label: 'Admin Oracle' },
     ],
   },
@@ -695,7 +1270,7 @@ const TOC: TocGroup[] = [
       { id: 'supabase-setup',      label: 'Supabase Setup' },
       { id: 'supabase-functions',  label: 'Edge Functions' },
       { id: 'alternative-stacks',  label: 'Alternative Stacks' },
-      { id: 'vercel-functions',    label: 'Vercel Functions' },
+      { id: 'vercel-functions',    label: 'Serverless & CI Functions' },
       { id: 'messaging-providers', label: 'Messaging Providers' },
       { id: 'going-live',          label: 'Going Live' },
     ],
@@ -707,13 +1282,42 @@ const TOC: TocGroup[] = [
       { id: 'project-structure',   label: 'Project Structure' },
       { id: 'learning-resources',  label: 'Vue & Quasar' },
       { id: 'data-model',          label: 'Data Model' },
-      { id: 'e8-lattice',          label: 'E8 Lattice' },
+      { id: 'i18n',                label: 'Internationalization' },
+      { id: 'agent-api',           label: 'Agent API' },
+      { id: 'e8-lattice',          label: 'E8 ZK Lattice' },
       { id: 'commitment-pipeline', label: 'Commitment Pipeline' },
-      { id: 'trust-architecture',  label: 'Trust Architecture' },
-      { id: 'contributing',        label: 'Contributing' },
+      { id: 'centralized-arch',   label: 'Centralized Arch' },
+      { id: 'decentralized-arch', label: 'Decentralized Arch' },
+      { id: 'privacy-security',   label: 'Privacy & Security' },
+      { id: 'mcp-chatops',        label: 'MCP & Chat Ops' },
+      { id: 'contributing',       label: 'Contributing' },
     ],
   },
 ]
+
+// Reactive TOC — labels update when locale changes
+const TOC = computed<TocGroup[]>(() => {
+  const g = t.value.docs?.groups as Record<string, string> | undefined
+  const i = t.value.docs?.items  as Record<string, string> | undefined
+  return TOC_DEF.map(group => ({
+    ...group,
+    label: g?.[group.id] ?? group.label,
+    items: group.items.map(item => ({
+      ...item,
+      label: i?.[item.id] ?? item.label,
+    })),
+  }))
+})
+
+// Label shown in the sticky bar for the currently visible section
+const activeLabel = computed(() => {
+  if (!activeId.value) return ''
+  for (const group of TOC.value) {
+    const item = group.items.find(i => i.id === activeId.value)
+    if (item) return item.label
+  }
+  return activeId.value
+})
 
 function updateActive () {
   const el = contentEl.value
@@ -751,6 +1355,100 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ── Docs fixed bar — overlays main header ─────────────── */
+.docs-fixed-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  height: var(--q-header-height, 50px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  /* Inverted colors — bar owns this space */
+  background: var(--wb-text);
+  color: var(--wb-bg);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.docs-bar-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 6px;
+  border-radius: 3px;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+  flex-shrink: 0;
+  &:hover { opacity: 1; background: rgba(128,128,128,0.15); }
+}
+
+.docs-bar-brand {
+  font-family: var(--wb-font, monospace);
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 4px;
+  color: inherit;
+  text-decoration: none;
+  flex-shrink: 0;
+  opacity: 0.9;
+  transition: opacity 0.15s;
+  &:hover { opacity: 1; }
+}
+
+.docs-bar-section {
+  font-family: var(--wb-font, monospace);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  flex-shrink: 1;
+  padding-left: 4px;
+}
+
+.docs-bar-spacer { flex: 1; }
+
+.docs-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.docs-bar-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.65;
+  font-family: var(--wb-font, monospace);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: opacity 0.15s, background 0.15s;
+  &:hover { opacity: 1; background: rgba(128,128,128,0.18); }
+}
+
+.docs-bar-zip-label {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
 /* ── Page & Layout ─────────────────────────────────────── */
 .docs-page {
   background: var(--wb-bg-page);
@@ -935,6 +1633,15 @@ onUnmounted(() => {
   line-height: 1.75;
   color: var(--wb-text-muted);
   margin: 0 0 6px;
+}
+
+.docs-sub-link {
+  color: var(--wb-accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+.docs-sub-link:hover {
+  text-decoration: underline;
 }
 
 /* ── Inline ─────────────────────────────────────────────── */
@@ -1163,6 +1870,33 @@ onUnmounted(() => {
 .docs-fn-name { font-family: 'Roboto Mono', monospace; font-size: 11px; font-weight: 700; color: var(--wb-info); margin-bottom: 3px; }
 .docs-fn-desc { font-size: 11px; color: var(--wb-text-muted); line-height: 1.4; }
 
+/* ── Function tiers (Serverless & CI section) ────────────── */
+.docs-fn-tier {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+.docs-fn-tier:first-child { border-top: none; margin-top: 8px; }
+.docs-fn-tier-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.docs-fn-runtime {
+  font-weight: 400;
+  color: var(--wb-accent);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 10px;
+}
+
 /* ── Pipeline ───────────────────────────────────────────── */
 .docs-pipeline {
   display: flex;
@@ -1228,5 +1962,106 @@ onUnmounted(() => {
   .docs-fn-grid { grid-template-columns: 1fr; }
   .docs-role-row { grid-template-columns: 1fr 1fr; }
   .docs-role-row > div:last-child { display: none; }
+  .docs-bar-section { display: none; }
+  .docs-bar-zip-label { display: none; }
 }
+
+/* ── Inline links ──────────────────────────────────────── */
+.docs-inline-link {
+  color: var(--wb-info);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 700;
+  &:hover { color: var(--wb-accent); }
+}
+
+/* ── i18n table ───────────────────────────────────────────── */
+.docs-i18n-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 10px;
+}
+.docs-i18n-table th {
+  font-family: var(--wb-font, monospace);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-align: left;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--wb-border-mid);
+  color: var(--wb-text-muted);
+}
+.docs-i18n-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  color: var(--wb-text);
+  vertical-align: middle;
+}
+.docs-i18n-badge {
+  font-family: var(--wb-font, monospace);
+  font-size: 10px;
+  letter-spacing: .06em;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.docs-i18n-badge--complete {
+  background: rgba(105, 240, 174, 0.15);
+  color: var(--wb-positive);
+  border: 1px solid rgba(105, 240, 174, 0.3);
+}
+.docs-i18n-badge--partial {
+  background: rgba(255, 200, 0, 0.12);
+  color: var(--wb-warning);
+  border: 1px solid rgba(255, 200, 0, 0.25);
+}
+
+/* ── Decentralization zone grid ───────────────────────────── */
+.docs-decentral-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.docs-decentral-zone {
+  border-radius: 4px;
+  padding: 12px 14px;
+  border-left: 3px solid;
+}
+
+
+.docs-decentral-zone--2 {
+  border-color: var(--wb-positive);
+  background: rgba(105, 240, 174, 0.04);
+}
+
+.docs-decentral-zone--3 {
+  border-color: var(--wb-warning);
+  background: rgba(255, 171, 64, 0.04);
+}
+
+.docs-decentral-zone-label {
+  font-family: var(--wb-font, monospace);
+  font-size: 9px;
+  letter-spacing: .14em;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.docs-decentral-zone--2 .docs-decentral-zone-label { color: var(--wb-positive); }
+.docs-decentral-zone--3 .docs-decentral-zone-label { color: var(--wb-warning); }
+
+.docs-decentral-zone-title {
+  font-family: var(--wb-font, monospace);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--wb-text);
+  margin-bottom: 2px;
+}
+
+.docs-decentral-zone--partner {
+  border-color: var(--wb-info);
+  background: rgba(130, 177, 255, 0.04);
+}
+.docs-decentral-zone--partner .docs-decentral-zone-label { color: var(--wb-info); }
 </style>

@@ -10,7 +10,7 @@
       navigation
       padding
       arrows
-      height="220px"
+      height="280px"
       class="bio-carousel"
     >
       <q-carousel-slide name="welcome" class="column no-wrap flex-center">

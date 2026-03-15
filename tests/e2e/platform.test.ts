@@ -24,7 +24,7 @@ const isReplit =
   process.env.PLATFORM === 'replit';
 
 // ── Vercel ──────────────────────────────────────────────────────────────────
-describe.skipIf(!isVercel)('Vercel deployment', () => {
+(isVercel ? describe : describe.skip)('Vercel deployment', () => {
   it('response includes x-vercel-id header', async () => {
     const vercelId = await getResponseHeader('/', 'x-vercel-id');
     expect(vercelId).toBeTruthy();
@@ -50,7 +50,7 @@ describe.skipIf(!isVercel)('Vercel deployment', () => {
 });
 
 // ── Netlify ──────────────────────────────────────────────────────────────────
-describe.skipIf(!isNetlify)('Netlify deployment', () => {
+(isNetlify ? describe : describe.skip)('Netlify deployment', () => {
   it('response includes x-nf-request-id header', async () => {
     const nfId = await getResponseHeader('/', 'x-nf-request-id');
     expect(nfId).toBeTruthy();
@@ -72,7 +72,7 @@ describe.skipIf(!isNetlify)('Netlify deployment', () => {
 });
 
 // ── Appwrite Sites ────────────────────────────────────────────────────────────
-describe.skipIf(!isAppwrite)('Appwrite Sites deployment', () => {
+(isAppwrite ? describe : describe.skip)('Appwrite Sites deployment', () => {
   it('serves root with 200', async () => {
     const response = await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
@@ -95,7 +95,7 @@ describe.skipIf(!isAppwrite)('Appwrite Sites deployment', () => {
 });
 
 // ── Replit ────────────────────────────────────────────────────────────────────
-describe.skipIf(!isReplit)('Replit deployment', () => {
+(isReplit ? describe : describe.skip)('Replit deployment', () => {
   it('serves root with 200', async () => {
     const response = await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
@@ -136,7 +136,7 @@ describe('Platform — generic checks (all)', () => {
       }
     });
     await goto('/');
-    await page.waitForTimeout(300);
+    await new Promise(r => setTimeout(r, 300));
     // Devtools warning only appears in dev mode; production build should be silent
     // (This is informational — production Quasar build always suppresses it)
     expect(true).toBe(true);

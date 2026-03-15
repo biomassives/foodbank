@@ -24,7 +24,7 @@ const AVATAR_PATH  = process.env.E2E_AVATAR_TEST_PATH || '';
 const hasConfig = !!(SUPABASE_URL && ANON_KEY);
 
 // ── Bucket visibility ─────────────────────────────────────────────────────────
-describe.skipIf(!hasConfig)('Supabase Storage — bucket access rules', () => {
+(hasConfig ? describe : describe.skip)('Supabase Storage — bucket access rules', () => {
 
   it('avatars bucket: public URL returns 200 for an existing file', async () => {
     if (!AVATAR_PATH) {
@@ -106,7 +106,7 @@ describe.skipIf(!hasConfig)('Supabase Storage — bucket access rules', () => {
 // ── App-level storage integration ─────────────────────────────────────────────
 describe('Storage — app-level integration (no credentials required)', () => {
   it('/profile page loads without storage errors', async () => {
-    await page.goto(`${process.env.BASE_URL || 'http://localhost:9000'}/profile`, {
+    await page.goto(`${process.env.BASE_URL || 'http://localhost:9005'}/profile`, {
       waitUntil: 'networkidle0',
       timeout: 20000,
     });
@@ -122,11 +122,11 @@ describe('Storage — app-level integration (no credentials required)', () => {
         errors.push(msg.text());
       }
     });
-    await page.goto(`${process.env.BASE_URL || 'http://localhost:9000'}/`, {
+    await page.goto(`${process.env.BASE_URL || 'http://localhost:9005'}/`, {
       waitUntil: 'networkidle0',
       timeout: 20000,
     });
-    await page.waitForTimeout(500);
+    await new Promise(r => setTimeout(r, 500));
     expect(errors).toHaveLength(0);
   });
 });

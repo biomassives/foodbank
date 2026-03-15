@@ -7,7 +7,8 @@ import { BASE_URL, goto, collectConsoleErrors } from './helpers';
 describe('Smoke — App loads', () => {
   it('serves the root page with HTTP 200', async () => {
     const response = await page.goto(BASE_URL, { waitUntil: 'networkidle0' });
-    expect(response?.status()).toBe(200);
+    // 304 Not Modified is also valid — dev server returns it on cache hits
+    expect([200, 304]).toContain(response?.status());
   });
 
   it('has a non-empty <title>', async () => {
@@ -26,7 +27,7 @@ describe('Smoke — App loads', () => {
     const getErrors = collectConsoleErrors();
     await goto('/');
     // Wait a tick for any deferred errors
-    await page.waitForTimeout(500);
+    await new Promise(r => setTimeout(r, 500));
     const errors = getErrors();
     // Filter out known benign third-party noise
     const fatal = errors.filter(

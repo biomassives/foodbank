@@ -23,6 +23,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'launch', component: () => import('pages/LaunchPage.vue'), meta: { title: 'Run Your Own' } },
       { path: 'info', component: () => import('pages/OpsPage.vue'), meta: { title: 'Pantry Info' } },
       { path: 'docs', component: () => import('pages/DocsPage.vue'), meta: { title: 'Docs' } },
+      { path: 'mcp-docs', component: () => import('pages/McpDocsPage.vue'), meta: { title: 'MCP & Chat Ops' } },
+      { path: 'recordings', component: () => import('pages/RecordingsPage.vue'), meta: { title: 'Test Recordings' } },
       { path: 'logistics', component: () => import('pages/LogisticsPage.vue'), meta: { title: 'Logistics' } },
       { path: 'audio', component: () => import('pages/AudioSequenceBuilder.vue'), meta: { title: 'Audio Sequences' } },
       {
@@ -47,8 +49,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         component: () => import('pages/AdminPage.vue'),
-        beforeEnter: (to, from, next) => {
+        beforeEnter: async (to, from, next) => {
           const store = useAddressStore();
+          // localMode grants immediate access (offline dev)
+          if (store.localMode) { next(); return; }
+          // On in-app navigation the role is already loaded — fast path
+          if (store.isAdmin) { next(); return; }
+          // On full-page load the role hasn't been fetched yet — do it now
+          await store.fetchUserRole();
           if (store.isAdmin) next();
           else next('/login');
         }

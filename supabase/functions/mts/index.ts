@@ -234,15 +234,75 @@ function renderMessage(
         bodyJson: { type, orgName, taskDescription: taskDesc, taskLocation: taskLoc, ...data },
       };
 
-    case 'daily-digest':
+    case 'daily-digest': {
+      const now      = new Date();
+      const dayName  = now.toLocaleDateString('en-US', { weekday: 'long' });
+      const dateStr  = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const pending   = Number(data.pending   ?? 0);
+      const claimed   = Number(data.claimed   ?? 0);
+      const inTransit = Number(data.inTransit ?? 0);
+      const delivered = Number(data.delivered ?? 0);
+      const stocked   = Number(data.stocked   ?? 0);
+      const needs     = Number(data.needs     ?? 0);
+      const offerings = Number(data.offerings ?? 0);
+      const locations = Array.isArray(data.locations) ? data.locations as { name: string; address: string }[] : [];
+
+      const queueRows = [
+        pending   ? queueRow('#F9A602', 'PENDING',    pending)    : '',
+        claimed   ? queueRow('#FDD835', 'CLAIMED',    claimed)    : '',
+        inTransit ? queueRow('#69F0AE', 'IN TRANSIT', inTransit)  : '',
+        delivered ? queueRow('#82B1FF', 'DELIVERED',  delivered)  : '',
+        stocked   ? queueRow('#CE93D8', 'STOCKED',    stocked)    : '',
+      ].filter(Boolean).join('');
+
+      const noActivity = !pending && !claimed && !inTransit && !delivered && !stocked;
+
+      const locRows = locations.map(l =>
+        `<tr>
+          <td style="padding:5px 0;font-size:13px;color:#e8e8e8;font-weight:700;">${esc(l.name)}</td>
+          <td style="padding:5px 0;font-size:12px;color:#888;text-align:right;">${esc(l.address)}</td>
+        </tr>`
+      ).join('');
+
+      const bodyHtml = `
+        <p style="font-size:11px;letter-spacing:3px;color:#888;margin:0 0 18px;">
+          ${dayName.toUpperCase()} &mdash; ${dateStr}
+        </p>
+
+        <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:10px;">PICKUP QUEUE</div>
+        ${noActivity
+          ? `<p style="color:#555;font-size:13px;">No active pickups right now.</p>`
+          : `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">${queueRows}</table>`
+        }
+
+        ${locRows ? `
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #222;">
+          <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:10px;">TODAY'S LOCATIONS</div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">${locRows}</table>
+        </div>` : ''}
+
+        ${(needs || offerings) ? `
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #222;">
+          <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:10px;">COMMUNITY BOARD</div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            ${needs     ? queueRow('#FF2DBD', 'NEEDS POSTED',      needs)     : ''}
+            ${offerings ? queueRow('#00E5FF', 'OFFERINGS POSTED',  offerings) : ''}
+          </table>
+        </div>` : ''}
+
+        <div style="margin-top:22px;padding-top:14px;border-top:1px solid #222;font-size:11px;color:#555;">
+          Visit the <a href="https://ward.funkypony.space/logistics" style="color:#FDD835;">Logistics page</a> to claim or update pickups.
+        </div>`;
+
       return {
         type, orgName,
-        subject: `Daily digest — ${orgName}`,
-        heading: 'Daily Digest',
-        bodyHtml: `<p>Your daily pantry activity summary.</p>`,
-        bodyText: `Daily digest for ${orgName}.`,
+        subject: `${orgName} — Morning Status · ${dayName}`,
+        heading: 'Morning Status',
+        bodyHtml,
+        bodyText: `Morning status for ${orgName} — ${dateStr}. Pending: ${pending}, Claimed: ${claimed}, In transit: ${inTransit}, Delivered: ${delivered}, Stocked: ${stocked}.`,
         bodyJson: { type, orgName, ...data },
       };
+    }
 
     case 'test':
       return {
@@ -288,6 +348,16 @@ function renderMessage(
   }
 }
 
+function queueRow(color: string, label: string, count: number): string {
+  return `<tr>
+    <td style="padding:5px 0;width:14px;vertical-align:middle;">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};"></span>
+    </td>
+    <td style="padding:5px 0 5px 8px;font-size:13px;color:#e8e8e8;font-weight:700;">${label}</td>
+    <td style="padding:5px 0;font-size:20px;color:${color};font-weight:900;text-align:right;letter-spacing:1px;">${count}</td>
+  </tr>`;
+}
+
 function taskBlock(desc: string, loc: string, color: string): string {
   return `<div style="padding: 12px; border-left: 3px solid ${color}; margin: 12px 0;">
     <div style="font-weight: 700;">${esc(desc)}</div>
@@ -326,27 +396,39 @@ async function emailTransport(
   return { sent, errors };
 }
 
+// Hosted logo URL — served from the deployed site
+const LOGO_URL = 'https://ward.funkypony.space/funlyponyspace_pogo.webp';
+
 function buildEmailHtml(orgName: string, heading: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: 'Nunito', sans-serif; background: #000; color: #fff; padding: 24px;">
-  <div style="max-width: 500px; margin: 0 auto;">
-    <h1 style="font-size: 18px; letter-spacing: 4px; color: #fdd835; margin-bottom: 4px;">
-      ${esc(orgName.toUpperCase())}
-    </h1>
-    <p style="color: rgba(255,255,255,0.6); font-size: 12px; letter-spacing: 2px; margin-top: 0;">
-      ${esc(heading.toUpperCase())}
-    </p>
-    <hr style="border: 1px solid rgba(255,255,255,0.2);">
-    <div style="font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.6;">
-      ${bodyHtml}
-    </div>
-    <hr style="border: 1px solid rgba(255,255,255,0.2);">
-    <p style="color: rgba(255,255,255,0.4); font-size: 10px; letter-spacing: 1px;">
-      ${esc(orgName)} &mdash; Funky Pony Pantry
-    </p>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#111;color:#e8e8e8;font-family:'Courier New',Courier,monospace;">
+<div style="max-width:520px;margin:0 auto;background:#111;">
+  <!-- Logo header — white panel so oval fade-to-white edges are clean -->
+  <div style="background:#FFF9F2;padding:24px 28px 18px;text-align:center;">
+    <img src="${LOGO_URL}" width="220" height="110" alt="Funky Pony Space" style="display:inline-block;max-width:100%;">
+    <div style="margin-top:10px;font-size:9px;letter-spacing:3px;color:#8a7060;font-weight:700;text-transform:uppercase;">${esc(orgName)}</div>
+    <div style="margin-top:4px;font-size:11px;letter-spacing:4px;color:#2C2420;font-weight:900;text-transform:uppercase;">${esc(heading)}</div>
   </div>
+  <!-- Mondrian accent stripe -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="width:25%;height:4px;background:#E2725B;"></td>
+      <td style="width:15%;height:4px;background:#F9A602;"></td>
+      <td style="width:35%;height:4px;background:#4A5D66;"></td>
+      <td style="height:4px;background:#2C2420;"></td>
+    </tr>
+  </table>
+  <!-- Body -->
+  <div style="padding:22px 28px;font-size:14px;color:rgba(255,255,255,0.85);line-height:1.6;">
+    ${bodyHtml}
+  </div>
+  <div style="margin:0 28px;height:1px;background:#222;"></div>
+  <div style="padding:14px 28px 24px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">
+    ${esc(orgName)} &mdash; <span style="color:#4A5D66;">Funky Pony Space</span> &mdash; ward.funkypony.space
+  </div>
+</div>
 </body>
 </html>`;
 }
@@ -534,7 +616,7 @@ async function resolveRecipients(
       .select('id, email, phone')
       .eq('org_id', body.orgId)
       .in('role', roles)
-      .not('email_bounced', 'eq', true);
+      .not('email_bounced', 'is', true); // 'is' uses IS NOT TRUE — includes NULLs unlike neq
 
     for (const p of (profiles || [])) {
       if (!recipients.some(r => r.email === p.email && r.email !== null)) {

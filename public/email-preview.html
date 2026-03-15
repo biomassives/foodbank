@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Funky Pony — Email Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0d0d;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+    }
+    /* ── Toolbar ── */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #111;
+      border-bottom: 2px solid #FDD835;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .toolbar-brand {
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: #FDD835;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .toolbar-divider { width: 1px; height: 24px; background: #333; }
+    .type-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .type-tab {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #999;
+      padding: 5px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+    .type-tab:hover { border-color: #FDD835; color: #FDD835; }
+    .type-tab.active { background: #FDD835; color: #000; border-color: #FDD835; font-weight: 900; }
+    .view-toggle {
+      margin-left: auto;
+      display: flex;
+      gap: 6px;
+    }
+    .view-btn {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #999;
+      padding: 5px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .view-btn.active { background: #4A5D66; color: #fff; border-color: #4A5D66; }
+
+    /* ── Main layout ── */
+    .main {
+      padding: 24px 20px;
+    }
+    .preview-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .preview-row.single {
+      grid-template-columns: minmax(0, 600px);
+      justify-content: center;
+    }
+    .preview-card {
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .preview-card-header {
+      background: #1e1e1e;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .preview-card-label {
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: #FDD835;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .preview-card-sublabel {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #555;
+    }
+    iframe.email-frame {
+      display: block;
+      width: 100%;
+      border: none;
+      background: #0a0a0a;
+    }
+
+    /* ── Subject line chip ── */
+    .subject-chip {
+      background: #0a0a0a;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 6px 14px;
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1px;
+    }
+    .subject-chip strong { color: #ccc; }
+
+    /* ── All emails grid view ── */
+    .all-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+      gap: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── Status bar ── */
+    .status-bar {
+      padding: 8px 20px;
+      background: #0a0a0a;
+      border-top: 1px solid #1e1e1e;
+      font-size: 9px;
+      color: #444;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-brand">FUNKY PONY — EMAIL PREVIEW</div>
+  <div class="toolbar-divider"></div>
+  <div class="type-tabs" id="typeTabs">
+    <button class="type-tab active" data-type="driver-invite">Driver Invite</button>
+    <button class="type-tab" data-type="welcome">Welcome</button>
+    <button class="type-tab" data-type="test">Setup Test</button>
+    <button class="type-tab" data-type="admin-join">Admin Join</button>
+    <button class="type-tab" data-type="pickup-claimed">Pickup Claimed</button>
+    <button class="type-tab" data-type="pickup-delivered">Pickup Delivered</button>
+    <button class="type-tab" data-type="pickup-stocked">Pickup Stocked</button>
+    <button class="type-tab" data-type="custom">Custom / Announce</button>
+    <button class="type-tab" data-type="all">ALL</button>
+  </div>
+  <div class="view-toggle">
+    <button class="view-btn active" id="btnCurrent" onclick="setVariant('current')">CURRENT</button>
+    <button class="view-btn" id="btnProposed" onclick="setVariant('proposed')">PROPOSED ✦</button>
+    <button class="view-btn" id="btnSide" onclick="setVariant('side')">SIDE BY SIDE</button>
+  </div>
+</div>
+
+<div class="main" id="main"></div>
+
+<div class="status-bar" id="statusBar">
+  RENDERING CURRENT DESIGN — SELECT EMAIL TYPE ABOVE
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Template data
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ORG = 'Ward Food Pantry';
+const TEMPLATES = {
+  'driver-invite': {
+    label: 'Driver Invite',
+    subject: `${ORG} — Your Driver Portal Invite`,
+    current: () => buildDriverInviteHtml('Sam Rivera', ORG, 'WARD42', 'https://ward.funkypony.space/join?code=WARD42'),
+    proposed: () => buildDriverInviteHtmlV2('Sam Rivera', ORG, 'WARD42', 'https://ward.funkypony.space/join?code=WARD42'),
+  },
+  'welcome': {
+    label: 'Welcome',
+    subject: `Welcome to ${ORG}`,
+    current: () => buildEmailHtml(ORG, 'Welcome!', `
+      <p>You've joined <strong>${ORG}</strong>.</p>
+      <p>You can now view the directory, claim pickups, and post community needs.</p>
+      <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 24px;">Log in anytime to check your queue and connect with your community.</p>
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'Welcome!', `
+      <p>You've joined <strong>${ORG}</strong>.</p>
+      <p>You can now view the directory, claim pickups, and post community needs.</p>
+      <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 24px;">Log in anytime to check your queue and connect with your community.</p>
+    `),
+  },
+  'test': {
+    label: 'Setup Test',
+    subject: `Test email from ${ORG}`,
+    current: () => buildEmailHtml(ORG, 'Setup Test', `
+      <p>This is a <strong>test email</strong> from your pantry setup.</p>
+      <p>If you're reading this, your Mailgun integration is working correctly.</p>
+      <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 24px;">Sent at ${new Date().toISOString()}</p>
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'Setup Test', `
+      <p>This is a <strong>test email</strong> from your pantry setup.</p>
+      <p>If you're reading this, your Mailgun integration is working correctly.</p>
+      <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 24px;">Sent at ${new Date().toISOString()}</p>
+    `),
+  },
+  'admin-join': {
+    label: 'Admin Join Alert',
+    subject: `New member joined ${ORG}`,
+    current: () => buildEmailHtml(ORG, 'New Member Joined', `
+      <p><strong>Casey Morgan</strong> has joined ${ORG}.</p>
+      <p>They can now access the directory and claim pickups.</p>
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'New Member Joined', `
+      <p><strong>Casey Morgan</strong> has joined ${ORG}.</p>
+      <p>They can now access the directory and claim pickups.</p>
+    `),
+  },
+  'pickup-claimed': {
+    label: 'Pickup Claimed',
+    subject: `Pickup claimed — ${ORG}`,
+    current: () => buildEmailHtml(ORG, 'Pickup Claimed', `
+      <p><strong>Sam Rivera</strong> claimed a pickup:</p>
+      ${taskBlock('40 lbs potatoes + assorted veg', 'St. Andrew\'s Church — back entrance', '#82b1ff')}
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'Pickup Claimed', `
+      <p><strong>Sam Rivera</strong> claimed a pickup:</p>
+      ${taskBlock('40 lbs potatoes + assorted veg', 'St. Andrew\'s Church — back entrance', '#82b1ff')}
+    `),
+  },
+  'pickup-delivered': {
+    label: 'Pickup Delivered',
+    subject: `Pickup delivered — ${ORG}`,
+    current: () => buildEmailHtml(ORG, 'Pickup Delivered', `
+      <p>A pickup has been delivered:</p>
+      ${taskBlock('40 lbs potatoes + assorted veg', 'St. Andrew\'s Church — back entrance', '#69f0ae')}
+      <p style="color: rgba(255,255,255,0.6);">Ready to be marked as STOCKED.</p>
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'Pickup Delivered', `
+      <p>A pickup has been delivered:</p>
+      ${taskBlock('40 lbs potatoes + assorted veg', 'St. Andrew\'s Church — back entrance', '#69f0ae')}
+      <p style="color: rgba(255,255,255,0.6);">Ready to be marked as STOCKED.</p>
+    `),
+  },
+  'pickup-stocked': {
+    label: 'Pickup Stocked',
+    subject: `Items stocked — ${ORG}`,
+    current: () => buildEmailHtml(ORG, 'Pickup Stocked', `
+      <p>Items have been stocked and are ready for the community:</p>
+      ${taskBlock('40 lbs potatoes + assorted veg', 'Storage Room A', '#69f0ae')}
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'Pickup Stocked', `
+      <p>Items have been stocked and are ready for the community:</p>
+      ${taskBlock('40 lbs potatoes + assorted veg', 'Storage Room A', '#69f0ae')}
+    `),
+  },
+  'custom': {
+    label: 'Custom / Announce',
+    subject: 'Fresh produce available this Thursday',
+    current: () => buildEmailHtml(ORG, 'Community Announcement', `
+      <p>We have an unexpected donation of fresh produce coming in Thursday afternoon.</p>
+      <p>If you can help sort and stock Thursday 2–5pm, please reach out to the coordinator.</p>
+    `),
+    proposed: () => buildEmailHtmlV2(ORG, 'Community Announcement', `
+      <p>We have an unexpected donation of fresh produce coming in Thursday afternoon.</p>
+      <p>If you can help sort and stock Thursday 2–5pm, please reach out to the coordinator.</p>
+    `),
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared HTML helpers (mirror of mts/index.ts functions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function taskBlock(desc, loc, color) {
+  return `<div style="padding:12px;border-left:3px solid ${color};margin:12px 0;">
+    <div style="font-weight:700;">${desc}</div>
+    ${loc ? `<div style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:4px;">${loc}</div>` : ''}
+  </div>`;
+}
+
+// ── CURRENT generic wrapper ───────────────────────────────────────────────────
+function buildEmailHtml(orgName, heading, bodyHtml) {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:'Courier New',Courier,monospace;background:#000;color:#fff;padding:24px;">
+  <div style="max-width:500px;margin:0 auto;">
+    <h1 style="font-size:18px;letter-spacing:4px;color:#fdd835;margin-bottom:4px;">${orgName.toUpperCase()}</h1>
+    <p style="color:rgba(255,255,255,0.6);font-size:12px;letter-spacing:2px;margin-top:0;">${heading.toUpperCase()}</p>
+    <hr style="border:1px solid rgba(255,255,255,0.2);">
+    <div style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.6;">${bodyHtml}</div>
+    <hr style="border:1px solid rgba(255,255,255,0.2);">
+    <p style="color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:1px;">${orgName} &mdash; Funky Pony Pantry</p>
+  </div>
+</body>
+</html>`;
+}
+
+// ── CURRENT driver invite ─────────────────────────────────────────────────────
+function buildDriverInviteHtml(recipientName, pantryName, inviteCode, inviteUrl) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:'Courier New','Lucida Console',Courier,monospace;">
+<div style="max-width:560px;margin:0 auto;background:#0a0a0a;">
+  <!-- Mondrian header bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
+    <tr>
+      <td style="width:15%;height:9px;background:#E2725B;"></td>
+      <td style="width:9%;height:9px;background:#FDD835;"></td>
+      <td style="width:26%;height:9px;background:#4A5D66;"></td>
+      <td style="width:10%;height:9px;background:#69F0AE;"></td>
+      <td style="height:9px;background:#141414;"></td>
+    </tr>
+    <tr>
+      <td style="width:15%;height:3px;background:#FDD835;"></td>
+      <td style="width:9%;height:3px;background:#0a0a0a;"></td>
+      <td style="width:26%;height:3px;background:#E2725B;"></td>
+      <td style="width:10%;height:3px;background:#4A5D66;"></td>
+      <td style="height:3px;background:#69F0AE;"></td>
+    </tr>
+  </table>
+  <div style="padding:28px 28px 0;">
+    <div style="font-size:9px;letter-spacing:5px;color:#FDD835;font-weight:800;margin-bottom:8px;">FUNKY PONY</div>
+    <div style="font-size:23px;letter-spacing:2px;color:#e8e8e8;font-weight:900;text-transform:uppercase;">${pantryName}</div>
+    <div style="margin-top:10px;display:inline-block;padding:3px 10px;border:1px solid #4A5D66;font-size:9px;letter-spacing:3px;color:#4A5D66;font-weight:800;">DRIVER PORTAL ACCESS</div>
+  </div>
+  <div style="margin:22px 28px 0;height:2px;background:linear-gradient(to right,#FDD835,#333,#0a0a0a);"></div>
+  <div style="padding:18px 28px 0;font-size:14px;line-height:1.75;">
+    <p style="margin:0 0 14px;">Hi ${recipientName},</p>
+    <p style="margin:0 0 14px;">You're invited to join the <strong style="color:#FDD835;">${pantryName}</strong> coordination platform — a lightweight web tool for managing pickups, community needs, and pantry operations.</p>
+  </div>
+  <div style="margin:18px 28px 0;height:1px;background:#222;"></div>
+  <div style="padding:0 28px;margin-top:22px;">
+    <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;margin-bottom:10px;">YOUR INVITE CODE</div>
+    <div style="background:#141414;border:2px solid #FDD835;padding:14px 18px;letter-spacing:6px;font-size:22px;font-weight:900;color:#FDD835;text-align:center;">${inviteCode}</div>
+  </div>
+  <div style="padding:14px 28px 0;">
+    <a href="${inviteUrl}" style="display:block;background:#FDD835;color:#000;text-align:center;padding:15px 24px;font-size:12px;font-weight:900;letter-spacing:3px;text-decoration:none;text-transform:uppercase;">JOIN AT WARD.FUNKYPONY.SPACE &rarr;</a>
+  </div>
+  <div style="padding:8px 28px 0;font-size:11px;color:#555;line-height:1.6;">Enter the code above, add your email, and follow the sign-in link.</div>
+  <div style="margin:22px 28px 0;height:1px;background:#222;"></div>
+  <div style="padding:14px 28px 22px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">FUNKY PONY &mdash; <span style="color:#4A5D66;">COMMUNITY TOOLING</span> &mdash; ward.funkypony.space</div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
+    <tr>
+      <td style="height:4px;background:#141414;"></td>
+      <td style="width:10%;height:4px;background:#69F0AE;"></td>
+      <td style="width:26%;height:4px;background:#FDD835;"></td>
+      <td style="width:9%;height:4px;background:#E2725B;"></td>
+      <td style="width:15%;height:4px;background:#4A5D66;"></td>
+    </tr>
+  </table>
+</div>
+</body>
+</html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROPOSED v2 — pogo logo header
+// Logo: funlyponyspace_pogo.webp — oval watercolour landscape with circular
+// "FUNKY PONY SPACE" badge. Proportions ~2:1 wide oval.
+// For hosted email use the absolute URL; for preview we use relative path.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// In preview: relative path works since email-preview.html lives in /public/.
+// In MTS edge function: swap to https://ward.funkypony.space/funlyponyspace_pogo.webp
+const LOGO_SRC = './funlyponyspace_pogo.webp';
+// Once SVG is ready from Inkscape, also export as:
+// const LOGO_SRC_SVG = './funlyponyspace_pogo.svg';
+
+function pogoLogoHeader(orgName, heading) {
+  return `
+  <!-- ── Pogo logo header — white panel so fade-to-white oval edges are clean ── -->
+  <div style="background:#FFF9F2;padding:24px 28px 18px;text-align:center;">
+    <img
+      src="${LOGO_SRC}"
+      width="240" height="120"
+      alt="Funky Pony Space"
+      style="display:inline-block;max-width:100%;"
+    >
+    <div style="margin-top:10px;font-size:9px;letter-spacing:3px;color:#8a7060;font-weight:700;text-transform:uppercase;">${orgName}</div>
+    <div style="margin-top:4px;font-size:11px;letter-spacing:4px;color:#2C2420;font-weight:900;text-transform:uppercase;">${heading}</div>
+  </div>
+  <!-- Mondrian accent stripe — bridges light header to dark body -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="width:25%;height:4px;background:#E2725B;"></td>
+      <td style="width:15%;height:4px;background:#F9A602;"></td>
+      <td style="width:35%;height:4px;background:#4A5D66;"></td>
+      <td style="height:4px;background:#2C2420;"></td>
+    </tr>
+  </table>`;
+}
+
+function buildEmailHtmlV2(orgName, heading, bodyHtml) {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#111;color:#e0d5c8;font-family:'Courier New',Courier,monospace;">
+<div style="max-width:520px;margin:0 auto;background:#111;">
+  ${pogoLogoHeader(orgName, heading)}
+  <div style="padding:22px 28px;font-size:14px;color:rgba(255,255,255,0.82);line-height:1.7;">
+    ${bodyHtml}
+  </div>
+  <div style="margin:0 28px;height:1px;background:#222;"></div>
+  <div style="padding:14px 28px 24px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">
+    ${orgName} &mdash; <span style="color:#4A5D66;">Funky Pony Space</span> &mdash; ward.funkypony.space
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function buildDriverInviteHtmlV2(recipientName, pantryName, inviteCode, inviteUrl) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#111;color:#e8e8e8;font-family:'Courier New','Lucida Console',Courier,monospace;">
+<div style="max-width:560px;margin:0 auto;background:#111;">
+  ${pogoLogoHeader(pantryName, 'Driver Portal Access')}
+  <div style="padding:22px 28px 0;font-size:14px;line-height:1.75;">
+    <p style="margin:0 0 14px;">Hi ${recipientName},</p>
+    <p style="margin:0 0 14px;">You're invited to join the <strong style="color:#FDD835;">${pantryName}</strong> coordination platform — a lightweight web tool for managing pickups, community needs, and pantry operations. No app install, works on any device.</p>
+  </div>
+  <div style="margin:0 28px;height:1px;background:#1e1e1e;"></div>
+  <!-- Feature list -->
+  <div style="padding:16px 28px 0;">
+    <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:12px;">WHAT IT PROVIDES</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Task Queue</strong> &mdash; claim pickups, mark in-transit, log delivery</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#69F0AE;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Locations &amp; Schedule</strong> &mdash; pickup points with transport requirements and pantry hours</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#82B1FF;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Notifications</strong> &mdash; broadcast alerts for available pickups and announcements</td></tr>
+      <tr><td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#E2725B;font-weight:900;line-height:1;">&#183;</td><td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Availability</strong> &mdash; set your weekly schedule from your profile so tasks route your way</td></tr>
+    </table>
+  </div>
+  <div style="margin:18px 28px 0;height:1px;background:#1e1e1e;"></div>
+  <!-- Invite code -->
+  <div style="padding:18px 28px 0;">
+    <div style="font-size:8px;letter-spacing:4px;color:#555;font-weight:800;text-transform:uppercase;margin-bottom:10px;">YOUR INVITE CODE</div>
+    <div style="background:#111;border:2px solid #FDD835;padding:14px 18px;letter-spacing:6px;font-size:22px;font-weight:900;color:#FDD835;text-align:center;">${inviteCode}</div>
+  </div>
+  <!-- CTA -->
+  <div style="padding:14px 28px 0;">
+    <a href="${inviteUrl}" style="display:block;background:#FDD835;color:#000;text-align:center;padding:15px 24px;font-size:12px;font-weight:900;letter-spacing:3px;text-decoration:none;text-transform:uppercase;">JOIN AT WARD.FUNKYPONY.SPACE &rarr;</a>
+  </div>
+  <div style="padding:8px 28px 0;font-size:11px;color:#555;line-height:1.6;">Enter the code above, add your email, and follow the sign-in link. You'll land directly in the pantry.</div>
+  <div style="margin:22px 28px 0;height:1px;background:#1e1e1e;"></div>
+  <div style="padding:14px 28px 22px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">FUNKY PONY &mdash; <span style="color:#4A5D66;">COMMUNITY TOOLING</span> &mdash; ward.funkypony.space</div>
+</div>
+</body>
+</html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Render logic
+// ─────────────────────────────────────────────────────────────────────────────
+
+let currentType = 'driver-invite';
+let currentVariant = 'current';
+
+function setVariant(v) {
+  currentVariant = v;
+  document.getElementById('btnCurrent').classList.toggle('active', v === 'current');
+  document.getElementById('btnProposed').classList.toggle('active', v === 'proposed');
+  document.getElementById('btnSide').classList.toggle('active', v === 'side');
+  render();
+}
+
+function makeFrame(html, height = 680) {
+  const iframe = document.createElement('iframe');
+  iframe.className = 'email-frame';
+  iframe.style.height = height + 'px';
+  iframe.srcdoc = html;
+  return iframe;
+}
+
+function makeCard(label, sublabel, html) {
+  const card = document.createElement('div');
+  card.className = 'preview-card';
+  const hdr = document.createElement('div');
+  hdr.className = 'preview-card-header';
+  hdr.innerHTML = `<span class="preview-card-label">${label}</span><span class="preview-card-sublabel">${sublabel}</span>`;
+  card.appendChild(hdr);
+  card.appendChild(makeFrame(html));
+  return card;
+}
+
+function render() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  if (currentType === 'all') {
+    const grid = document.createElement('div');
+    grid.className = 'all-grid';
+    for (const [key, tpl] of Object.entries(TEMPLATES)) {
+      const html = currentVariant === 'proposed' ? tpl.proposed() : tpl.current();
+      const card = makeCard(tpl.label, tpl.subject, html);
+      card.querySelector('iframe').style.height = '520px';
+      grid.appendChild(card);
+    }
+    main.appendChild(grid);
+    document.getElementById('statusBar').textContent =
+      `ALL EMAIL TYPES — ${currentVariant.toUpperCase()} DESIGN — ${Object.keys(TEMPLATES).length} TEMPLATES`;
+    return;
+  }
+
+  const tpl = TEMPLATES[currentType];
+  if (!tpl) return;
+
+  if (currentVariant === 'side') {
+    const row = document.createElement('div');
+    row.className = 'preview-row';
+    row.appendChild(makeCard('CURRENT', tpl.subject, tpl.current()));
+    row.appendChild(makeCard('PROPOSED ✦', tpl.subject, tpl.proposed()));
+    main.appendChild(row);
+  } else {
+    const row = document.createElement('div');
+    row.className = 'preview-row single';
+    const html = currentVariant === 'proposed' ? tpl.proposed() : tpl.current();
+    row.appendChild(makeCard(currentVariant === 'proposed' ? 'PROPOSED ✦' : 'CURRENT', tpl.subject, html));
+    main.appendChild(row);
+  }
+
+  document.getElementById('statusBar').textContent =
+    `${tpl.label.toUpperCase()} — SUBJECT: "${tpl.subject}" — ${currentVariant.toUpperCase()} DESIGN`;
+}
+
+// ── Tab clicks ──
+document.getElementById('typeTabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.type-tab');
+  if (!btn) return;
+  document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentType = btn.dataset.type;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

@@ -62,6 +62,39 @@
   background: currentColor !important;
 }
 
+// ── Layout / page background ──────────────────────────────────────
+// Quasar's q-layout and q-page-container carry their own white
+// background.  Override here so every theme token propagates.
+.q-layout,
+.q-page-container,
+.q-page {
+  background: var(--wb-bg) !important;
+  color: var(--wb-text) !important;
+}
+
+// ── Welcome carousel — global fix ─────────────────────────────────
+// q-dialog teleports outside #q-app so scoped :deep() in
+// WelcomeDialog.vue cannot reach Quasar's internal carousel layers.
+// These global rules do the job instead.
+.welcome-carousel,
+.welcome-carousel .q-carousel__inner,
+.welcome-carousel .q-carousel__track,
+.welcome-carousel .q-carousel__slide,
+.welcome-carousel .q-panel {
+  background: var(--wb-modal-bg) !important;
+  color: var(--wb-text) !important;
+}
+.welcome-carousel .q-carousel__inner,
+.welcome-carousel .q-carousel__track,
+.welcome-carousel .q-carousel__slide,
+.welcome-carousel .q-panel {
+  background: transparent !important;
+}
+.welcome-card {
+  background: var(--wb-modal-bg) !important;
+  color: var(--wb-text) !important;
+}
+
 // ── Dialog input text fix ─────────────────────────────────────────
 // q-dialog teleports its DOM to <body>, which strips Vue's scoped
 // data-attributes — so any :deep() rules inside modal components

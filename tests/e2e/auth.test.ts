@@ -10,9 +10,15 @@
  * Real-auth tests require E2E_TEST_EMAIL + E2E_TEST_PASSWORD in .env.test.
  * If those vars are absent the suite skips gracefully.
  */
-import { goto, fetchStatus, loginAsTestUser, clearAuth, setLocalMode } from './helpers';
+import { goto, BASE_URL, fetchStatus, loginAsTestUser, clearAuth, setLocalMode } from './helpers';
 
 const hasTestUser = !!(process.env.E2E_TEST_EMAIL && process.env.E2E_TEST_PASSWORD);
+
+// Warm up the dev server before the first test — Vite compiles assets on first request
+// which can exceed the 20s navigation timeout if auth runs first in the suite.
+beforeAll(async () => {
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+}, 65000);
 
 // ── Unauthenticated access ────────────────────────────────────────────────────
 describe('Access control — unauthenticated', () => {
@@ -92,7 +98,7 @@ describe('Access control — localMode (admin-equivalent for dev)', () => {
 });
 
 // ── Real auth — admin user ────────────────────────────────────────────────────
-describe.skipIf(!hasTestUser)('Access control — authenticated admin user', () => {
+(hasTestUser ? describe : describe.skip)('Access control — authenticated admin user', () => {
   afterAll(async () => {
     await clearAuth();
   });
@@ -101,7 +107,7 @@ describe.skipIf(!hasTestUser)('Access control — authenticated admin user', () 
     await loginAsTestUser();
     // fetchUserRole sets the role from Supabase; page should not be on /login
     expect(page.url()).not.toContain('/login');
-  });
+  }, 30000);
 
   it('/admin is reachable after login', async () => {
     await goto('/admin');
@@ -127,7 +133,7 @@ describe.skipIf(!hasTestUser)('Access control — authenticated admin user', () 
         break;
       }
     }
-    await page.waitForTimeout(300);
+    await new Promise(r => setTimeout(r, 300));
     const inputs = await page.$$('input[type="email"], input[type="text"], select.role-select');
     expect(inputs.length).toBeGreaterThanOrEqual(2);
   });

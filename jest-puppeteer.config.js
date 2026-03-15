@@ -7,15 +7,16 @@ const useRemote = !!process.env.BASE_URL;
 module.exports = {
   launch: {
     headless: 'new',
+    defaultViewport: { width: 1280, height: 800 },
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   },
   // Only spin up local dev server when not targeting a remote URL
   server: useRemote
     ? undefined
     : {
-        command: 'quasar dev',
-        port: 9000,
-        launchTimeout: 60000,
+        command: 'quasar dev --port 9005',
+        port: 9005,
+        launchTimeout: 120000,
         debug: false,
       },
 };

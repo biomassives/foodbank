@@ -994,6 +994,36 @@
           />
 
           <div class="launch-card q-mt-md">
+            <q-icon name="cloud_upload" size="20px" class="launch-icon-deploy" />
+            <div>
+              <div class="launch-card-title">Deploy to Netlify</div>
+              <div class="launch-card-sub">Static hosting + Supabase backend</div>
+            </div>
+          </div>
+          <q-btn
+            unelevated no-caps
+            icon="open_in_new"
+            label="Deploy Now"
+            class="launch-btn"
+            @click="openNetlifyDeploy"
+          />
+
+          <div class="launch-card q-mt-md">
+            <q-icon name="storage" size="20px" class="launch-icon-fork" />
+            <div>
+              <div class="launch-card-title">Deploy with Appwrite</div>
+              <div class="launch-card-sub">Self-sovereign open-source backend — no Supabase needed</div>
+            </div>
+          </div>
+          <q-btn
+            flat no-caps
+            icon="menu_book"
+            label="Appwrite Setup Guide"
+            class="launch-btn-flat"
+            @click="openAppwriteGuide"
+          />
+
+          <div class="launch-card q-mt-md">
             <q-icon name="code" size="20px" class="launch-icon-fork" />
             <div>
               <div class="launch-card-title">Fork on GitHub</div>
@@ -1155,7 +1185,7 @@
       <div v-if="tab === 'oracle'" class="admin-panel">
         <div class="panel-head">
           <span class="panel-title">ORACLE</span>
-          <span class="panel-count">E8 lattice · 3 architectural layers</span>
+          <span class="panel-count">E8 ZK Lattice · 3 architectural layers</span>
         </div>
         <AdminOraclePanel />
       </div>
@@ -2031,11 +2061,9 @@ async function createAndSendInvite() {
     const role = inviteNewRole.value;
 
     if (store.canSync) {
-      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from('invites').insert([{
         code,
         org_id: store.userOrgId,
-        created_by: user?.id,
         email: inviteNewEmail.value.trim(),
         phone: inviteNewPhone.value.trim() || null,
         display_name: name,
@@ -2215,11 +2243,10 @@ function buildDriverInviteHtmlClient(
 async function fetchCloudInvites() {
   if (!store.canSync) return;
   try {
-    const { data } = await supabase.from('invites').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('invites').select('*').order('notified_at', { ascending: false });
     interface InviteRow {
       code: string;
       is_used: boolean;
-      created_at: string;
       email: string | null;
       display_name: string | null;
       role: string | null;
@@ -2229,7 +2256,6 @@ async function fetchCloudInvites() {
     cloudInvites.value = (data || []).map((inv: InviteRow) => ({
       code: inv.code,
       is_used: inv.is_used,
-      created_at: inv.created_at,
       email: inv.email ?? undefined,
       display_name: inv.display_name ?? undefined,
       role: inv.role ?? undefined,
@@ -2604,6 +2630,20 @@ async function probeAllDatabases() {
 }
 
 // ── Launch ───────────────────────────────────────────────────────
+
+function openNetlifyDeploy() {
+  window.open(
+    'https://app.netlify.com/start/deploy?repository=https://github.com/biomassives/foodbank',
+    '_blank',
+  );
+}
+
+function openAppwriteGuide() {
+  window.open(
+    'https://github.com/biomassives/foodbank/blob/master/docs/appwrite-deployment.md',
+    '_blank',
+  );
+}
 
 function openVercelDeploy() {
   window.open(

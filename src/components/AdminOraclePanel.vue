@@ -443,7 +443,7 @@
         <div class="pw-canvas-wrap">
           <canvas ref="pwCanvasEl" class="pw-canvas"></canvas>
           <div class="pw-canvas-caption">
-            <span v-if="pwCanvasMode === 'e8'">E8 lattice · {{ pwStep === 2 ? 'passphrase visualization active' : 'awaiting identity verification' }}</span>
+            <span v-if="pwCanvasMode === 'e8'">E8 ZK Lattice · {{ pwStep === 2 ? 'passphrase visualization active' : 'awaiting identity verification' }}</span>
             <span v-else-if="pwCanvasMode === 'vectorflow'" class="caption-sending">
               <span class="material-icons spin-icon">autorenew</span>
               Preparing secure channel via Mailgun…
@@ -584,7 +584,7 @@ const TRUST_REGIONS = [
     id: 2,
     zone: 'E8 COMMIT · CLOUDBASE',
     color: '#fdd835',
-    stack: ['e8-integrity', 'Supabase Edge (Deno)', 'Mailgun', 'HKDF-SHA256'],
+    stack: ['E8 ZK Lattice', 'Supabase Edge (Deno)', 'Mailgun', 'HKDF-SHA256'],
     functions: [
       { name: 'e8Commit(record, salt)', desc: 'Every write: HKDF → 8 Chern roots → θ products → C = ½(π₁+π₂+π₃) stored as IEEE 754 hex.' },
       { name: 'Edge fn: mts()', desc: 'Cloudbase edge function — multi-target send fires on queue status change; dispatches via Mailgun.' },
@@ -1304,7 +1304,7 @@ const features = computed(() => [
   { label: 'Logistics view',          requires: 'logistics+',  granted: store.canEdit },
   { label: 'Generate invites',        requires: 'admin',       granted: store.canEdit },
   { label: 'Cloud sync',              requires: 'org account', granted: !!store.userOrgId },
-  { label: 'E8 integrity scan',       requires: 'admin',       granted: store.canEdit },
+  { label: 'E8 ZK Lattice scan',      requires: 'admin',       granted: store.canEdit },
   { label: 'Data export',             requires: 'admin',       granted: store.canEdit },
 ]);
 </script>
