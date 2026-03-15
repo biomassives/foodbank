@@ -20,7 +20,7 @@
     "test:e2e:record": "dotenv -e .env.test -- jest --config jest.e2e.config.ts --testPathPattern=record-",
     "serve:spa": "node scripts/serve-spa.js",
     "dev": "quasar dev",
-    "build": "npm run test:report && quasar build"
+    "build": "quasar build"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
@@ -30,13 +30,13 @@
     "idb": "^8.0.0",
     "lodash.uniqueid": "^4.0.1",
     "pinia": "^2.1.7",
-    "puppeteer-screen-recorder": "^3.0.6",
     "quasar": "^2.8.0",
-    "supabase": "^2.76.11",
     "vue": "^3.2.29",
     "vue-router": "^4.0.12"
   },
   "devDependencies": {
+    "puppeteer-screen-recorder": "^3.0.6",
+    "supabase": "^2.76.11",
     "@babel/preset-env": "^7.23.8",
     "@babel/preset-typescript": "^7.23.3",
     "@quasar/app-vite": "^1.4.3",
