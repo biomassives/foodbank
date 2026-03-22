@@ -16,14 +16,14 @@
       <!-- Tabs -->
       <div class="admin-tabs">
         <button
-          v-for="t in tabs"
-          :key="t.key"
+          v-for="tabItem in tabs"
+          :key="tabItem.key"
           class="admin-tab"
-          :class="{ active: tab === t.key }"
-          @click="tab = t.key"
+          :class="{ active: tab === tabItem.key }"
+          @click="tab = tabItem.key"
         >
-          <q-icon :name="t.icon" size="14px" />
-          <span>{{ t.label }}</span>
+          <q-icon :name="tabItem.icon" size="14px" />
+          <span>{{ tabItem.label }}</span>
         </button>
       </div>
 
@@ -974,53 +974,28 @@
 
         <div class="launch-block">
           <div class="launch-desc">
-            Clone this pantry to a brand-new instance. Each deployment is
-            independent — your data, your community, your rules.
+            Set up a new independent deployment — your pantry identity, your
+            Supabase project, your email branding, and your hosting. The
+            deployment wizard walks you through every step and generates
+            ready-to-use deploy URLs, SQL, and CLI commands.
           </div>
 
           <div class="launch-card">
-            <q-icon name="rocket_launch" size="20px" class="launch-icon-deploy" />
+            <q-icon name="tune" size="20px" class="launch-icon-deploy" />
             <div>
-              <div class="launch-card-title">Deploy to Vercel</div>
-              <div class="launch-card-sub">One-click deploy with your own Supabase keys</div>
+              <div class="launch-card-title">Deployment Configuration Wizard</div>
+              <div class="launch-card-sub">
+                Configure pantry identity, Supabase, email branding &amp; Mailgun,
+                then get one-click deploy links for Vercel or Netlify.
+              </div>
             </div>
           </div>
           <q-btn
             unelevated no-caps
-            icon="open_in_new"
-            label="Deploy Now"
+            icon="rocket_launch"
+            label="Open Deployment Wizard"
             class="launch-btn"
-            @click="openVercelDeploy"
-          />
-
-          <div class="launch-card q-mt-md">
-            <q-icon name="cloud_upload" size="20px" class="launch-icon-deploy" />
-            <div>
-              <div class="launch-card-title">Deploy to Netlify</div>
-              <div class="launch-card-sub">Static hosting + Supabase backend</div>
-            </div>
-          </div>
-          <q-btn
-            unelevated no-caps
-            icon="open_in_new"
-            label="Deploy Now"
-            class="launch-btn"
-            @click="openNetlifyDeploy"
-          />
-
-          <div class="launch-card q-mt-md">
-            <q-icon name="storage" size="20px" class="launch-icon-fork" />
-            <div>
-              <div class="launch-card-title">Deploy with Appwrite</div>
-              <div class="launch-card-sub">Self-sovereign open-source backend — no Supabase needed</div>
-            </div>
-          </div>
-          <q-btn
-            flat no-caps
-            icon="menu_book"
-            label="Appwrite Setup Guide"
-            class="launch-btn-flat"
-            @click="openAppwriteGuide"
+            @click="router.push('/launch')"
           />
 
           <div class="launch-card q-mt-md">
@@ -1060,6 +1035,13 @@
             class="cal-regen-btn"
             :loading="calRegening"
             @click="regenAllCalendar"
+          />
+          <q-btn
+            unelevated no-caps
+            icon="tune"
+            label="Configure Rules"
+            class="cal-open-btn"
+            @click="router.push('/calendar-rules')"
           />
           <q-btn
             unelevated no-caps
@@ -1201,6 +1183,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useTranslate as useI18n } from 'src/i18n';
 import { useAddressStore } from 'src/store/store';
 import { useRouter, useRoute } from 'vue-router';
 import { generateLocationEntries } from 'src/utils/calendar';
@@ -1216,27 +1199,28 @@ const store  = useAddressStore();
 const $q     = useQuasar();
 const router = useRouter();
 const route  = useRoute();
+const { t }  = useI18n();
 
 const tab = ref('members');
 const showHelp = ref(false);
 const genLoading = ref(false);
 const newLocName = ref('');
 
-const tabs = [
-  { key: 'welcome',  icon: 'storefront',     label: 'WELCOME' },
-  { key: 'infopage', icon: 'description',    label: 'INFO PAGE' },
-  { key: 'members',  icon: 'group',          label: 'MEMBERS' },
-  { key: 'announce', icon: 'campaign',       label: 'ANNOUNCE' },
-  { key: 'messages', icon: 'mark_email_read', label: 'MESSAGES' },
-  { key: 'audio',    icon: 'graphic_eq',     label: 'AUDIO' },
-  { key: 'schedule', icon: 'event',          label: 'SCHEDULE' },
-  { key: 'locations',icon: 'map',            label: 'LOCATIONS' },
-  { key: 'invites',  icon: 'vpn_key',        label: 'INVITES' },
-  { key: 'data',     icon: 'storage',        label: 'DATA' },
-  { key: 'launch',   icon: 'rocket_launch',  label: 'LAUNCH' },
-  { key: 'calendar', icon: 'calendar_month', label: 'CALENDAR' },
-  { key: 'oracle',   icon: 'auto_awesome',   label: 'ORACLE' },
-];
+const tabs = computed(() => [
+  { key: 'welcome',  icon: 'storefront',      label: t('admin.tabs.welcome') },
+  { key: 'infopage', icon: 'description',     label: t('admin.tabs.infoPage') },
+  { key: 'members',  icon: 'group',           label: t('admin.tabs.members') },
+  { key: 'announce', icon: 'campaign',        label: t('admin.tabs.announce') },
+  { key: 'messages', icon: 'mark_email_read', label: t('admin.tabs.messages') },
+  { key: 'audio',    icon: 'graphic_eq',      label: t('admin.tabs.audio') },
+  { key: 'schedule', icon: 'event',           label: t('admin.tabs.schedule') },
+  { key: 'locations',icon: 'map',             label: t('admin.tabs.locations') },
+  { key: 'invites',  icon: 'vpn_key',         label: t('admin.tabs.invites') },
+  { key: 'data',     icon: 'storage',         label: t('admin.tabs.data') },
+  { key: 'launch',   icon: 'rocket_launch',   label: t('admin.tabs.launch') },
+  { key: 'calendar', icon: 'calendar_month',  label: t('admin.tabs.calendar') },
+  { key: 'oracle',   icon: 'auto_awesome',    label: t('admin.tabs.oracle') },
+]);
 
 // ── Members ──────────────────────────────────────────────────────
 
@@ -2631,26 +2615,6 @@ async function probeAllDatabases() {
 
 // ── Launch ───────────────────────────────────────────────────────
 
-function openNetlifyDeploy() {
-  window.open(
-    'https://app.netlify.com/start/deploy?repository=https://github.com/biomassives/foodbank',
-    '_blank',
-  );
-}
-
-function openAppwriteGuide() {
-  window.open(
-    'https://github.com/biomassives/foodbank/blob/master/docs/appwrite-deployment.md',
-    '_blank',
-  );
-}
-
-function openVercelDeploy() {
-  window.open(
-    'https://vercel.com/new/clone?repository-url=https://github.com/biomassives/foodbank&env=VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY',
-    '_blank'
-  );
-}
 
 // ── Info Page ─────────────────────────────────────────────────────
 
@@ -2714,7 +2678,7 @@ watch(tab, (t) => {
 onMounted(async () => {
   // Honor ?tab= query from flyout shortcuts (case-insensitive)
   const qtab = String(route.query.tab || '').toLowerCase();
-  if (qtab && tabs.some(t => t.key === qtab)) tab.value = qtab;
+  if (qtab && tabs.value.some(t => t.key === qtab)) tab.value = qtab;
 
   loadWelcome();
   loadWeekSchedule();

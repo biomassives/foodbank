@@ -49,8 +49,45 @@ interface TransportResult {
   errors: number;
 }
 
+// ── Per-org email branding ────────────────────────────────────────────────────
+// Stored as `branding JSONB` on the organizations row.
+// Any key absent from the DB row merges with DEFAULT_BRANDING below.
 
+interface OrgBranding {
+  /** Publicly-hosted logo URL — must be reachable by email clients. */
+  logoUrl:     string;
+  logoWidth:   number;
+  logoHeight:  number;
+  /** Logo panel background — choose a tone that matches the logo's edge color. */
+  logoBg:      string;
+  /** Four hex colors for the Mondrian accent stripe (left → right). */
+  mondrian:    [string, string, string, string];
+  /** Primary accent: CTA button, invite-code border, heading highlight. */
+  accentColor: string;
+  /** Email body background. */
+  bodyBg:      string;
+  /** Deployment base URL — used in footer links and CTA button text. */
+  siteUrl:     string;
+  /** Short brand name shown in email footer, e.g. "Funky Pony Space". */
+  footerBrand: string;
+}
 
+const DEFAULT_BRANDING: OrgBranding = {
+  logoUrl:     'https://ward.funkypony.space/funlyponyspace_pogo.webp',
+  logoWidth:   220,
+  logoHeight:  110,
+  logoBg:      '#FFF9F2',
+  mondrian:    ['#E2725B', '#F9A602', '#4A5D66', '#2C2420'],
+  accentColor: '#FDD835',
+  bodyBg:      '#111111',
+  siteUrl:     'https://ward.funkypony.space',
+  footerBrand: 'Funky Pony Space',
+};
+
+function resolveBranding(raw: unknown): OrgBranding {
+  if (!raw || typeof raw !== 'object') return DEFAULT_BRANDING;
+  return { ...DEFAULT_BRANDING, ...(raw as Partial<OrgBranding>) };
+}
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,13 +122,14 @@ Deno.serve(async (req) => {
 
     // 3. Concurrent Data Fetching
     const [orgResult, recipients] = await Promise.all([
-      supabase.from('organizations').select('name, webhook_url, webhook_secret').eq('id', orgId).single(),
+      supabase.from('organizations').select('name, webhook_url, webhook_secret, branding').eq('id', orgId).single(),
       resolveRecipients(supabase, body)
     ]);
 
     const org = orgResult.data;
-    const orgName = org?.name || 'Your Pantry';
-    const message = renderMessage(type, orgName, body.data || {});
+    const orgName  = org?.name || 'Your Pantry';
+    const branding = resolveBranding(org?.branding);
+    const message  = renderMessage(type, orgName, body.data || {}, branding);
     const activeTransports = body.transports || ['email', 'site', 'webhook'];
 
     // 4. Parallel Fan-out
@@ -99,7 +137,7 @@ Deno.serve(async (req) => {
     const transportPromises: Promise<void>[] = [];
 
     if (activeTransports.includes('email') && MAILGUN_API_KEY) {
-      transportPromises.push(emailTransport(supabase, orgId, recipients, message).then(r => { results.email = r; }));
+      transportPromises.push(emailTransport(supabase, orgId, recipients, message, branding).then(r => { results.email = r; }));
     }
     if (activeTransports.includes('sms') && TWILIO_ACCOUNT_SID) {
       transportPromises.push(smsTransport(supabase, orgId, recipients, message).then(r => { results.sms = r; }));
@@ -147,7 +185,7 @@ async function handleSetupTest(body: MtsRequest) {
   // Email test path
   if (!body.recipientEmail) return jsonResponse({ error: 'recipientEmail required for email test' }, 400);
   try {
-    await sendMailgun(body.recipientEmail, message.subject, buildEmailHtml(testOrgName, message.heading, message.bodyHtml));
+    await sendMailgun(body.recipientEmail, message.subject, buildEmailHtml(testOrgName, message.heading, message.bodyHtml, DEFAULT_BRANDING));
     return jsonResponse({ ok: true, mailgun: { domain: MAILGUN_DOMAIN, from: FROM_EMAIL } });
   } catch (err) {
     return jsonResponse({ ok: false, error: err.message }, 502);
@@ -163,6 +201,7 @@ function renderMessage(
   type: MtsType,
   orgName: string,
   data: Record<string, unknown>,
+  branding: OrgBranding = DEFAULT_BRANDING,
 ): RenderedMessage {
   const taskDesc = String(data.taskDescription || 'Pickup task');
   const taskLoc = String(data.taskLocation || '');
@@ -322,8 +361,8 @@ function renderMessage(
     case 'driver-invite': {
       const recipientName = String(data.recipientName || 'there');
       const inviteCode    = String(data.inviteCode || '');
-      const inviteUrl     = String(data.inviteUrl || 'https://ward.funkypony.space/#/join');
-      const siteUrl       = String(data.siteUrl    || 'https://ward.funkypony.space');
+      const inviteUrl     = String(data.inviteUrl || `${branding.siteUrl}/#/join`);
+      const siteUrl       = String(data.siteUrl    || branding.siteUrl);
       const pName         = String(data.pantryName || orgName);
       return {
         type, orgName,
@@ -332,7 +371,7 @@ function renderMessage(
         bodyHtml: '',
         bodyText: `Hi ${recipientName}, you've been invited to join ${pName} at ${siteUrl}. Invite code: ${inviteCode}. Join at: ${inviteUrl}`,
         bodyJson: { type, orgName, recipientName, inviteCode, inviteUrl, ...data },
-        rawHtml: buildDriverInviteHtml(esc(recipientName), esc(pName), esc(inviteCode), esc(inviteUrl)),
+        rawHtml: buildDriverInviteHtml(esc(recipientName), esc(pName), esc(inviteCode), esc(inviteUrl), branding),
       };
     }
 
@@ -372,11 +411,12 @@ async function emailTransport(
   orgId: string,
   recipients: Recipient[],
   message: RenderedMessage,
+  branding: OrgBranding = DEFAULT_BRANDING,
 ): Promise<TransportResult> {
   let sent = 0, errors = 0;
   const emailRecipients = recipients.filter(r => r.email && r.email.includes('@'));
 
-  const html = message.rawHtml ?? buildEmailHtml(message.orgName || '', message.heading, message.bodyHtml);
+  const html = message.rawHtml ?? buildEmailHtml(message.orgName || '', message.heading, message.bodyHtml, branding);
 
   for (const r of emailRecipients) {
     try {
@@ -396,28 +436,27 @@ async function emailTransport(
   return { sent, errors };
 }
 
-// Hosted logo URL — served from the deployed site
-const LOGO_URL = 'https://ward.funkypony.space/funlyponyspace_pogo.webp';
-
-function buildEmailHtml(orgName: string, heading: string, bodyHtml: string): string {
+function buildEmailHtml(orgName: string, heading: string, bodyHtml: string, b: OrgBranding = DEFAULT_BRANDING): string {
+  const [c0, c1, c2, c3] = b.mondrian;
+  const siteHost = b.siteUrl.replace(/^https?:\/\//, '');
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#111;color:#e8e8e8;font-family:'Courier New',Courier,monospace;">
-<div style="max-width:520px;margin:0 auto;background:#111;">
-  <!-- Logo header — white panel so oval fade-to-white edges are clean -->
-  <div style="background:#FFF9F2;padding:24px 28px 18px;text-align:center;">
-    <img src="${LOGO_URL}" width="220" height="110" alt="Funky Pony Space" style="display:inline-block;max-width:100%;">
+<body style="margin:0;padding:0;background:${b.bodyBg};color:#e8e8e8;font-family:'Courier New',Courier,monospace;">
+<div style="max-width:520px;margin:0 auto;background:${b.bodyBg};">
+  <!-- Logo header — panel bg matches logo edge tone so oval fade looks clean -->
+  <div style="background:${b.logoBg};padding:24px 28px 18px;text-align:center;">
+    <img src="${b.logoUrl}" width="${b.logoWidth}" height="${b.logoHeight}" alt="${esc(b.footerBrand)}" style="display:inline-block;max-width:100%;">
     <div style="margin-top:10px;font-size:9px;letter-spacing:3px;color:#8a7060;font-weight:700;text-transform:uppercase;">${esc(orgName)}</div>
     <div style="margin-top:4px;font-size:11px;letter-spacing:4px;color:#2C2420;font-weight:900;text-transform:uppercase;">${esc(heading)}</div>
   </div>
   <!-- Mondrian accent stripe -->
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
-      <td style="width:25%;height:4px;background:#E2725B;"></td>
-      <td style="width:15%;height:4px;background:#F9A602;"></td>
-      <td style="width:35%;height:4px;background:#4A5D66;"></td>
-      <td style="height:4px;background:#2C2420;"></td>
+      <td style="width:25%;height:4px;background:${c0};"></td>
+      <td style="width:15%;height:4px;background:${c1};"></td>
+      <td style="width:35%;height:4px;background:${c2};"></td>
+      <td style="height:4px;background:${c3};"></td>
     </tr>
   </table>
   <!-- Body -->
@@ -426,7 +465,7 @@ function buildEmailHtml(orgName: string, heading: string, bodyHtml: string): str
   </div>
   <div style="margin:0 28px;height:1px;background:#222;"></div>
   <div style="padding:14px 28px 24px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">
-    ${esc(orgName)} &mdash; <span style="color:#4A5D66;">Funky Pony Space</span> &mdash; ward.funkypony.space
+    ${esc(orgName)} &mdash; <span style="color:${c2};">${esc(b.footerBrand)}</span> &mdash; ${siteHost}
   </div>
 </div>
 </body>
@@ -633,14 +672,20 @@ function defaultRolesForType(type: string): string[] {
 
 
 
-// ── Funky Pony driver-invite HTML email ─────────────────────────
+// ── Driver-invite HTML email ─────────────────────────────────────
+// Themed via OrgBranding — all hardcoded colors and URLs are replaced
+// with values from the org's `branding` JSONB column.
 
 function buildDriverInviteHtml(
   recipientName: string,
   pantryName: string,
   inviteCode: string,
   inviteUrl: string,
+  b: OrgBranding = DEFAULT_BRANDING,
 ): string {
+  const [c0, c1, c2] = b.mondrian;
+  const siteHost     = b.siteUrl.replace(/^https?:\/\//, '');
+  const brandLabel   = b.footerBrand.toUpperCase();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -654,35 +699,35 @@ function buildDriverInviteHtml(
   <!-- Mondrian header bar -->
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="display:block;">
     <tr>
-      <td style="width:15%;height:9px;background:#E2725B;"></td>
-      <td style="width:9%;height:9px;background:#FDD835;"></td>
-      <td style="width:26%;height:9px;background:#4A5D66;"></td>
+      <td style="width:15%;height:9px;background:${c0};"></td>
+      <td style="width:9%;height:9px;background:${b.accentColor};"></td>
+      <td style="width:26%;height:9px;background:${c2};"></td>
       <td style="width:10%;height:9px;background:#69F0AE;"></td>
       <td style="height:9px;background:#141414;"></td>
     </tr>
     <tr>
-      <td style="width:15%;height:3px;background:#FDD835;"></td>
+      <td style="width:15%;height:3px;background:${b.accentColor};"></td>
       <td style="width:9%;height:3px;background:#0a0a0a;"></td>
-      <td style="width:26%;height:3px;background:#E2725B;"></td>
-      <td style="width:10%;height:3px;background:#4A5D66;"></td>
+      <td style="width:26%;height:3px;background:${c0};"></td>
+      <td style="width:10%;height:3px;background:${c2};"></td>
       <td style="height:3px;background:#69F0AE;"></td>
     </tr>
   </table>
 
   <!-- Brand + title -->
   <div style="padding:28px 28px 0;">
-    <div style="font-size:9px;letter-spacing:5px;color:#FDD835;font-weight:800;text-transform:uppercase;margin-bottom:8px;">FUNKY PONY</div>
+    <div style="font-size:9px;letter-spacing:5px;color:${b.accentColor};font-weight:800;text-transform:uppercase;margin-bottom:8px;">${brandLabel}</div>
     <div style="font-size:23px;letter-spacing:2px;color:#e8e8e8;font-weight:900;line-height:1.15;text-transform:uppercase;">${pantryName}</div>
-    <div style="margin-top:10px;display:inline-block;padding:3px 10px;border:1px solid #4A5D66;font-size:9px;letter-spacing:3px;color:#4A5D66;font-weight:800;text-transform:uppercase;">DRIVER PORTAL ACCESS</div>
+    <div style="margin-top:10px;display:inline-block;padding:3px 10px;border:1px solid ${c2};font-size:9px;letter-spacing:3px;color:${c2};font-weight:800;text-transform:uppercase;">DRIVER PORTAL ACCESS</div>
   </div>
 
   <!-- Rule -->
-  <div style="margin:22px 28px 0;height:2px;background:linear-gradient(to right,#FDD835,#333,#0a0a0a);"></div>
+  <div style="margin:22px 28px 0;height:2px;background:linear-gradient(to right,${b.accentColor},#333,#0a0a0a);"></div>
 
   <!-- Body copy -->
   <div style="padding:18px 28px 0;font-size:14px;line-height:1.75;color:#e8e8e8;">
     <p style="margin:0 0 14px;">Hi ${recipientName},</p>
-    <p style="margin:0 0 14px;">You're invited to join the <strong style="color:#FDD835;">${pantryName}</strong> coordination platform — a lightweight web tool for managing pickups, community needs, and pantry operations. No app install, works on any device.</p>
+    <p style="margin:0 0 14px;">You're invited to join the <strong style="color:${b.accentColor};">${pantryName}</strong> coordination platform — a lightweight web tool for managing pickups, community needs, and pantry operations. No app install, works on any device.</p>
   </div>
 
   <!-- Rule -->
@@ -693,7 +738,7 @@ function buildDriverInviteHtml(
     <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;text-transform:uppercase;margin-bottom:12px;">WHAT IT PROVIDES</div>
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:${b.accentColor};font-weight:900;line-height:1;">&#183;</td>
         <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Task Queue</strong> &mdash; claim pickups, mark in-transit, log delivery</td>
       </tr>
       <tr>
@@ -705,11 +750,11 @@ function buildDriverInviteHtml(
         <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Notifications</strong> &mdash; broadcast alerts for available pickups and pantry announcements</td>
       </tr>
       <tr>
-        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#E2725B;font-weight:900;line-height:1;">&#183;</td>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:${c0};font-weight:900;line-height:1;">&#183;</td>
         <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Availability</strong> &mdash; set your typical weekly schedule from your profile so the team routes tasks your way</td>
       </tr>
       <tr>
-        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:#FDD835;font-weight:900;line-height:1;">&#183;</td>
+        <td style="width:14px;vertical-align:top;padding:5px 0;font-size:14px;color:${b.accentColor};font-weight:900;line-height:1;">&#183;</td>
         <td style="padding:5px 0 5px 4px;font-size:13px;color:#ccc;line-height:1.45;"><strong style="color:#e8e8e8;">Community Board</strong> &mdash; needs and offerings across the neighborhood</td>
       </tr>
     </table>
@@ -730,12 +775,12 @@ function buildDriverInviteHtml(
   <!-- Invite code -->
   <div style="padding:0 28px;">
     <div style="font-size:8px;letter-spacing:4px;color:#666;font-weight:800;text-transform:uppercase;margin-bottom:10px;">YOUR INVITE CODE</div>
-    <div style="background:#141414;border:2px solid #FDD835;padding:14px 18px;letter-spacing:6px;font-size:22px;font-weight:900;color:#FDD835;text-align:center;">${inviteCode}</div>
+    <div style="background:#141414;border:2px solid ${b.accentColor};padding:14px 18px;letter-spacing:6px;font-size:22px;font-weight:900;color:${b.accentColor};text-align:center;">${inviteCode}</div>
   </div>
 
   <!-- CTA -->
   <div style="padding:14px 28px 0;">
-    <a href="${inviteUrl}" style="display:block;background:#FDD835;color:#000000;text-align:center;padding:15px 24px;font-size:12px;font-weight:900;letter-spacing:3px;text-decoration:none;text-transform:uppercase;font-family:'Courier New',monospace;">JOIN AT WARD.FUNKYPONY.SPACE &rarr;</a>
+    <a href="${inviteUrl}" style="display:block;background:${b.accentColor};color:#000000;text-align:center;padding:15px 24px;font-size:12px;font-weight:900;letter-spacing:3px;text-decoration:none;text-transform:uppercase;font-family:'Courier New',monospace;">JOIN AT ${siteHost.toUpperCase()} &rarr;</a>
   </div>
   <div style="padding:8px 28px 0;font-size:11px;color:#555;line-height:1.6;">
     Enter the code above, add your email, and follow the sign-in link. You'll land directly in the pantry.
@@ -746,7 +791,7 @@ function buildDriverInviteHtml(
 
   <!-- Footer -->
   <div style="padding:14px 28px 22px;font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;">
-    FUNKY PONY &mdash; <span style="color:#4A5D66;">COMMUNITY TOOLING</span> &mdash; ward.funkypony.space
+    ${brandLabel} &mdash; <span style="color:${c2};">COMMUNITY TOOLING</span> &mdash; ${siteHost}
   </div>
 
   <!-- Mondrian footer bar -->
@@ -754,9 +799,9 @@ function buildDriverInviteHtml(
     <tr>
       <td style="height:4px;background:#141414;"></td>
       <td style="width:10%;height:4px;background:#69F0AE;"></td>
-      <td style="width:26%;height:4px;background:#FDD835;"></td>
-      <td style="width:9%;height:4px;background:#E2725B;"></td>
-      <td style="width:15%;height:4px;background:#4A5D66;"></td>
+      <td style="width:26%;height:4px;background:${b.accentColor};"></td>
+      <td style="width:9%;height:4px;background:${c0};"></td>
+      <td style="width:15%;height:4px;background:${c2};"></td>
     </tr>
   </table>
 

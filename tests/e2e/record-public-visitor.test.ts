@@ -37,7 +37,7 @@ describe('Recording — public visitor tour', () => {
   });
 
   it('homepage — unauthenticated community landing', async () => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle0', timeout: 20000 });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
     await beat(2000);
     await page.evaluate(() => window.scrollBy({ top: 300, behavior: 'smooth' }));
     await beat(1500);

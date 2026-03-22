@@ -171,6 +171,7 @@
 import { ref, nextTick, onMounted } from 'vue';
 import { supabase } from 'src/boot/supabase';
 import { useAddressStore } from 'src/store/store';
+import { useI18n } from 'src/i18n';
 import {
   addOrUpdateNeedItem,
   getAllNeedItems,

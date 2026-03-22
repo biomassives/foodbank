@@ -3,11 +3,11 @@
 
     <!-- Header -->
     <div class="notif-header">
-      <span class="notif-title">NOTIFICATIONS</span>
+      <span class="notif-title">{{ t.notifications.title }}</span>
       <q-btn
         v-if="notifStore.unreadCount > 0"
         flat dense no-caps
-        label="Mark all read"
+        :label="t.notifications.markAllRead"
         class="notif-mark-all"
         @click="notifStore.markAllRead()"
       />
@@ -28,7 +28,7 @@
     <!-- Empty state -->
     <div v-else-if="notifStore.sortedMessages.length === 0" class="notif-empty">
       <q-icon name="notifications_none" size="26px" />
-      <div>No notifications</div>
+      <div>{{ t.notifications.empty }}</div>
     </div>
 
     <!-- Message list -->
@@ -59,11 +59,13 @@
 <script setup lang="ts">
 import { useNotificationStore } from 'src/store/notifications';
 import { useAddressStore } from 'src/store/store';
+import { useI18n } from 'src/i18n';
 
 defineEmits(['close']);
 
 const notifStore = useNotificationStore();
 const store = useAddressStore();
+const { t } = useI18n();
 
 function typeIcon(type: string): string {
   const map: Record<string, string> = {
@@ -84,11 +86,12 @@ function typeIcon(type: string): string {
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  const p = t.value.profile;
+  if (mins < 1) return p.timeJustNow;
+  if (mins < 60) return p.timeMinAgo.replace('{n}', String(mins));
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return p.timeHoursAgo.replace('{n}', String(hours));
+  return p.timeDaysAgo.replace('{n}', String(Math.floor(hours / 24)));
 }
 </script>
 

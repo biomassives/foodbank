@@ -104,6 +104,14 @@ This means:
 
 ---
 
+### Language Support
+
+The platform is available in **English**, **Spanish (Español)**, and **Kiswahili** — all three languages cover every user-facing string: navigation labels, form fields, validation messages, notifications, and the full sign-in / join flow.
+
+Volunteers and community members can switch language in Settings at any time. The choice is remembered across sessions. All three language packs are maintained in parallel with the English source — no string is left untranslated.
+
+---
+
 ### Data & Privacy
 
 - No personal data is sold or shared with third parties

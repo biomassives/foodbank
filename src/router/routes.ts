@@ -19,14 +19,26 @@ const routes: RouteRecordRaw[] = [
       { path: 'tests', component: () => import('pages/TestResultsPage.vue'), meta: { title: 'Tests' } },
       { path: 'wizard', component: () => import('pages/WizardPage.vue'), meta: { title: 'Setup Wizard' } },
       { path: 'calendar', component: () => import('pages/CalendarPage.vue'), meta: { title: 'Calendar' } },
+      {
+        path: 'calendar-rules',
+        component: () => import('pages/CalendarRulePage.vue'),
+        meta: { title: 'Calendar Rules' },
+        beforeEnter: (to, from, next) => {
+          const store = useAddressStore();
+          if (store.localMode || store.isAdmin || store.canEdit) next();
+          else next('/login');
+        },
+      },
       { path: 'terms', component: () => import('pages/TermsPage.vue'), meta: { title: 'Terms & Conditions' } },
       { path: 'launch', component: () => import('pages/LaunchPage.vue'), meta: { title: 'Run Your Own' } },
       { path: 'info', component: () => import('pages/OpsPage.vue'), meta: { title: 'Pantry Info' } },
       { path: 'docs', component: () => import('pages/DocsPage.vue'), meta: { title: 'Docs' } },
+      { path: 'stories', component: () => import('pages/StoriesPage.vue'), meta: { title: 'User Stories' } },
       { path: 'mcp-docs', component: () => import('pages/McpDocsPage.vue'), meta: { title: 'MCP & Chat Ops' } },
       { path: 'recordings', component: () => import('pages/RecordingsPage.vue'), meta: { title: 'Test Recordings' } },
       { path: 'logistics', component: () => import('pages/LogisticsPage.vue'), meta: { title: 'Logistics' } },
       { path: 'audio', component: () => import('pages/AudioSequenceBuilder.vue'), meta: { title: 'Audio Sequences' } },
+      { path: 'cultural-calendar', component: () => import('pages/CulturalCalendarPage.vue'), meta: { title: 'Summer Events' } },
       {
         path: 'setup',
         component: () => import('pages/SetupPage.vue'),
@@ -42,6 +54,17 @@ const routes: RouteRecordRaw[] = [
       title: 'Contact Management System - Vue',
     },
   },
+  // Maps — /maps stacks children as /maps/mountain, /maps/southwest, /maps/regional
+  // Always use absolute paths (e.g. to="/maps/southwest") to avoid relative-link stacking issues
+  {
+    path: '/maps',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/MapsPage.vue'), meta: { title: 'Regional Maps' } },
+      { path: ':region', component: () => import('pages/RegionalMapPage.vue'), meta: { title: 'Map' } },
+    ],
+  },
+
   {
     path: '/admin',
     component: () => import('layouts/MainLayout.vue'),

@@ -6,8 +6,8 @@
       <div class="logi-header-left">
         <q-icon name="hub" size="18px" class="logi-header-icon" />
         <div>
-          <div class="logi-title">LOGISTICS</div>
-          <div class="logi-sub">Pipeline · Hubs · Status lanes</div>
+          <div class="logi-title">{{ t('logistics.title') }}</div>
+          <div class="logi-sub">{{ t('logistics.sub') }}</div>
         </div>
       </div>
       <!-- Role filter chips -->
@@ -33,7 +33,7 @@
 
         <!-- Week strip -->
         <div class="logi-week-strip">
-          <div class="week-strip-label">THIS WEEK</div>
+          <div class="week-strip-label">{{ t('logistics.thisWeek') }}</div>
           <div class="week-strip-days">
             <div
               v-for="(day, di) in currentWeekDays"
@@ -63,7 +63,7 @@
 
         <!-- Pipeline counts -->
         <div class="logi-pipeline">
-          <div class="pipeline-label">PIPELINE</div>
+          <div class="pipeline-label">{{ t('logistics.pipeline') }}</div>
           <div
             v-for="s in STATUSES"
             :key="s.key"
@@ -83,7 +83,7 @@
         <!-- Hub Diagram section -->
         <section class="logi-section logi-diagram-section">
           <div class="logi-section-hd">
-            <span class="logi-section-title">HUB DIAGRAM</span>
+            <span class="logi-section-title">{{ t('logistics.hubDiagram') }}</span>
             <span class="logi-section-sub">
               {{ store.getLocations.length }} hub{{ store.getLocations.length !== 1 ? 's' : '' }}
               · {{ filteredQueue.length }} item{{ filteredQueue.length !== 1 ? 's' : '' }}
@@ -98,8 +98,8 @@
         <!-- 3-Week Schedule section -->
         <section class="logi-section logi-schedule-section">
           <div class="logi-section-hd">
-            <span class="logi-section-title">SCHEDULE</span>
-            <span class="logi-section-sub">Current + 2 weeks ahead</span>
+            <span class="logi-section-title">{{ t('logistics.schedule') }}</span>
+            <span class="logi-section-sub">{{ t('logistics.scheduleAhead') }}</span>
           </div>
 
           <div
@@ -182,16 +182,16 @@
         <!-- Active Now section -->
         <section class="logi-section logi-active-section">
           <div class="logi-section-hd">
-            <span class="logi-section-title">ACTIVE NOW</span>
-            <span class="logi-section-sub">In transit · claimed · pending</span>
+            <span class="logi-section-title">{{ t('logistics.activeNow') }}</span>
+            <span class="logi-section-sub">{{ t('logistics.activeSub') }}</span>
             <span class="logi-section-count">{{ activeItems.length }}</span>
           </div>
 
           <!-- Empty state -->
           <div v-if="activeItems.length === 0" class="logi-empty">
             <q-icon name="check_circle_outline" size="32px" class="logi-empty-icon" />
-            <div class="logi-empty-text">ALL CLEAR</div>
-            <div class="logi-empty-sub">No active pickups right now</div>
+            <div class="logi-empty-text">{{ t('logistics.allClear') }}</div>
+            <div class="logi-empty-sub">{{ t('logistics.allClearSub') }}</div>
           </div>
 
           <!-- Groups: in_transit → claimed → pending -->
@@ -241,7 +241,7 @@
                     <div v-if="expandedId === item.id" class="logi-item-actions" @click.stop>
                       <q-btn
                         flat no-caps dense
-                        label="EDIT"
+                        :label="t('logistics.edit')"
                         icon="edit"
                         class="logi-act-btn logi-act-btn--edit"
                         @click="openEdit(item)"
@@ -249,7 +249,7 @@
                       <q-btn
                         v-if="item.queueStatus === 'pending'"
                         flat no-caps dense
-                        label="CLAIM"
+                        :label="t('logistics.claim')"
                         icon="pan_tool"
                         class="logi-act-btn logi-act-btn--claim"
                         @click="claimItem(item)"
@@ -257,7 +257,7 @@
                       <q-btn
                         v-if="item.queueStatus === 'claimed'"
                         flat no-caps dense
-                        label="MARK IN TRANSIT"
+                        :label="t('logistics.markInTransit')"
                         icon="local_shipping"
                         class="logi-act-btn logi-act-btn--transit"
                         @click="transitItem(item)"
@@ -265,7 +265,7 @@
                       <q-btn
                         v-if="item.queueStatus === 'claimed'"
                         flat no-caps dense
-                        label="UNCLAIM"
+                        :label="t('logistics.unclaim')"
                         icon="undo"
                         class="logi-act-btn logi-act-btn--unclaim"
                         @click="unclaimItem(item)"
@@ -273,7 +273,7 @@
                       <q-btn
                         v-if="item.queueStatus === 'in_transit'"
                         flat no-caps dense
-                        label="MARK DELIVERED"
+                        :label="t('logistics.markDelivered')"
                         icon="done_all"
                         class="logi-act-btn logi-act-btn--deliver"
                         @click="deliverItem(item)"
@@ -295,7 +295,7 @@
           <div v-if="deliveredToday.length" class="logi-delivered-strip">
             <div class="logi-delivered-hd">
               <q-icon name="verified" size="12px" class="logi-delivered-icon" />
-              DELIVERED TODAY · {{ deliveredToday.length }}
+              {{ t('logistics.deliveredToday', { n: deliveredToday.length }) }}
             </div>
             <div v-for="item in deliveredToday" :key="item.id" class="logi-delivered-row">
               <div class="dropoff-dot" />
@@ -314,13 +314,13 @@
     <q-dialog v-model="editDialog" backdrop-filter="blur(2px)">
       <q-card class="logi-modal-card">
         <q-card-section class="logi-modal-hd">
-          <div class="logi-modal-title">{{ editItem ? 'EDIT ENTRY' : 'ADD ENTRY' }}</div>
+          <div class="logi-modal-title">{{ editItem ? t('logistics.editItem') : t('logistics.addItem') }}</div>
           <q-btn flat round dense icon="close" class="logi-modal-close" @click="editDialog = false" />
         </q-card-section>
 
         <q-card-section class="logi-modal-body">
           <div class="logi-modal-field">
-            <label class="logi-modal-label">DESCRIPTION</label>
+            <label class="logi-modal-label">{{ t('logistics.description') }}</label>
             <q-input
               v-model="editForm.description"
               outlined dense
@@ -331,7 +331,7 @@
           </div>
 
           <div class="logi-modal-field">
-            <label class="logi-modal-label">LOCATION HUB</label>
+            <label class="logi-modal-label">{{ t('logistics.hub') }}</label>
             <q-select
               v-model="editForm.location"
               outlined dense
@@ -345,7 +345,7 @@
 
           <div class="logi-modal-row">
             <div class="logi-modal-field logi-modal-field--half">
-              <label class="logi-modal-label">DATE</label>
+              <label class="logi-modal-label">{{ t('logistics.date') }}</label>
               <q-input
                 v-model="editForm.calendarDate"
                 type="date"
@@ -354,7 +354,7 @@
               />
             </div>
             <div class="logi-modal-field logi-modal-field--half">
-              <label class="logi-modal-label">STATUS</label>
+              <label class="logi-modal-label">{{ t('logistics.status') }}</label>
               <q-select
                 v-model="editForm.queueStatus"
                 outlined dense
@@ -366,7 +366,7 @@
           </div>
 
           <div class="logi-modal-field">
-            <label class="logi-modal-label">CLAIMED BY</label>
+            <label class="logi-modal-label">{{ t('logistics.claimedBy') }}</label>
             <q-input
               v-model="editForm.claimedBy"
               outlined dense
@@ -377,15 +377,15 @@
 
           <div class="logi-modal-notify">
             <q-toggle v-model="editNotify" color="positive" dense />
-            <span class="logi-modal-notify-label">Notify group via MTS</span>
+            <span class="logi-modal-notify-label">{{ t('logistics.notifyGroup') }}</span>
           </div>
         </q-card-section>
 
         <q-card-actions class="logi-modal-actions">
-          <q-btn flat no-caps label="Cancel" class="logi-modal-cancel" @click="editDialog = false" />
+          <q-btn flat no-caps :label="t('actions.cancel')" class="logi-modal-cancel" @click="editDialog = false" />
           <q-btn
             unelevated no-caps
-            :label="editSaving ? 'SAVING…' : (editItem ? 'SAVE CHANGES' : 'ADD ENTRY')"
+            :label="editSaving ? t('logistics.saving') : (editItem ? t('logistics.saveChanges') : t('logistics.addItem'))"
             :loading="editSaving"
             :disable="!editForm.description.trim()"
             class="logi-modal-save"
@@ -400,6 +400,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue';
+import { useTranslate as useI18n } from 'src/i18n';
 import { useAddressStore } from 'src/store/store';
 import { useQuasar } from 'quasar';
 import { useMts } from 'src/composables/useMts';
@@ -410,29 +411,29 @@ import type { Entry, Location, QueueStatus } from 'src/models';
 const store = useAddressStore();
 const $q    = useQuasar();
 const mts   = useMts();
+const { t, tm } = useI18n();
 
 // ── Constants ─────────────────────────────────────────────────────
 
-const DAY_ABBR = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const DAY_ABBR = computed(() => tm('days.abbr') as string[]);
 
 const DAY_OF_WEEK_MAP: Record<string, number> = {
   MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 0,
 };
 
-const STATUSES = [
-  { key: 'pending',    label: 'PENDING' },
-  { key: 'claimed',   label: 'CLAIMED' },
-  { key: 'in_transit',label: 'IN TRANSIT' },
-  { key: 'delivered', label: 'DELIVERED' },
-  { key: 'stocked',   label: 'STOCKED' },
-] as const;
+const STATUSES = computed(() => [
+  { key: 'pending',    label: t('queue.status.pending') },
+  { key: 'claimed',    label: t('queue.status.claimed') },
+  { key: 'in_transit', label: t('queue.status.inTransit') },
+  { key: 'delivered',  label: t('queue.status.delivered') },
+  { key: 'stocked',    label: t('queue.status.stocked') },
+]);
 
-
-const ROLE_FILTERS = [
-  { value: 'all',     label: 'ALL',     icon: 'apps' },
-  { value: 'drivers', label: 'DRIVERS', icon: 'local_shipping' },
-  { value: 'stock',   label: 'STOCK',   icon: 'inventory_2' },
-];
+const ROLE_FILTERS = computed(() => [
+  { value: 'all',     label: t('queue.filters.all'),     icon: 'apps' },
+  { value: 'drivers', label: t('queue.filters.drivers'), icon: 'local_shipping' },
+  { value: 'stock',   label: t('queue.filters.stock'),   icon: 'inventory_2' },
+]);
 
 // ── Reactive state ────────────────────────────────────────────────
 
@@ -466,9 +467,9 @@ function weekRangeLabel(week: Date[]): string {
 }
 
 function weekTitle(wi: number): string {
-  if (wi === 0) return 'THIS WEEK';
-  if (wi === 1) return 'NEXT WEEK';
-  return `WEEK ${wi + 1}`;
+  if (wi === 0) return t('logistics.thisWeek');
+  if (wi === 1) return t('logistics.nextWeek');
+  return t('logistics.weekN', { n: wi + 1 });
 }
 
 // ── Edit modal ────────────────────────────────────────────────────
@@ -606,9 +607,9 @@ const activeItems = computed<Entry[]>(() =>
 );
 
 const activeGroups = computed(() => [
-  { status: 'in_transit', label: 'IN TRANSIT', items: activeItems.value.filter(e => e.queueStatus === 'in_transit') },
-  { status: 'claimed',    label: 'CLAIMED',    items: activeItems.value.filter(e => e.queueStatus === 'claimed') },
-  { status: 'pending',    label: 'PENDING',    items: activeItems.value.filter(e => !e.queueStatus || e.queueStatus === 'pending') },
+  { status: 'in_transit', label: t('queue.status.inTransit').toUpperCase(), items: activeItems.value.filter(e => e.queueStatus === 'in_transit') },
+  { status: 'claimed',    label: t('queue.status.claimed').toUpperCase(),   items: activeItems.value.filter(e => e.queueStatus === 'claimed') },
+  { status: 'pending',    label: t('queue.status.pending').toUpperCase(),   items: activeItems.value.filter(e => !e.queueStatus || e.queueStatus === 'pending') },
 ]);
 
 // ── Delivered today ───────────────────────────────────────────────
@@ -625,8 +626,11 @@ const deliveredToday = computed<Entry[]>(() => {
 
 function statusLabel(s: string): string {
   const map: Record<string, string> = {
-    pending: 'PENDING', claimed: 'CLAIMED', in_transit: 'TRANSIT',
-    delivered: 'DONE', stocked: 'STOCKED',
+    pending:    t('queue.status.pending'),
+    claimed:    t('queue.status.claimed'),
+    in_transit: t('queue.status.inTransit'),
+    delivered:  t('queue.status.delivered'),
+    stocked:    t('queue.status.stocked'),
   };
   return map[s] ?? s.toUpperCase();
 }

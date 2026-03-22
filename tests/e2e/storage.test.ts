@@ -107,7 +107,7 @@ const hasConfig = !!(SUPABASE_URL && ANON_KEY);
 describe('Storage — app-level integration (no credentials required)', () => {
   it('/profile page loads without storage errors', async () => {
     await page.goto(`${process.env.BASE_URL || 'http://localhost:9005'}/profile`, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'load',
       timeout: 20000,
     });
     // Page should render something — even the unauthenticated state
@@ -123,7 +123,7 @@ describe('Storage — app-level integration (no credentials required)', () => {
       }
     });
     await page.goto(`${process.env.BASE_URL || 'http://localhost:9005'}/`, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'load',
       timeout: 20000,
     });
     await new Promise(r => setTimeout(r, 500));

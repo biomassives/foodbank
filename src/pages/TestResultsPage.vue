@@ -21,17 +21,155 @@
 
       <!-- TDD intro banner -->
       <div class="tr-intro">
-        <div class="tr-intro-title">TEST-DRIVEN DEVELOPMENT</div>
-        <div class="tr-intro-body">
-          Every feature starts with a test. We write the contract first, then
-          build the implementation. This page is the living proof — a
-          transparent window into the health of every module, every sprint,
-          every commit.
+        <div class="tr-intro-inner">
+          <div class="tr-intro-text">
+            <div class="tr-intro-title">TEST-DRIVEN DEVELOPMENT</div>
+            <div class="tr-intro-body">
+              FoodBank is free, open-source pantry coordination software licensed
+              under GPL-3.0. Every module — from queue management and real-time
+              pickup tracking to multi-language support and email routing — is
+              verified by an automated test before it ships.
+              The <strong>{{ data.numTotalTests }} tests</strong> across
+              <strong>{{ data.numTotalTestSuites }} suites</strong> on this page
+              cover core inventory &amp; queue flows (Sprint 1), the Message
+              Transport System for email and SMS fan-out (Sprint 2), calendar
+              scheduling and driver logistics (Sprint 3), and unit checks across
+              English, Spanish, and Kiswahili language packs.
+              End-to-end browser tests — which require a running server — run
+              separately via <code class="tr-intro-code">npm run test:e2e</code>
+              and are not included here.
+            </div>
+            <div class="tr-intro-cta">
+              This project is GPL-3.0 and built for community deployment. Fork it,
+              configure it for your region, run the tests, and ship it — the suite
+              is the safety net that keeps the pantry door open.
+            </div>
+          </div>
+          <a
+            href="https://www.gnu.org/licenses/gpl-3.0.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="tr-intro-mascot"
+            title="GPL-3.0 — Free Software. Funky Pony."
+          >
+            <GnuPonyIcon :size="88" :stars="true" />
+            <span class="tr-intro-mascot-label">GPL-3.0</span>
+          </a>
         </div>
-        <div class="tr-intro-cta">
-          We love this process and we're open to iteration. New themes,
-          regional variants, community editions, and your contributions
-          are all welcome. Fork it, test it, ship it.
+      </div>
+
+      <!-- Explainer accordion -->
+      <div class="tr-explainer" :class="{ 'tr-explainer--open': explainerOpen }">
+        <button class="tr-explainer-toggle" @click="explainerOpen = !explainerOpen" :aria-expanded="explainerOpen">
+          <q-icon name="help_outline" size="15px" class="tr-explainer-icon" />
+          <span>WHAT ARE TESTS &amp; WHY DO THEY MATTER?</span>
+          <q-icon :name="explainerOpen ? 'expand_less' : 'expand_more'" size="16px" class="tr-explainer-chevron" />
+        </button>
+
+        <div v-if="explainerOpen" class="tr-explainer-body">
+
+          <div class="tr-ex-section">
+            <div class="tr-ex-heading">What is a test?</div>
+            <p class="tr-ex-text">
+              A test is a small piece of code that asks a specific question of the app —
+              <em>"does this function return the right answer?"</em> or
+              <em>"does this page load without crashing?"</em> — and fails loudly if the
+              answer changes unexpectedly. Think of it like a checklist that runs itself
+              every time someone changes the codebase.
+            </p>
+          </div>
+
+          <div class="tr-ex-section">
+            <div class="tr-ex-heading">Why bother writing them?</div>
+            <p class="tr-ex-text">
+              Without tests, every change is a gamble. A fix in one place can silently
+              break something three files away, and you won't know until a volunteer
+              calls to say pickups aren't showing up. Tests turn that invisible risk
+              into an immediate red flag — caught in seconds on a developer's laptop,
+              not discovered days later by the people who depend on the pantry.
+            </p>
+            <p class="tr-ex-text">
+              They also act as living documentation. A well-named test tells the next
+              developer (or your future self) exactly what the code is <em>supposed</em>
+              to do, which lowers the barrier to contribution enormously.
+            </p>
+          </div>
+
+          <div class="tr-ex-section">
+            <div class="tr-ex-heading">Our approach: test-first (TDD)</div>
+            <p class="tr-ex-text">
+              We write the test <em>before</em> the feature. That forces us to define
+              the contract — what inputs, what outputs, what edge cases — before a
+              single line of implementation exists. The cycle is: write a failing test
+              (red), write the minimum code to pass it (green), then clean it up
+              (refactor). Every feature on this page started as a red test.
+            </p>
+          </div>
+
+          <div class="tr-ex-section">
+            <div class="tr-ex-heading">What we test in this project</div>
+            <div class="tr-ex-grid">
+              <div class="tr-ex-card">
+                <div class="tr-ex-card-label">SPRINT 1 — CORE OPERATIONS</div>
+                <div class="tr-ex-card-desc">
+                  Inventory listing, item claiming, queue status transitions,
+                  entry form validation, pantry creation, multi-user sharing,
+                  Supabase RLS config, real-time subscriptions, reconnect logic,
+                  and pickup notification triggers.
+                </div>
+              </div>
+              <div class="tr-ex-card">
+                <div class="tr-ex-card-label">SPRINT 2 — MESSAGE TRANSPORT</div>
+                <div class="tr-ex-card-desc">
+                  The MTS (Message Transport System) edge function: recipient
+                  fan-out, transport selection (email, SMS, site, webhook),
+                  role-based routing, daily-digest type, and deduplication.
+                </div>
+              </div>
+              <div class="tr-ex-card">
+                <div class="tr-ex-card-label">SPRINT 3 — CALENDAR &amp; LOGISTICS</div>
+                <div class="tr-ex-card-desc">
+                  Calendar rule engine (recurrence, exceptions, conflict detection),
+                  date math utilities, driver location sync and proximity checks,
+                  and digest scheduling cadence with opt-out handling.
+                </div>
+              </div>
+              <div class="tr-ex-card">
+                <div class="tr-ex-card-label">UNIT TESTS — HELPERS &amp; i18n</div>
+                <div class="tr-ex-card-desc">
+                  Isolated checks on utility functions: unique ID generation,
+                  type guards, validation helpers, and full i18n key parity
+                  across all three language packs (English, Spanish, Kiswahili).
+                </div>
+              </div>
+              <div class="tr-ex-card">
+                <div class="tr-ex-card-label">E2E — BROWSER AUTOMATION</div>
+                <div class="tr-ex-card-desc">
+                  Puppeteer tests that run a real browser: auth flows, admin
+                  panel tabs, MTS/Mailgun webhook events, the deployment wizard
+                  (including mocked Supabase Management API), and deep-link
+                  routing verification across all platforms.
+                </div>
+              </div>
+              <div class="tr-ex-card">
+                <div class="tr-ex-card-label">WHY PUBLIC?</div>
+                <div class="tr-ex-card-desc">
+                  Transparency and accountability. Any contributor, volunteer
+                  coordinator, or curious developer can see the exact health of
+                  every module before trusting it with community data.
+                  GPL-3.0 means you can fork and verify everything.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tr-ex-note">
+            This project is GPL-licensed and open to forks, regional variants, and
+            contributions. Good test coverage is how we keep the door open — a new
+            contributor can change things confidently knowing the suite will catch
+            regressions before they reach production.
+          </div>
+
         </div>
       </div>
 
@@ -114,7 +252,10 @@
 
       <!-- Suite groups -->
       <template v-for="group in groups" :key="group.label">
-        <div class="tr-group-label">{{ group.label }}</div>
+        <div class="tr-group-header">
+          <div class="tr-group-label">{{ group.label }}</div>
+          <div v-if="group.subtitle" class="tr-group-subtitle">{{ group.subtitle }}</div>
+        </div>
 
         <div
           v-for="suite in group.suites"
@@ -129,7 +270,10 @@
               class="tr-suite-chevron"
             />
             <span class="tr-suite-status" :class="suite.status === 'passed' ? 'tr-dot--pass' : 'tr-dot--fail'" />
-            <span class="tr-suite-name">{{ suite.shortName }}</span>
+            <div class="tr-suite-meta">
+              <span class="tr-suite-name">{{ suite.shortName }}</span>
+              <span v-if="suiteDesc(suite.name)" class="tr-suite-desc">{{ suiteDesc(suite.name) }}</span>
+            </div>
             <span class="tr-suite-count">{{ suite.assertionResults.length }} tests</span>
             <span class="tr-suite-time">{{ suite.duration }}ms</span>
           </div>
@@ -160,6 +304,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useTheme } from 'src/composables/useTheme';
+import GnuPonyIcon from 'src/components/GnuPonyIcon.vue';
 
 interface AssertionResult {
   title: string;
@@ -195,6 +340,7 @@ const { isDark } = useTheme();
 const loading = ref(true);
 const data = ref<TestReport | null>(null);
 const expanded = ref<Record<string, boolean>>({});
+const explainerOpen = ref(false);
 
 // Lotus SVG colors — adapt to theme
 const lotusStroke = computed(() => isDark.value === 'dark' ? 'rgba(253,216,53,0.35)' : 'rgba(46,125,50,0.3)');
@@ -241,16 +387,65 @@ const runTime = computed(() => {
   return d.toLocaleString();
 });
 
+// ── Per-suite one-liner descriptions ──────────────────────────────
+const SUITE_DESCRIPTIONS: Record<string, string> = {
+  'sprint1/listing.test.ts':              'Inventory listing — create, read, and filter items',
+  'sprint1/claim.test.ts':                'Item claiming — hold, confirm, and cancel flows',
+  'sprint1/queue-status.test.ts':         'Queue position and status transitions across the full lifecycle',
+  'sprint1/entry-forms.test.ts':          'Entry form validation rules and submission behaviour',
+  'sprint1/pantry-creation.test.ts':      'New pantry setup — org creation and initial admin provisioning',
+  'sprint1/shared-pantry.test.ts':        'Multi-user pantry sharing and role-based data isolation',
+  'sprint1/supabase-config.test.ts':      'Supabase environment config and RLS policy expectations',
+  'sprint1/realtime.test.ts':             'Real-time channel subscriptions and live update propagation',
+  'sprint1/realtime-reconnect.test.ts':   'WebSocket reconnect logic — backoff, re-subscribe, deduplication',
+  'sprint1/pickup-notifications.test.ts': 'Pickup slot notification delivery triggers and targeting',
+  'sprint2/mts-routing.test.ts':          'MTS edge function — fan-out, transport selection, role routing, dedup',
+  'sprint3/calendar-rules.test.ts':       'Calendar rule engine — recurrence patterns, exceptions, conflict detection',
+  'sprint3/calendar-helpers.test.ts':     'Calendar utilities — date arithmetic, slot generation, timezone handling',
+  'sprint3/location-sync.test.ts':        'Driver location sync — coordinate updates and proximity checks',
+  'sprint3/digest-cadence.test.ts':       'Daily digest scheduling — cadence rules, opt-out, summary generation',
+  'unit/i18n.test.ts':                    'i18n key parity — all keys present across en / es / sw language packs',
+  'unit/uniqueId.test.ts':                'Unique ID generation — format correctness and collision resistance',
+  'unit/isObject.test.ts':                'Type guard isObject — null, arrays, primitives, and nested objects',
+  'unit/isValdated.test.ts':              'Validation helper — truthy/falsy rule evaluation',
+  // e2e suites (shown when e2e results are included)
+  'e2e/smoke.test.ts':                    'App loads — HTTP 200, Vue mounts, no uncaught JS errors',
+  'e2e/routing.test.ts':                  'SPA routing — deep-link rewrites work on Vercel, Netlify, Appwrite, Replit',
+  'e2e/auth.test.ts':                     'Auth flows — login, logout, session persistence, role gating',
+  'e2e/workflows.test.ts':                'User workflows — join, claim, queue, pickup end-to-end',
+  'e2e/admin-workflows.test.ts':          'Admin panel — announce, invites, message log, calendar tab',
+  'e2e/mts-live.test.ts':                 'MTS live — real Mailgun email delivery against the edge function',
+  'e2e/mts-mailgun-workflows.test.ts':    'MTS extended — daily digest, webhook events, offline queue round-trip',
+  'e2e/launch-wizard.test.ts':            'Deployment wizard — repo fork, Supabase auto-fill, deploy gate, outputs',
+  'e2e/platform.test.ts':                 'Platform checks — response headers, CSP, security configuration',
+  'e2e/storage.test.ts':                  'Storage — IndexedDB queue, offline cache, data-portability export',
+  'e2e/data-portability.test.ts':         'Data portability — export format, re-import integrity',
+};
+
+function suiteDesc(suiteName: string): string {
+  const key = Object.keys(SUITE_DESCRIPTIONS).find((k) => suiteName.endsWith(k));
+  return key ? SUITE_DESCRIPTIONS[key] : '';
+}
+
+// ── Suite groups with subtitles ────────────────────────────────────
+
 interface SuiteGroup {
   label: string;
+  subtitle: string;
   suites: SuiteResult[];
 }
+
+const SPRINT_SUBTITLES: Record<string, string> = {
+  '1': 'Core pantry operations: inventory, queues, real-time sync, multi-user access',
+  '2': 'Message Transport System: email, SMS, site, and webhook fan-out routing',
+  '3': 'Advanced features: calendar rules, driver logistics, digest scheduling',
+};
 
 const groups = computed<SuiteGroup[]>(() => {
   if (!data.value) return [];
   const sprintBuckets: Record<string, SuiteResult[]> = {};
   const unit: SuiteResult[] = [];
-  const other: SuiteResult[] = [];
+  const e2e: SuiteResult[] = [];
 
   for (const s of data.value.testResults) {
     const sprintMatch = s.name.match(/\/sprint(\d+)\//);
@@ -260,16 +455,28 @@ const groups = computed<SuiteGroup[]>(() => {
     } else if (s.name.includes('/unit/')) {
       unit.push(s);
     } else {
-      other.push(s);
+      e2e.push(s);
     }
   }
 
   const result: SuiteGroup[] = [];
   for (const key of Object.keys(sprintBuckets).sort()) {
-    result.push({ label: `SPRINT ${key} — FEATURE TESTS`, suites: sprintBuckets[key] });
+    result.push({
+      label:    `SPRINT ${key} — FEATURE TESTS`,
+      subtitle: SPRINT_SUBTITLES[key] ?? '',
+      suites:   sprintBuckets[key]!,
+    });
   }
-  if (unit.length) result.push({ label: 'UNIT TESTS', suites: unit });
-  if (other.length) result.push({ label: 'OTHER', suites: other });
+  if (unit.length) result.push({
+    label:    'UNIT TESTS',
+    subtitle: 'Isolated function checks: i18n key parity, helpers, type guards',
+    suites:   unit,
+  });
+  if (e2e.length) result.push({
+    label:    'E2E / BROWSER TESTS',
+    subtitle: 'Full browser automation — requires a running server; run with npm run test:e2e',
+    suites:   e2e,
+  });
   return result;
 });
 
@@ -356,6 +563,52 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   background: rgba(105, 240, 174, 0.04);
 }
 
+.tr-intro-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.tr-intro-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tr-intro-mascot {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  opacity: 0.82;
+  transition: opacity 0.2s;
+}
+
+.tr-intro-mascot:hover {
+  opacity: 1;
+}
+
+.tr-intro-mascot-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.5rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+  text-transform: uppercase;
+}
+
+@media (max-width: 420px) {
+  .tr-intro-inner {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
+  .tr-intro-mascot {
+    flex-direction: row;
+    align-self: center;
+  }
+}
+
 .tr-intro-title {
   font-family: var(--wb-font);
   font-weight: 800;
@@ -384,6 +637,16 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--wb-border-subtle);
+}
+
+.tr-intro-code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  background: color-mix(in srgb, var(--wb-positive) 10%, transparent);
+  color: var(--wb-positive);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
 }
 
 /* ---- Header ---- */
@@ -558,16 +821,173 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   letter-spacing: 0.3px;
 }
 
-/* ---- Group label ---- */
+/* ---- Explainer accordion ---- */
+.tr-explainer {
+  margin-bottom: 20px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tr-explainer--open {
+  border-color: var(--wb-accent);
+}
+
+.tr-explainer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--wb-surface);
+  border: none;
+  cursor: pointer;
+  color: var(--wb-text-muted);
+  text-align: left;
+  transition: background 0.15s;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.58rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.tr-explainer-toggle:hover {
+  background: var(--wb-surface-hover);
+  color: var(--wb-text);
+}
+
+.tr-explainer--open .tr-explainer-toggle {
+  color: var(--wb-accent);
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.tr-explainer-icon {
+  flex-shrink: 0;
+}
+
+.tr-explainer-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.tr-explainer-body {
+  padding: 18px 16px 16px;
+  background: var(--wb-bg);
+}
+
+.tr-ex-section {
+  margin-bottom: 18px;
+}
+
+.tr-ex-section:last-child {
+  margin-bottom: 0;
+}
+
+.tr-ex-heading {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.62rem;
+  letter-spacing: 3px;
+  color: var(--wb-accent);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.tr-ex-text {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--wb-text-mid);
+  line-height: 1.65;
+  letter-spacing: 0.2px;
+  margin: 0 0 6px;
+}
+
+.tr-ex-text em {
+  font-style: italic;
+  color: var(--wb-text);
+}
+
+.tr-ex-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+@media (max-width: 600px) {
+  .tr-ex-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .tr-ex-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tr-ex-card {
+  padding: 10px 12px;
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 3px;
+  background: var(--wb-surface);
+}
+
+.tr-ex-card-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  color: var(--wb-positive);
+  margin-bottom: 5px;
+}
+
+.tr-ex-card-desc {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--wb-text-mid);
+  line-height: 1.55;
+  letter-spacing: 0.2px;
+}
+
+.tr-ex-note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wb-border-subtle);
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--wb-text-muted);
+  line-height: 1.6;
+  letter-spacing: 0.2px;
+}
+
+/* ---- Group header ---- */
+.tr-group-header {
+  margin: 20px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
 .tr-group-label {
   font-family: var(--wb-font);
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 4px;
   color: var(--wb-text-faint);
-  margin: 20px 0 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.tr-group-subtitle {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--wb-text-muted);
+  letter-spacing: 0.2px;
+  line-height: 1.5;
+  margin-top: 3px;
 }
 
 /* ---- Suite ---- */
@@ -612,17 +1032,35 @@ function groupByDescribe(assertions: AssertionResult[]): Record<string, Assertio
   background: var(--wb-negative);
 }
 
+.tr-suite-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .tr-suite-name {
   font-family: var(--wb-font);
   font-weight: 700;
   font-size: 0.78rem;
   color: var(--wb-text);
   letter-spacing: 0.5px;
-  flex: 1;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tr-suite-desc {
+  font-family: var(--wb-font);
+  font-weight: 600;
+  font-size: 0.62rem;
+  color: var(--wb-text-muted);
+  letter-spacing: 0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .tr-suite-count {

@@ -39,7 +39,7 @@ export async function beat(ms = 1200): Promise<void> {
 export const BASE_URL = (process.env.BASE_URL || 'http://localhost:9005').replace(/\/$/, '');
 
 export async function goto(path: string) {
-  await page.goto(`${BASE_URL}${path}`, { waitUntil: 'networkidle0', timeout: 30000 });
+  await page.goto(`${BASE_URL}${path}`, { waitUntil: 'load', timeout: 30000 });
 }
 
 /** Collect browser console errors during a page visit */

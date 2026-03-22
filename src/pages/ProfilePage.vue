@@ -355,11 +355,13 @@ import EntryModal from 'src/components/childcomponents/EntryModal.vue';
 import NeedsBinBoard from 'src/components/NeedsBinBoard.vue';
 import type { Entry, DayOfWeek } from 'src/models';
 import { useTheme } from 'src/composables/useTheme';
+import { useI18n } from 'src/i18n';
 
 const store  = useAddressStore();
 const $q     = useQuasar();
 const router = useRouter();
 const { theme } = useTheme();
+const { t } = useI18n();
 const isDarkTheme = computed(() => theme.value === 'dark');
 
 // ── Constants ─────────────────────────────────────────────────────

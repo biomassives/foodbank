@@ -106,21 +106,45 @@
               </div>
             </router-link>
 
+            <router-link v-if="store.isAdmin" to="/calendar-rules" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="tune" /><span>{{ t.nav.calendarRules }}</span>
+              </div>
+            </router-link>
+
             <router-link to="/info" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
-                <q-icon name="info" /><span>Pantry Info</span>
+                <q-icon name="info" /><span>{{ t.nav.pantryInfo }}</span>
               </div>
             </router-link>
 
             <router-link to="/logistics" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
-                <q-icon name="hub" /><span>Logistics</span>
+                <q-icon name="hub" /><span>{{ t.nav.logistics }}</span>
               </div>
             </router-link>
 
             <router-link to="/docs" custom v-slot="{ navigate, isActive }">
               <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
-                <q-icon name="menu_book" /><span>Docs</span>
+                <q-icon name="menu_book" /><span>{{ t.nav.docs }}</span>
+              </div>
+            </router-link>
+
+            <router-link to="/stories" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="auto_stories" /><span>{{ t.nav.stories }}</span>
+              </div>
+            </router-link>
+
+            <router-link to="/maps" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="map" /><span>Regional Maps</span>
+              </div>
+            </router-link>
+
+            <router-link to="/cultural-calendar" custom v-slot="{ navigate, isActive }">
+              <div class="drawer-nav-item" :class="{ 'active-block': isActive }" @click="navigate(); drawer = false;">
+                <q-icon name="queue_music" /><span>Summer Events</span>
               </div>
             </router-link>
 
@@ -136,7 +160,7 @@
           <div class="drawer-section-label">Identity</div>
           <div class="q-px-sm">
             <div v-if="!store.isLoggedIn && !store.localMode" class="drawer-nav-item" @click="router.push('/login'); drawer = false;">
-              <q-icon name="login" /><span>Sign In</span>
+              <q-icon name="login" /><span>{{ t.nav.signIn }}</span>
             </div>
 
             <router-link v-if="store.isLoggedIn" to="/profile" custom v-slot="{ navigate, isActive }">
@@ -210,8 +234,8 @@ function onOffline() {
   $q.notify({
     color: 'warning',
     icon: 'cloud_off',
-    message: 'You\'re offline',
-    caption: 'Changes will be saved locally until you reconnect',
+    message: t.value.notify.offline,
+    caption: t.value.notify.offlineSub,
     timeout: 5000,
   });
 }
@@ -219,8 +243,8 @@ function onOnline() {
   $q.notify({
     color: 'positive',
     icon: 'cloud_done',
-    message: 'Back online',
-    caption: 'Connection restored',
+    message: t.value.notify.online,
+    caption: t.value.notify.onlineSub,
     timeout: 3000,
   });
   flushMtsOutbox().catch(() => { /* offline flush — ignore */ });
@@ -327,17 +351,11 @@ const drawerTagline = computed(() => {
   return PONY_QUIPS[dayIndex % PONY_QUIPS.length];
 });
 
-const DRAWER_ROLE_LABELS: Record<string, string> = {
-  admin:   'ADMIN',
-  editor:  'EDITOR',
-  driver:  'DRIVER',
-  stocker: 'STOCKER',
-  viewer:  'MEMBER',
-};
 const drawerRoleLabel = computed(() => {
-  if (store.localMode) return 'LOCAL ADMIN';
-  if (store.demoMode)  return 'DEMO';
-  return DRAWER_ROLE_LABELS[store.userRole] ?? store.userRole.toUpperCase();
+  if (store.localMode) return t.value.nav.roles.localAdmin;
+  if (store.demoMode)  return t.value.nav.roles.demo;
+  const roles = t.value.nav.roles as Record<string, string>;
+  return roles[store.userRole] ?? store.userRole.toUpperCase();
 });
 
 function handleEntrySaved(payload: { type: string }) {
@@ -346,7 +364,7 @@ function handleEntrySaved(payload: { type: string }) {
 }
 
 async function handleLogout() {
-  $q.loading.show({ message: 'Signing out of the network...' });
+  $q.loading.show({ message: t.value.notify.signingOut });
   await supabase.auth.signOut();
   localStorage.removeItem('localMode');
   localStorage.removeItem('pantryName');

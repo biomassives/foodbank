@@ -1,0 +1,34 @@
+{
+  "name": "Funky Pony Space",
+  "short_name": "FunkyPony",
+  "description": "Community food pantry — mutual aid coordination, free and open source",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#111014",
+  "theme_color": "#fdd835",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "icons": [
+    {
+      "src": "icons/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["utilities", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr"
+}

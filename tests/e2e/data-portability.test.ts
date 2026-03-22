@@ -160,7 +160,7 @@ describe('Settings — EXPORT & IMPORT section', () => {
       localStorage.removeItem('localMode');
       localStorage.removeItem('pantry-welcome');
     });
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.reload({ waitUntil: 'load' });
   });
 
   // ── 1. UI shape ─────────────────────────────────────────────────────────────

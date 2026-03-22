@@ -11,9 +11,9 @@
       <!-- Empty state -->
       <div v-if="!hasContent && !hasSchedule" class="ops-empty-state">
         <q-icon name="description" size="36px" />
-        <div class="ops-empty-title">No info page yet</div>
+        <div class="ops-empty-title">{{ t.ops.noInfoYet }}</div>
         <div v-if="store.canEdit" class="ops-empty-hint">
-          Build one in Admin → INFO PAGE
+          {{ t.ops.buildInAdmin }}
         </div>
       </div>
 
@@ -31,7 +31,7 @@
         <div v-if="hasSchedule" class="ops-hours-block">
           <div class="ops-block-title">
             <q-icon name="schedule" size="14px" />
-            HOURS
+            {{ t.ops.hours }}
           </div>
           <div class="ops-hours-grid">
             <div
@@ -50,7 +50,7 @@
 
       <!-- Admin edit shortcut -->
       <div v-if="store.canEdit" class="ops-edit-hint">
-        <q-btn flat no-caps dense icon="edit" label="Edit in Admin" size="sm" @click="router.push('/admin')" />
+        <q-btn flat no-caps dense icon="edit" :label="t.ops.editInAdmin" size="sm" @click="router.push('/admin')" />
       </div>
 
     </div>
@@ -61,9 +61,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAddressStore } from 'src/store/store';
+import { useI18n } from 'src/i18n';
 
 const store = useAddressStore();
 const router = useRouter();
+const { t } = useI18n();
 
 interface WelcomeData { name: string; tagline: string; about: string }
 interface OpsSection { id: string; title: string; body: string }

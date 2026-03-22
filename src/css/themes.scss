@@ -246,18 +246,18 @@
   --wb-surface-hover: rgba(0,0,0,0.04);
 
   // Typography
-  --wb-text: #1a1a1a;
-  --wb-text-mid: rgba(0,0,0,0.7);
-  --wb-text-muted: rgba(0,0,0,0.45);
-  --wb-text-faint: rgba(0,0,0,0.18);
+  --wb-text: #111111;
+  --wb-text-mid: rgba(0,0,0,0.82);
+  --wb-text-muted: rgba(0,0,0,0.62);
+  --wb-text-faint: rgba(0,0,0,0.40);
 
   // Borders
-  --wb-border: #333;
-  --wb-border-mid: rgba(0,0,0,0.15);
-  --wb-border-subtle: rgba(0,0,0,0.06);
+  --wb-border: #1a1a1a;
+  --wb-border-mid: rgba(0,0,0,0.28);
+  --wb-border-subtle: rgba(0,0,0,0.14);
 
   // Accents — warm earth tones for light
-  --wb-accent: #c77700;
+  --wb-accent: #9c5c00;
   --wb-accent-text: #fff;
   --wb-positive: #2e7d32;
   --wb-negative: #c62828;
@@ -266,10 +266,10 @@
 
   // Card body (onboarding)
   --wb-card-body: #fff;
-  --wb-card-body-text: rgba(0,0,0,0.7);
-  --wb-card-body-muted: rgba(0,0,0,0.4);
-  --wb-card-input-bg: rgba(0,0,0,0.04);
-  --wb-card-input-border: rgba(0,0,0,0.12);
+  --wb-card-body-text: rgba(0,0,0,0.82);
+  --wb-card-body-muted: rgba(0,0,0,0.60);
+  --wb-card-input-bg: rgba(0,0,0,0.05);
+  --wb-card-input-border: rgba(0,0,0,0.24);
 
   // Modal / dialog
   --wb-modal-bg: #fff;
@@ -283,13 +283,13 @@
   --wb-queue-delivered: #2e7d32;
 
   // Count chips
-  --wb-count-num: #c77700;
-  --wb-count-border: rgba(0,0,0,0.1);
+  --wb-count-num: #9c5c00;
+  --wb-count-border: rgba(0,0,0,0.22);
 
   // FAB
-  --wb-fab-bg: #c77700;
+  --wb-fab-bg: #9c5c00;
   --wb-fab-text: #fff;
-  --wb-fab-glow: rgba(199, 119, 0, 0.3);
+  --wb-fab-glow: rgba(156, 92, 0, 0.3);
   --wb-fab-loc-bg: #fff;
   --wb-fab-loc-text: #2e7d32;
   --wb-fab-loc-border: #2e7d32;
@@ -297,13 +297,13 @@
 
   // ── Needs bin system (deep saturated — warm cream) ──
   --bin-available:      #0a7038;
-  --bin-available-bg:   rgba(10, 112, 56, 0.06);
+  --bin-available-bg:   rgba(10, 112, 56, 0.10);
   --bin-expected:       #9a6200;
-  --bin-expected-bg:    rgba(154, 98, 0, 0.06);
+  --bin-expected-bg:    rgba(154, 98, 0, 0.10);
   --bin-offered:        #006a9e;
-  --bin-offered-bg:     rgba(0, 106, 158, 0.06);
+  --bin-offered-bg:     rgba(0, 106, 158, 0.10);
   --bin-need:           #9a0070;
-  --bin-need-bg:        rgba(154, 0, 112, 0.06);
+  --bin-need-bg:        rgba(154, 0, 112, 0.10);
 }
 
 // Bauhaus / Mondrian theme

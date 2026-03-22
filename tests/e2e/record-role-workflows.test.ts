@@ -9,7 +9,9 @@
  *   3. Admin role — community index, admin panel tabs
  *   4. Logistics role view — /logistics hub diagram
  *   5. Calendar — /calendar 12-week view
- *   6. Sign out back to onboard screen
+ *   6. Profile page — /profile availability + flyout
+ *   7. Ops / info page — /info pantry hours
+ *   8. Sign out back to onboard screen
  *
  * Run with: npm run test:e2e -- --testPathPattern=record-role-workflows
  */
@@ -38,7 +40,7 @@ describe('Recording — login & role workflows', () => {
   // ── 1. Unauthenticated landing ─────────────────────────────────────────────
 
   it('shows the onboard / home screen before login', async () => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle0', timeout: 20000 });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
     await beat(2000);
   }, 30000);
 
@@ -134,14 +136,36 @@ describe('Recording — login & role workflows', () => {
     await beat(800);
   }, 20000);
 
-  // ── 7. Public info page ────────────────────────────────────────────────────
+  // ── 7. Profile page ────────────────────────────────────────────────────────
+
+  it('/profile — admin profile: hero, flyout, availability', async () => {
+    await goto('/profile');
+    await beat(2200);
+    // Open flyout to show admin shortcuts
+    const flyoutTrigger = await page.$('button.flyout-trigger');
+    if (flyoutTrigger) await flyoutTrigger.click();
+    await beat(1800);
+    if (flyoutTrigger) await flyoutTrigger.click();
+    await beat(600);
+    // Scroll to show interests & availability
+    await page.evaluate(() => window.scrollBy({ top: 500, behavior: 'smooth' }));
+    await beat(1800);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    await beat(600);
+  }, 25000);
+
+  // ── 8. Public info page ────────────────────────────────────────────────────
 
   it('public ops info page (/info)', async () => {
     await goto('/info');
-    await beat(2000);
+    await beat(2200);
+    await page.evaluate(() => window.scrollBy({ top: 200, behavior: 'smooth' }));
+    await beat(1200);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    await beat(600);
   }, 20000);
 
-  // ── 8. Sign out ────────────────────────────────────────────────────────────
+  // ── 9. Sign out ────────────────────────────────────────────────────────────
 
   it('signs out and returns to unauthenticated state', async () => {
     await clearAuth();

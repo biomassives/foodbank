@@ -6,7 +6,7 @@
       <!-- ===== STEP 1: Type selector ===== -->
       <template v-if="!entryType">
         <div class="modal-header">
-          <span class="modal-header-label">{{ props.editEntry ? 'EDIT' : 'ADD' }}</span>
+          <span class="modal-header-label">{{ props.editEntry ? t.entries.editTitle : t.entries.addTitle }}</span>
           <q-btn flat dense round icon="close" color="white" size="sm" v-close-popup />
         </div>
 
@@ -31,18 +31,18 @@
       <template v-else-if="entryType === 'contact'">
         <div class="modal-header">
           <q-btn flat dense round icon="arrow_back" color="white" size="sm" @click="entryType = null" />
-          <span class="modal-header-label">NEW CONTACT</span>
+          <span class="modal-header-label">{{ t.entries.newContact }}</span>
           <q-icon name="person_add" size="18px" color="white" />
         </div>
 
         <div class="modal-body">
           <div class="row q-col-gutter-sm">
-            <q-input class="col-6 modal-input" dense filled v-model="firstName" label="First Name" :rules="nameRules" autofocus dark />
-            <q-input class="col-6 modal-input" dense filled v-model="lastName" label="Last Name" :rules="nameRules" dark />
+            <q-input class="col-6 modal-input" dense filled v-model="firstName" :label="t.entries.firstName" :rules="nameRules" autofocus dark />
+            <q-input class="col-6 modal-input" dense filled v-model="lastName" :label="t.entries.lastName" :rules="nameRules" dark />
           </div>
           <div class="row q-col-gutter-sm q-mt-xs">
-            <q-input class="col-6 modal-input" dense filled v-model="email" label="E-mail" :rules="emailRules" dark />
-            <q-input class="col-6 modal-input" dense filled v-model="phone" label="Phone" mask="(###) ### - ####" :rules="phoneRules" dark />
+            <q-input class="col-6 modal-input" dense filled v-model="email" :label="t.entries.emailLabel" :rules="emailRules" dark />
+            <q-input class="col-6 modal-input" dense filled v-model="phone" :label="t.entries.phoneLabel" mask="(###) ### - ####" :rules="phoneRules" dark />
           </div>
 
           <div class="sync-bar q-mt-md">
@@ -52,8 +52,8 @@
         </div>
 
         <div class="modal-actions">
-          <q-btn flat no-caps label="Cancel" class="modal-btn-flat" v-close-popup />
-          <q-btn unelevated no-caps label="Save" class="modal-btn-save" @click="saveContact" />
+          <q-btn flat no-caps :label="t.actions.cancel" class="modal-btn-flat" v-close-popup />
+          <q-btn unelevated no-caps :label="t.actions.save" class="modal-btn-save" @click="saveContact" />
         </div>
       </template>
 
@@ -69,24 +69,24 @@
           <q-input
             v-model="description"
             type="textarea"
-            label="Description"
+            :label="t.entries.description"
             autogrow
             autofocus
             filled
             dense
             dark
             class="modal-input"
-            :rules="[v => !!v || 'Required']"
+            :rules="[v => !!v || t.actions.required]"
           />
           <q-input
             v-if="entryType === 'pickup_queue'"
             v-model="location"
-            label="Pickup Location"
+            :label="t.entries.pickupLocation"
             filled
             dense
             dark
             class="modal-input q-mt-sm"
-            :rules="[v => !!v || 'Required']"
+            :rules="[v => !!v || t.actions.required]"
           />
 
           <!-- Location picker for offerings -->
@@ -99,7 +99,7 @@
               emit-value
               map-options
               filled dense dark clearable
-              label="Where can it be picked up? (optional)"
+              :label="t.entries.pickupOptional"
               class="modal-input loc-picker-select"
             />
             <q-btn
@@ -112,7 +112,7 @@
           </div>
 
           <!-- ===== ATTACH section ===== -->
-          <div class="attach-label">ATTACH</div>
+          <div class="attach-label">{{ t.entries.attach }}</div>
 
           <div class="attach-tabs">
             <button
@@ -121,7 +121,7 @@
               @click="attachMode = attachMode === 'sketch' ? null : 'sketch'"
             >
               <q-icon name="draw" size="14px" />
-              <span>SKETCH</span>
+              <span>{{ t.entries.sketch }}</span>
             </button>
             <button
               class="attach-tab"
@@ -129,7 +129,7 @@
               @click="attachMode = attachMode === 'photo' ? null : 'photo'"
             >
               <q-icon name="photo_camera" size="14px" />
-              <span>PHOTO</span>
+              <span>{{ t.entries.photo }}</span>
             </button>
           </div>
 
@@ -148,7 +148,7 @@
               @drop.prevent="handleDrop"
             >
               <q-icon name="add_photo_alternate" size="28px" />
-              <span>Tap to upload or drop an image</span>
+              <span>{{ t.entries.uploadPrompt }}</span>
             </div>
             <div v-else class="upload-preview">
               <img :src="imageData" alt="attached" class="upload-img" />
@@ -176,28 +176,26 @@
               dense
               color="yellow"
               size="sm"
-              :label="syncToCloud ? 'SYNC' : 'LOCAL'"
+              :label="syncToCloud ? t.sync.cloud : t.sync.localToggle"
               class="sync-toggle"
             />
           </div>
         </div>
 
         <div class="modal-actions">
-          <q-btn 
-    flat 
-    no-caps 
-    label="Cancel" 
-    class="modal-btn-flat" 
-    v-close-popup 
-    :disable="isSaving" 
+          <q-btn
+            flat no-caps
+            :label="t.actions.cancel"
+            class="modal-btn-flat"
+            v-close-popup
+            :disable="isSaving"
           />
-          <q-btn 
-    unelevated 
-    no-caps 
-    label="Save" 
-    class="modal-btn-save" 
-    :loading="isSaving" 
-    @click="saveEntry" 
+          <q-btn
+            unelevated no-caps
+            :label="t.actions.save"
+            class="modal-btn-save"
+            :loading="isSaving"
+            @click="saveEntry"
           />
         </div>
       </template>
@@ -213,6 +211,7 @@ import { useQuasar } from 'quasar';
 import { isValidated } from 'src/utils/functions';
 import SketchPad from 'src/components/SketchPad.vue';
 import LocationModal from './LocationModal.vue';
+import { useI18n } from 'src/i18n';
 import type { Address, Entry, EntryType, Location } from 'src/models';
 
 const props = defineProps<{
@@ -227,6 +226,7 @@ const emit = defineEmits<{
 
 const $q = useQuasar();
 const store = useAddressStore();
+const { t } = useI18n();
 
 const internalCard = ref(false);
 const card = toRef(props, 'cardState');
@@ -282,47 +282,56 @@ const locationOptions = computed(() => {
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const nameRules = [
-  (val: string) => (val && val.length > 0) || 'Required',
-  (val: string) => (val && val.length >= 3) || '3 or more characters',
-  (val: string) => (val && /^[a-z]+$/gi.test(val)) || 'Letters only',
+  (val: string) => (val && val.length > 0) || t.value.actions.required,
+  (val: string) => (val && val.length >= 3) || t.value.actions.minChars,
+  (val: string) => (val && /^[a-z]+$/gi.test(val)) || t.value.actions.lettersOnly,
 ];
-const emailRules = [(val: string) => (val && emailPattern.test(val)) || 'Invalid email'];
-const phoneRules = [() => (phone.value.replace(/[-()\s]/g, '').length >= 10) || 'Invalid phone'];
+const emailRules = [(val: string) => (val && emailPattern.test(val)) || t.value.actions.invalidEmail];
+const phoneRules = [() => (phone.value.replace(/[-()\s]/g, '').length >= 10) || t.value.actions.invalidPhone];
 
 // Type options for step 1
 const typeOptions = computed(() => {
+  const e = t.value.entries;
   const opts = [
-    { type: 'contact', icon: 'person_add', color: '#82b1ff', label: 'Contact', caption: 'Save to address book' },
-    { type: 'need', icon: 'volunteer_activism', color: '#ef5350', label: 'Need', caption: 'Request an item or resource' },
-    { type: 'offering', icon: 'card_giftcard', color: '#69f0ae', label: 'Offering', caption: 'Share what you have' },
-    { type: 'looking_for', icon: 'search', color: '#ce93d8', label: 'Looking For', caption: 'Something you\'re searching for' },
-    { type: 'upcoming_need', icon: 'event', color: '#80cbc4', label: 'Upcoming Need', caption: 'Plan ahead' },
+    { type: 'contact',       icon: 'person_add',        color: '#82b1ff', label: e.contact,      caption: e.contactCaption },
+    { type: 'need',          icon: 'volunteer_activism', color: '#ef5350', label: e.need,         caption: e.needCaption },
+    { type: 'offering',      icon: 'card_giftcard',      color: '#69f0ae', label: e.offering,     caption: e.offeringCaption },
+    { type: 'looking_for',   icon: 'search',             color: '#ce93d8', label: e.lookingFor,   caption: e.lookingForCaption },
+    { type: 'upcoming_need', icon: 'event',              color: '#80cbc4', label: e.upcomingNeed, caption: e.upcomingNeedCaption },
   ];
   if (store.canEdit) {
-    opts.push({ type: 'pickup_queue', icon: 'local_shipping', color: '#ffab40', label: 'Pickup Queue', caption: 'Create a pickup task' });
+    opts.push({ type: 'pickup_queue', icon: 'local_shipping', color: '#ffab40', label: e.pickupQueue, caption: e.pickupQueueCaption });
   }
   return opts;
 });
 
-// Current type info for header
-const typeConfig: Record<string, { label: string; icon: string }> = {
-  need: { label: 'NEED', icon: 'volunteer_activism' },
-  offering: { label: 'OFFERING', icon: 'card_giftcard' },
-  pickup_queue: { label: 'PICKUP QUEUE', icon: 'local_shipping' },
-  looking_for: { label: 'LOOKING FOR', icon: 'search' },
-  upcoming_need: { label: 'UPCOMING NEED', icon: 'event' },
+// Current type info for header (labels resolved reactively via computed)
+const typeIcons: Record<string, string> = {
+  need: 'volunteer_activism',
+  offering: 'card_giftcard',
+  pickup_queue: 'local_shipping',
+  looking_for: 'search',
+  upcoming_need: 'event',
 };
+
+const typeLabels = computed(() => ({
+  need: t.value.entries.need.toUpperCase(),
+  offering: t.value.entries.offering.toUpperCase(),
+  pickup_queue: t.value.entries.pickupQueue.toUpperCase(),
+  looking_for: t.value.entries.lookingFor.toUpperCase(),
+  upcoming_need: t.value.entries.upcomingNeed.toUpperCase(),
+}));
 
 const currentTypeLabel = computed(() => {
   if (entryType.value && entryType.value !== 'contact') {
-    return typeConfig[entryType.value]?.label || '';
+    return typeLabels.value[entryType.value as keyof typeof typeLabels.value] || '';
   }
   return '';
 });
 
 const currentTypeIcon = computed(() => {
   if (entryType.value && entryType.value !== 'contact') {
-    return typeConfig[entryType.value]?.icon || '';
+    return typeIcons[entryType.value] || '';
   }
   return '';
 });
@@ -341,10 +350,10 @@ const syncColor = computed(() => {
 });
 
 const syncLabel = computed(() => {
-  if (store.canSync && syncToCloud.value) return 'Saves locally + syncs to pantry';
-  if (store.canSync && !syncToCloud.value) return 'Saves locally only';
-  if (store.localMode) return 'Saves to your browser';
-  return 'Saves locally';
+  if (store.canSync && syncToCloud.value) return t.value.sync.savesCloudSync;
+  if (store.canSync && !syncToCloud.value) return t.value.sync.savesLocalOnly;
+  if (store.localMode) return t.value.sync.savesToBrowser;
+  return t.value.sync.savesLocally;
 });
 
 // Photo upload handlers
@@ -366,7 +375,7 @@ function handleDrop(e: DragEvent) {
 function readFile(file: File) {
   // Cap at 500KB for IndexedDB friendliness
   if (file.size > 512000) {
-    $q.notify({ type: 'warning', message: 'Image too large (max 500KB). Try a smaller file.' });
+    $q.notify({ type: 'warning', message: t.value.notify.imageTooLarge });
     return;
   }
   const reader = new FileReader();
@@ -378,13 +387,13 @@ function readFile(file: File) {
 watch(card, (v) => {
   internalCard.value = v;
   if (v && props.editEntry) {
-    entryType.value = props.editEntry.type as any;
+    entryType.value = props.editEntry.type as EntryType;
     description.value = props.editEntry.description;
     location.value = props.editEntry.location || '';
     sketchData.value = props.editEntry.sketch || '';
     imageData.value = props.editEntry.image || null;
   } else if (v && props.initialType) {
-    entryType.value = props.initialType as any;
+    entryType.value = props.initialType as 'contact' | EntryType;
   }
 });
 watch(internalCard, (v) => {
@@ -409,26 +418,26 @@ function resetForm() {
 
 async function saveContact() {
   if (!isValidated({ firstName: firstName.value, lastName: lastName.value, email: email.value, phone: phone.value })) {
-    $q.notify({ type: 'negative', position: 'top', message: 'Please check all fields.' });
+    $q.notify({ type: 'negative', position: 'top', message: t.value.notify.checkFields });
     return;
   }
   const first = firstName.value[0].toUpperCase() + firstName.value.slice(1);
   const last = lastName.value[0].toUpperCase() + lastName.value.slice(1);
   const address: Address = { id: '', name: { first, last }, email: email.value, phone: phone.value };
   await store.addData(address, store.canSync);
-  const where = store.canSync ? 'Saved locally + synced' : 'Saved locally';
-  $q.notify({ color: 'positive', message: `Contact saved. ${where}.` });
+  const where = store.canSync ? t.value.notify.savedSynced : t.value.notify.savedLocally;
+  $q.notify({ color: 'positive', message: `${t.value.notify.contactSaved} ${where}` });
   emit('saved', { type: 'contact' });
   emit('update:cardState', false);
 }
 
 async function saveEntry() {
   if (!description.value.trim()) {
-    $q.notify({ type: 'negative', position: 'top', message: 'Description is required.' });
+    $q.notify({ type: 'negative', position: 'top', message: t.value.notify.descRequired });
     return;
   }
   if (entryType.value === 'pickup_queue' && !location.value.trim()) {
-    $q.notify({ type: 'negative', position: 'top', message: 'Location is required.' });
+    $q.notify({ type: 'negative', position: 'top', message: t.value.notify.locationRequired });
     return;
   }
   const entry: Entry = {
@@ -453,8 +462,8 @@ async function saveEntry() {
   } else {
     await store.addEntry(entry, syncToCloud.value);
   }
-  const where = syncToCloud.value && store.canSync ? 'Saved + synced' : 'Saved locally';
-  $q.notify({ color: 'positive', message: `${where}.` });
+  const where = syncToCloud.value && store.canSync ? t.value.notify.savedSynced : t.value.notify.savedLocally;
+  $q.notify({ color: 'positive', message: where });
   emit('saved', { type: entryType.value as string });
   emit('update:cardState', false);
 }

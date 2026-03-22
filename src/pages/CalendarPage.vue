@@ -3,8 +3,8 @@
     <div class="cal-wrap">
 
       <div class="cal-header">
-        <div class="cal-title">MASTER CALENDAR</div>
-        <div class="cal-sub">Next 12 weeks · continuous</div>
+        <div class="cal-title">{{ t('calendar.title') }}</div>
+        <div class="cal-sub">{{ t('calendar.sub') }}</div>
       </div>
 
       <!-- Role visibility filter -->
@@ -68,22 +68,24 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useTranslate as useI18n } from 'src/i18n';
 import { useAddressStore } from 'src/store/store';
 import { buildWeeks, toDateStr } from 'src/utils/calendar';
 import type { Entry, CalendarVisibility } from 'src/models';
 
 const store = useAddressStore();
+const { t, tm } = useI18n();
 
-const DAY_ABBR = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-const MON_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const DAY_ABBR = computed(() => tm('days.abbr') as string[]);
+const MON_ABBR = computed(() => tm('months.abbr') as string[]);
 
-const ROLE_FILTERS: { value: CalendarVisibility; label: string; icon: string }[] = [
-  { value: 'public',             label: 'Public',          icon: 'public' },
-  { value: 'drivers',            label: 'Drivers',         icon: 'local_shipping' },
-  { value: 'stock_pantry',       label: 'Stock & Pantry',  icon: 'inventory_2' },
-  { value: 'logistics_outreach', label: 'Logistics',       icon: 'hub' },
-  { value: 'admin',              label: 'Admin',           icon: 'admin_panel_settings' },
-];
+const ROLE_FILTERS = computed(() => [
+  { value: 'public' as CalendarVisibility,             label: t('calendar.roles.public'),       icon: 'public' },
+  { value: 'drivers' as CalendarVisibility,            label: t('calendar.roles.drivers'),      icon: 'local_shipping' },
+  { value: 'stock_pantry' as CalendarVisibility,       label: t('calendar.roles.stockPantry'),  icon: 'inventory_2' },
+  { value: 'logistics_outreach' as CalendarVisibility, label: t('calendar.roles.logistics'),    icon: 'hub' },
+  { value: 'admin' as CalendarVisibility,              label: t('calendar.roles.admin'),         icon: 'admin_panel_settings' },
+]);
 
 // Default: show public + whatever the user's role grants
 const activeRoles = ref<CalendarVisibility[]>(defaultRoles());

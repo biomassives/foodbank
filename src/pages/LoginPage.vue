@@ -3,8 +3,8 @@
     <div class="login-card column q-gutter-md">
 
       <div class="text-center">
-        <div class="login-title">{{ inviteCode ? 'JOIN PANTRY' : 'WELCOME BACK' }}</div>
-        <div class="login-sub">{{ inviteCode ? 'Accept your invitation' : 'Sign in to your pantry' }}</div>
+        <div class="login-title">{{ inviteCode ? t.auth.joinTitle : t.auth.welcomeBack }}</div>
+        <div class="login-sub">{{ inviteCode ? t.auth.joinSub : t.auth.welcomeBackSub }}</div>
       </div>
 
       <template v-if="!magicSent">
@@ -12,7 +12,7 @@
           v-if="inviteCode"
           v-model="inviteCode"
           filled :dark="darkInputs" color="yellow"
-          label="Invite code"
+          :label="t.auth.inviteCode"
           @update:model-value="v => inviteCode = String(v).toUpperCase()"
         />
 
@@ -21,13 +21,13 @@
           filled :dark="darkInputs" color="yellow"
           type="email"
           placeholder="you@example.com"
-          :hint="inviteCode ? 'Enter the email for your account' : 'We\'ll send a sign-in link — no password needed'"
+          :hint="inviteCode ? t.auth.emailHintInvite : t.auth.emailHint"
           @keyup.enter="submit"
           autofocus
         />
 
         <q-btn
-          :label="inviteCode ? 'ACCEPT INVITE' : 'SEND SIGN-IN LINK'"
+          :label="inviteCode ? t.auth.acceptInvite : t.auth.sendLink"
           color="yellow"
           text-color="black"
           :loading="loading"
@@ -37,19 +37,19 @@
         <div v-if="errorMessage" class="login-error text-caption">{{ errorMessage }}</div>
 
         <div class="text-center q-mt-sm">
-          <router-link v-if="!inviteCode" to="/join" class="login-link">Have an invite code?</router-link>
-          <a v-else href="#" class="login-link" @click.prevent="inviteCode = ''">Sign in without a code</a>
+          <router-link v-if="!inviteCode" to="/join" class="login-link">{{ t.auth.haveCode }}</router-link>
+          <a v-else href="#" class="login-link" @click.prevent="inviteCode = ''">{{ t.auth.noCode }}</a>
         </div>
       </template>
 
       <template v-else>
         <q-icon name="mark_email_read" size="48px" color="yellow" class="self-center" />
-        <p class="text-center text-weight-bold" style="color: var(--wb-accent)">Check your inbox!</p>
+        <p class="text-center text-weight-bold" style="color: var(--wb-accent)">{{ t.auth.checkInbox }}</p>
         <p class="text-center" style="font-size: 0.85rem; line-height: 1.5; color: var(--wb-text-muted)">
-          A sign-in link was sent to <strong>{{ email }}</strong>.<br>
-          Click it and you'll be signed in automatically.
+          {{ t.auth.sentTo }} <strong>{{ email }}</strong>.<br>
+          {{ t.auth.clickLink }}
         </p>
-        <q-btn flat dense no-caps label="Use a different email" color="grey-5" @click="magicSent = false" />
+        <q-btn flat dense no-caps :label="t.auth.useDifferentEmail" color="grey-5" @click="magicSent = false" />
       </template>
 
     </div>
@@ -61,9 +61,11 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { supabase } from 'src/dbManagement';
 import { useTheme } from 'src/composables/useTheme';
+import { useI18n } from 'src/i18n';
 
 const { isDark } = useTheme();
 const darkInputs = computed(() => isDark.value === 'dark' || isDark.value === 'bauhaus');
+const { t } = useI18n();
 
 const route = useRoute();
 const email = ref('');
@@ -81,7 +83,7 @@ onMounted(() => {
 
 async function submit() {
   if (!email.value.trim()) {
-    errorMessage.value = 'Please enter your email address.';
+    errorMessage.value = t.value.notify.emailRequired;
     return;
   }
   loading.value = true;
@@ -112,7 +114,7 @@ async function submit() {
     }
     magicSent.value = true;
   } catch (err: unknown) {
-    errorMessage.value = err instanceof Error ? err.message : 'Something went wrong';
+    errorMessage.value = err instanceof Error ? err.message : t.value.notify.somethingWentWrong;
   } finally {
     loading.value = false;
   }

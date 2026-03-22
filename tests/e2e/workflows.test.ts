@@ -58,7 +58,7 @@ describe('Workflow — public visitor', () => {
       localStorage.removeItem('localMode');
       localStorage.removeItem('demoMode');
     });
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.reload({ waitUntil: 'load' });
     // The admin nav item renders as div.drawer-nav-item (custom router-link slot), not <a>.
     // v-if="store.isAdmin" removes it from the DOM for non-admin sessions.
     const hasManagerLink = await page.evaluate(() => {
@@ -166,7 +166,7 @@ describe('Workflow — driver/stocker (digest email links)', () => {
       localStorage.removeItem('localMode');
       localStorage.removeItem('demoMode');
     });
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.reload({ waitUntil: 'load' });
     const hasManagerLink = await page.evaluate(() => {
       const items = Array.from(document.querySelectorAll('.drawer-nav-item'));
       return items.some((el) => el.textContent?.includes('Manager'));

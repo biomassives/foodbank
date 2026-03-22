@@ -547,6 +547,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useAddressStore } from 'src/store/store';
+import { useI18n } from 'src/i18n';
 import { supabase } from 'src/dbManagement';
 import { passwordToRoots, e8Commit } from 'src/lib/e8-integrity';
 

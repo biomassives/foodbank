@@ -28,7 +28,7 @@ export async function syncToCloud(data: Address, orgId: string | null = null) {
       data: data // The full object
     });
     
-  if (error) console.error("Cloud Sync Failed:", error.message);
+  if (error) console.error('Cloud Sync Failed:', error.message);
 }
 
 

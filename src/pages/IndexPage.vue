@@ -14,8 +14,8 @@
     <!-- Mobile-only: directory/queue toggle (no filter active) -->
     <div v-else-if="!isDesktop && (store.userOrgId || store.localMode || store.demoMode)" class="toggle-bar">
       <div class="view-toggle">
-        <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'directory' }" @click="viewMode = 'directory'">DIRECTORY</button>
-        <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'queue' }" @click="viewMode = 'queue'">QUEUE</button>
+        <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'directory' }" @click="viewMode = 'directory'">{{ t('sections.directory') }}</button>
+        <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'queue' }" @click="viewMode = 'queue'">{{ t('sections.queue') }}</button>
       </div>
     </div>
 
@@ -53,9 +53,9 @@
         <!-- Empty state -->
         <div v-else class="mytasks-empty">
           <q-icon name="task_alt" size="24px" />
-          <div class="mytasks-empty-text">NO ACTIVE TASKS</div>
+          <div class="mytasks-empty-text">{{ t('queue.noActiveTasks') }}</div>
           <div class="mytasks-empty-sub">
-            {{ isDriver ? 'See the queue to claim a delivery' : 'See the queue to pick up a shift' }}
+            {{ isDriver ? t('queue.seeQueueDriver') : t('queue.seeQueueStocker') }}
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@
       <!-- === SCHEDULE cell (desktop top-left, row 1) — hidden for driver/stocker === -->
       <div v-if="isDesktop && !activeFilter && !isDriver && !isStocker" class="mondrian-cell mondrian-cell--schedule">
         <div class="mondrian-cell-header">
-          SCHEDULE
+          {{ t('sections.schedule') }}
           <router-link to="/calendar" class="cell-header-link" title="Full calendar">
             <q-icon name="calendar_month" size="12px" />
           </router-link>
@@ -74,7 +74,7 @@
       <!-- === WELCOME cell (desktop top-right, row 1) — hidden for driver/stocker === -->
       <div v-if="isDesktop && !activeFilter && !isDriver && !isStocker" class="mondrian-cell mondrian-cell--welcome">
         <div class="mondrian-cell-header">
-          ABOUT THE PANTRY
+          {{ t('sections.aboutPantry') }}
           <router-link v-if="store.canEdit" to="/admin?tab=welcome" class="cell-header-link" title="Edit pantry info">
             <q-icon name="edit" size="12px" />
           </router-link>
@@ -85,7 +85,7 @@
       <!-- === QUEUE cell (desktop row 2; mobile toggled) === -->
       <div v-if="(!activeFilter && isDesktop) || (!activeFilter && viewMode === 'queue')" :class="isDesktop ? 'mondrian-cell mondrian-cell--queue' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop">
-          TASK QUEUE
+          {{ t('sections.taskQueue') }}
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addEntry" />
         </div>
         <queue-list />
@@ -100,29 +100,29 @@
           <div class="activity-stats" :class="{ 'activity-stats--driver': isDriver }">
             <div class="activity-stat">
               <span class="activity-stat-num">{{ queueStats.pending }}</span>
-              <span class="activity-stat-label">PENDING</span>
+              <span class="activity-stat-label">{{ t('queue.status.pending').toUpperCase() }}</span>
             </div>
             <div class="activity-stat">
               <span class="activity-stat-num">{{ queueStats.claimed }}</span>
-              <span class="activity-stat-label">CLAIMED</span>
+              <span class="activity-stat-label">{{ t('queue.status.claimed').toUpperCase() }}</span>
             </div>
             <div class="activity-stat">
               <span class="activity-stat-num">{{ queueStats.transit }}</span>
-              <span class="activity-stat-label">IN TRANSIT</span>
+              <span class="activity-stat-label">{{ t('queue.status.inTransit').toUpperCase() }}</span>
             </div>
             <div class="activity-stat">
               <span class="activity-stat-num">{{ queueStats.delivered }}</span>
-              <span class="activity-stat-label">DELIVERED</span>
+              <span class="activity-stat-label">{{ t('queue.status.delivered').toUpperCase() }}</span>
             </div>
             <div v-if="isStocker" class="activity-stat activity-stat--stocked">
               <span class="activity-stat-num">{{ queueStats.stocked }}</span>
-              <span class="activity-stat-label">STOCKED</span>
+              <span class="activity-stat-label">{{ t('queue.status.stocked').toUpperCase() }}</span>
             </div>
           </div>
 
           <!-- Driver: recent community items -->
           <div v-if="isDriver && filteredEntries.length" class="activity-feed">
-            <div class="activity-feed-label">COMMUNITY</div>
+            <div class="activity-feed-label">{{ t('sections.community') }}</div>
             <div v-for="e in filteredEntries.slice(0, 3)" :key="e.id" class="activity-feed-row">
               <q-icon :name="entryIcon(e.type)" size="13px" :style="{ color: entryColor(e.type) }" />
               <span class="activity-feed-desc">{{ e.description.slice(0, 55) }}</span>
@@ -136,7 +136,7 @@
             <div v-if="pantryAbout.tagline" class="community-panel-tagline">{{ pantryAbout.tagline }}</div>
             <div v-if="pantryAbout.about" class="community-panel-about">{{ pantryAbout.about }}</div>
             <div v-if="activeEntries.length" class="community-panel-needs">
-              <div class="community-panel-needs-label">COMMUNITY NEEDS</div>
+              <div class="community-panel-needs-label">{{ t('needs.communityFeed') }}</div>
               <div v-for="e in activeEntries.filter(e => e.type === 'need').slice(0, 3)" :key="e.id" class="community-panel-need-row">
                 <q-icon name="volunteer_activism" size="12px" style="color: var(--wb-negative)" />
                 <span>{{ e.description.slice(0, 60) }}</span>
@@ -158,11 +158,11 @@
       <!-- === LOCATIONS cell === -->
       <div v-if="activeFilter === 'contacts' || (!activeFilter && (isDesktop || viewMode === 'directory'))" :class="(isDesktop && !activeFilter) ? 'mondrian-cell mondrian-cell--locations' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop && !activeFilter">
-          LOCATIONS
+          {{ t('sections.locations') }}
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addLocation" />
         </div>
         <template v-if="isDesktop || viewMode === 'directory'">
-          <div v-if="!isDesktop" class="section-label">LOCATIONS</div>
+          <div v-if="!isDesktop" class="section-label">{{ t('sections.locations') }}</div>
 
           <!-- Seed locations -->
           <div v-for="loc in seedLocations" :key="loc.id" class="loc-row">
@@ -231,11 +231,11 @@
       <!-- === DIRECTORY cell === -->
       <div v-if="activeFilter === 'contacts' || (!activeFilter && (isDesktop || viewMode === 'directory'))" :class="(isDesktop && !activeFilter) ? 'mondrian-cell mondrian-cell--directory' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop && !activeFilter">
-          DIRECTORY
+          {{ t('sections.directory') }}
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addContact" />
         </div>
         <template v-if="isDesktop || viewMode === 'directory'">
-          <div v-if="!isDesktop" class="section-label q-mt-sm">DIRECTORY</div>
+          <div v-if="!isDesktop" class="section-label q-mt-sm">{{ t('sections.directory') }}</div>
           <div v-for="c in allContacts" :key="c.id" class="contact-row">
             <div class="contact-dot" :style="{ background: c.dotColor }" />
             <div class="contact-text">
@@ -261,12 +261,12 @@
       <!-- === COMMUNITY cell === -->
       <div v-if="isCommunityFilter || (!activeFilter && (isDesktop || viewMode === 'directory'))" :class="(isDesktop && !activeFilter) ? 'mondrian-cell mondrian-cell--community' : ''">
         <div class="mondrian-cell-header" v-if="isDesktop && !activeFilter">
-          COMMUNITY
+          {{ t('sections.community') }}
           <q-btn v-if="store.canEdit" flat round dense icon="add" size="xs" class="cell-add-btn" @click="addEntry" />
         </div>
         <template v-if="isDesktop || viewMode === 'directory'">
           <div v-if="!isDesktop && filteredEntries.length > 0" class="section-label q-mt-sm">
-            {{ isCommunityFilter ? filterLabel(activeFilter!) : 'COMMUNITY' }}
+            {{ isCommunityFilter ? filterLabel(activeFilter!) : t('sections.community') }}
           </div>
           <div v-for="entry in filteredEntries" :key="entry.id" class="entry-row">
             <q-icon :name="entryIcon(entry.type)" size="18px" :style="{ color: entryColor(entry.type) }" class="entry-type-icon" />
@@ -327,8 +327,8 @@
           {{ deleteTarget ? deleteTarget.name.first + ' ' + deleteTarget.name.last : '' }}
         </q-card-section>
         <q-card-actions align="right" class="confirm-actions">
-          <q-btn flat no-caps label="Cancel" class="confirm-cancel" v-close-popup />
-          <q-btn flat no-caps label="Delete" class="confirm-delete" @click="doDelete" />
+          <q-btn flat no-caps :label="t('actions.cancel')" class="confirm-cancel" v-close-popup />
+          <q-btn flat no-caps :label="t('actions.delete')" class="confirm-delete" @click="doDelete" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -341,8 +341,8 @@
           {{ deleteLocTarget ? deleteLocTarget.name : '' }}
         </q-card-section>
         <q-card-actions align="right" class="confirm-actions">
-          <q-btn flat no-caps label="Cancel" class="confirm-cancel" v-close-popup />
-          <q-btn flat no-caps label="Delete" class="confirm-delete" @click="doDeleteLoc" />
+          <q-btn flat no-caps :label="t('actions.cancel')" class="confirm-cancel" v-close-popup />
+          <q-btn flat no-caps :label="t('actions.delete')" class="confirm-delete" @click="doDeleteLoc" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -354,8 +354,8 @@
           {{ deleteEntryTarget?.description?.slice(0, 60) }}
         </q-card-section>
         <q-card-actions align="right" class="confirm-actions">
-          <q-btn flat no-caps label="Cancel" class="confirm-cancel" v-close-popup />
-          <q-btn flat no-caps label="Delete" class="confirm-delete" @click="doDeleteEntry" />
+          <q-btn flat no-caps :label="t('actions.cancel')" class="confirm-cancel" v-close-popup />
+          <q-btn flat no-caps :label="t('actions.delete')" class="confirm-delete" @click="doDeleteEntry" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -366,6 +366,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useTranslate as useI18n } from 'src/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAddressStore } from '../store/store';
 import QueueList from '../components/QueueList.vue';
@@ -380,6 +381,7 @@ import type { Address, Entry, Location, TransportSize } from '../models';
 const store = useAddressStore();
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const viewMode = ref('directory');
 
 // Watch route query for view param (set by MainLayout after drawer ADD)
@@ -437,15 +439,15 @@ const roleGridClass = computed(() => {
 });
 
 const myTasksLabel = computed(() => {
-  if (isDriver.value)  return 'MY DELIVERIES';
-  if (isStocker.value) return 'MY SHIFTS';
-  return 'MY TASKS';
+  if (isDriver.value)  return t('queue.myDeliveries');
+  if (isStocker.value) return t('queue.myShifts');
+  return t('queue.myTasks');
 });
 
 const activityLabel = computed(() => {
-  if (isDriver.value)  return 'TEAM ACTIVITY';
-  if (isStocker.value) return 'PANTRY STATUS';
-  return 'ACTIVITY';
+  if (isDriver.value)  return t('sections.teamActivity');
+  if (isStocker.value) return t('sections.pantryStatus');
+  return t('sections.activity');
 });
 
 // My active tasks (claimed or in_transit by the current user)
@@ -459,10 +461,13 @@ const myActiveTasks = computed(() =>
 
 function statusLabel(s: string): string {
   const map: Record<string, string> = {
-    pending: 'PENDING', claimed: 'CLAIMED',
-    in_transit: 'IN TRANSIT', delivered: 'DELIVERED', stocked: 'STOCKED',
+    pending:    t('queue.status.pending'),
+    claimed:    t('queue.status.claimed'),
+    in_transit: t('queue.status.inTransit'),
+    delivered:  t('queue.status.delivered'),
+    stocked:    t('queue.status.stocked'),
   };
-  return map[s] || s;
+  return (map[s] || s).toUpperCase();
 }
 
 // Pantry about text for viewer community panel

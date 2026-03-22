@@ -693,20 +693,21 @@ function checkSavedData() {
   }
 }
 
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+function requireSim(id: string) {
+  const s = SIMULATIONS.find(sim => sim.id === id);
+  if (!s) throw new Error(`Simulation "${id}" not found`);
+  return s;
+}
+
 // The two demo simulations surfaced in the UI (the others remain available via loadSimulation(id))
 const DEMO_SIMS = [
-  {
-    ...SIMULATIONS.find(s => s.id === 'inventory-manager')!,
-    icon: 'inventory_2',
-  },
-  {
-    ...SIMULATIONS.find(s => s.id === 'driver-notify')!,
-    icon: 'notifications_active',
-  },
-  {
-    ...SIMULATIONS.find(s => s.id === 'logistics14day')!,
-    icon: 'local_shipping',
-  },
+  { ...requireSim('inventory-manager'), icon: 'inventory_2' },
+  { ...requireSim('driver-notify'),     icon: 'notifications_active' },
+  { ...requireSim('logistics14day'),    icon: 'local_shipping' },
 ];
 
 const activeSimName = computed(() => {
@@ -727,13 +728,6 @@ const envAnonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string || '';
 const envDeployUrl   = import.meta.env.VITE_DEPLOY_URL as string || '';
 const envRepoUrl     = import.meta.env.VITE_REPO_URL as string || '';
 
-const supabaseProjectRef = computed(() => {
-  if (!envSupabaseUrl) return '';
-  try { return new URL(envSupabaseUrl).hostname.split('.')[0]; } catch { return envSupabaseUrl; }
-});
-const maskedAnonKey = computed(() =>
-  envAnonKey ? envAnonKey.slice(0, 18) + '···' : '',
-);
 
 const webhookUrl      = ref(localStorage.getItem('wb-webhook-url') || '');
 const webhookSecret   = ref('');   // never persisted to localStorage — DB only
@@ -899,8 +893,8 @@ async function handleLoadSim(id: string) {
         ? `"${sim.name}" loaded — ${sim.contacts.length} people, ${sim.locations.length} locations, ${sim.entries.length} entries.`
         : 'Demo loaded.',
     });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to load demo.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Failed to load demo.' });
   } finally {
     loadingDemo.value = false;
     loadingSimId.value = '';
@@ -913,8 +907,8 @@ async function handleRestoreLocal() {
     await store.clearDemoMode();
     savedDataExists.value = false;
     $q.notify({ color: 'positive', icon: 'history', message: 'Your data has been restored.' });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to restore data.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Failed to restore data.' });
   } finally {
     loadingDemo.value = false;
   }
@@ -925,8 +919,8 @@ async function handleClearDemo() {
   try {
     await store.clearDemoMode();
     $q.notify({ color: 'positive', icon: 'clear_all', message: 'Demo data cleared. Your real data is intact.' });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to clear demo.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Failed to clear demo.' });
   } finally {
     loadingDemo.value = false;
   }
@@ -948,8 +942,8 @@ async function handleExport() {
     a.click();
     URL.revokeObjectURL(url);
     $q.notify({ color: 'positive', icon: 'download', message: 'Data exported successfully.' });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Export failed.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Export failed.' });
   } finally {
     exporting.value = false;
   }
@@ -988,8 +982,8 @@ async function handleImportFile(event: Event) {
       message: `Imported: ${parts}${store.userOrgId ? ' — synced to cloud' : ''}`,
       timeout: 5000,
     });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: 'Import failed — ' + (e.message || 'check the file format.') });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: 'Import failed — ' + (errMsg(e) || 'check the file format.') });
   } finally {
     importing.value = false;
   }
@@ -1005,8 +999,8 @@ async function handleSyncAll() {
       icon: 'cloud_done',
       message: `Synced ${result.synced} items.${result.errors ? ` ${result.errors} errors.` : ''}`,
     });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Sync failed.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Sync failed.' });
   } finally {
     syncing.value = false;
   }
@@ -1017,8 +1011,8 @@ async function handleClearStore(storeName: 'addressStore' | 'entryStore' | 'loca
     await store.clearSingleStore(storeName);
     const labels = { addressStore: 'Contacts', entryStore: 'Entries', locationStore: 'Locations' };
     $q.notify({ color: 'positive', message: `${labels[storeName]} cleared.` });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to clear.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Failed to clear.' });
   }
 }
 
@@ -1053,8 +1047,8 @@ async function saveEmailPrefs() {
       .eq('id', user.id);
     if (error) throw error;
     $q.notify({ color: 'positive', message: 'Email preferences saved.' });
-  } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message || 'Failed to save.' });
+  } catch (e: unknown) {
+    $q.notify({ color: 'negative', message: errMsg(e) || 'Failed to save.' });
   } finally {
     savingEmail.value = false;
   }

@@ -41,6 +41,7 @@ export interface Entry {
   calendarRecurrence?: CalendarRecurrence;
   calendarVisibility?: CalendarVisibility[];
   calendarLocationId?: string;
+  calendarRuleId?: string;
   requesterEmail?: string;
 }
 
@@ -52,10 +53,28 @@ export interface Location {
   id: string;
   name: string;
   schedule: DayOfWeek[];
+  calendarVisibility?: CalendarVisibility[];
   contact: string;
   phone: string;
   resources: string[];
   transportSize: TransportSize;
+  notes?: string;
+  createdAt: string;
+}
+
+export type RuleCategory = 'pantry' | 'volunteer' | 'delivery' | 'meeting' | 'other';
+
+export interface CalendarRule {
+  id: string;
+  label: string;
+  recurrence: CalendarRecurrence;
+  days: DayOfWeek[];
+  monthDay?: number;        // 1-28, for monthly recurrence
+  startTime?: string;       // HH:MM
+  endTime?: string;         // HH:MM
+  visibility: CalendarVisibility[];
+  category: RuleCategory;
+  active: boolean;
   notes?: string;
   createdAt: string;
 }

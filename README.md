@@ -1,10 +1,11 @@
-# Worldbridger Pantry
+# Funky Pony Pantry
 
-**Community resource sharing with full data autonomy.**
+**Community food pantry coordination with full data autonomy.**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883)](https://vuejs.org)
 [![Quasar](https://img.shields.io/badge/Quasar-2-1976D2)](https://quasar.dev)
+[![Tests](https://img.shields.io/badge/tests-287%20passing-brightgreen)](#testing)
 
 A GPL-licensed, local-first food pantry coordination platform. Track needs, coordinate pickups, manage volunteers, and share resources — all while keeping each community in full control of their own data. Runs entirely offline by default; cloud sync via Supabase or Appwrite is additive and optional.
 
@@ -16,7 +17,7 @@ A GPL-licensed, local-first food pantry coordination platform. Track needs, coor
 
 | Platform | Button |
 |----------|--------|
-| **Vercel** (+ Supabase) | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/biomassives/foodbank&env=VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY&envDescription=Supabase+project+keys&project-name=worldbridger-pantry) |
+| **Vercel** (+ Supabase) | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/biomassives/foodbank&env=VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY&envDescription=Supabase+project+keys&project-name=funky-pony-pantry) |
 | **Netlify** (+ Supabase) | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/biomassives/foodbank) |
 | **Appwrite** (self-sovereign) | [→ Appwrite Deployment Guide](docs/appwrite-deployment.md) |
 | **Local only** | Clone + `npm install` + `quasar dev` — no keys needed |
@@ -35,8 +36,8 @@ A GPL-licensed, local-first food pantry coordination platform. Track needs, coor
 - [Edge Functions](#edge-functions)
 - [Data Model](#data-model)
 - [Internationalization](#internationalization)
+- [Testing](#testing)
 - [Agent API](#agent-api)
-- [E2E Tests](#e2e-tests)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -118,7 +119,7 @@ Live browser walkthroughs recorded by Puppeteer during e2e test runs — every f
 
 → [In-app documentation at /docs](src/pages/DocsPage.vue) (browse at `your-deployment.example.com/docs`)
 
-Worldbridger Pantry is a web app for coordinating food pantry operations end-to-end:
+Funky Pony Pantry is a web app for coordinating food pantry operations end-to-end:
 
 - **Members** browse the community board, post needs and offerings, and check pantry hours
 - **Drivers** claim pickup runs from the queue and track deliveries to completion
@@ -167,9 +168,12 @@ See [docs/appwrite-deployment.md](docs/appwrite-deployment.md).
 | `/` | Home — directory, queue, entries | Public |
 | `/info` | Pantry info page (hours, location, community board) | Public |
 | `/calendar` | 12-week rolling calendar | Public |
+| `/calendar-rules` | Calendar rule editor (recurring events) | Admin / editor |
 | `/logistics` | Live dispatch hub diagram | Logged in |
 | `/docs` | In-app documentation | Public |
+| `/mcp-docs` | MCP & Chat Ops guide | Public |
 | `/recordings` | Puppeteer test recording gallery | Public |
+| `/tests` | Live test results dashboard | Public |
 | `/profile` | My profile + Needs & Items board | Logged in |
 | `/settings` | Preferences, export/import, locale | All |
 | `/admin` | Admin panel (all tabs) | Admin only |
@@ -179,6 +183,7 @@ See [docs/appwrite-deployment.md](docs/appwrite-deployment.md).
 | `/terms` | Terms & conditions | Public |
 | `/launch` | Run your own pantry | Public |
 | `/wizard` | Guided setup wizard | Public |
+| `/audio` | Audio sequence builder | All |
 
 ---
 
@@ -214,9 +219,11 @@ See [docs/appwrite-deployment.md](docs/appwrite-deployment.md).
 ### Developer
 
 - **E8 ZK Lattice** — `src/lib/e8-integrity/` — zero-knowledge commitment layer; HKDF-SHA256 → 8 Chern roots → θ commitment; adapters for Supabase, IndexedDB, Mongoose; C cross-language vectors at 0 ULP
+- **GNU Pony mascot** — `src/components/GnuPonyIcon.vue` — inline SVG hybrid of the Heckert GNU and a Funky Pony; theme-adaptive star constellation fabric; used in footer, TDD banner, and email invites (`public/gnu-pony.svg` for static email embed)
 - **Email Preview** — `public/email-preview.html` — proof all 9 MTS email types side-by-side with current/proposed toggle
 - **Daily Digest Email** — morning network status with queue counts, today's locations, and community board summary
 - **Themes** — dark / light / bauhaus / mondrian-dawn; auto-applies at 6–9am; full `--wb-*` CSS design token set
+- **Live test dashboard** — `/tests` page shows passing counts live from `public/test-results.json`; homepage carousel fetches the same file so the displayed count updates automatically on each test run
 
 ---
 
@@ -336,25 +343,159 @@ const { t, locale } = useI18n();
 | `es` | Spanish  | Español | ~560 M | `src/i18n/es.ts` |
 | `sw` | Swahili  | Kiswahili | ~200 M | `src/i18n/sw.ts` |
 
-All three packs are **complete** — every key namespace is covered: `app`, `onboard`, `wizard`, `nav`, `entries`, `sections`, `status`, `actions`, `settings`, `welcome`, `notifications`, `integrations`, `queue`, `needs`, `admin.tabs`, `export`, `locale`, `agent`.
+All three packs are **complete and structurally identical** — the `LangPack = typeof en` constraint enforced by TypeScript means any missing or extra key in `es.ts` or `sw.ts` is a compile error. All namespaces are covered:
 
-Each pack satisfies the `LangPack` type exported from `en.ts` — TypeScript enforces full coverage at compile time, making new translations straightforward to review.
+| Namespace | What it covers |
+|-----------|---------------|
+| `app` | Brand name, tagline, about text |
+| `onboard` | Login, join, create pantry flows |
+| `wizard` | Setup wizard steps and mode descriptions |
+| `nav` | Drawer navigation labels, role badges (admin/editor/driver/stocker/member/localAdmin/demo) |
+| `entries` | Entry type labels, captions, all form field labels, modal headers, attach section |
+| `actions` | Save/cancel/delete/edit + validation messages (required, minChars, lettersOnly, invalidEmail, invalidPhone) |
+| `sections` | Section headers |
+| `status` | Sync/local/signed-in/visitor status pills |
+| `settings` | All settings page labels, theme names, integration fields |
+| `welcome` | Welcome dialog and onboarding card copy |
+| `notifications` | Notification bell strings |
+| `integrations` | Integration credential feedback |
+| `queue` | Queue status pipeline + filter chips |
+| `needs` | Needs board bins and community feed |
+| `admin.tabs` | All admin panel tab labels |
+| `export` | Export/import UI copy |
+| `locale` | Language picker labels |
+| `docs` | All doc group and item labels |
+| `agent` | Agent API UI labels |
+| `days` / `months` | Localised day and month abbreviations and full names |
+| `auth` | Full sign-in / join / magic-link flow |
+| `calendar` | Calendar page, rules editor, categories, recurrence options |
+| `logistics` | Logistics page, pipeline, hub diagram, all actions |
+| `profile` | Profile form, availability slots, groups, invite link |
+| `ops` | Pantry info page copy |
+| `sync` | Sync toggle labels and status messages |
+| `notify` | All toast and inline notification strings |
+
+**Key coverage: forms and menus are fully translated.** The join/login form (`LoginPage.vue`), quick-add modal (`EntryModal.vue`), and navigation drawer (`MainLayout.vue`) all use `t.value.*` — switching locale in Settings immediately affects every label, placeholder, validation message, and toast.
 
 **Adding a new locale:**
 
 1. Copy `src/i18n/en.ts` → `src/i18n/xx.ts` and translate every value
-2. Add `{ code: 'xx', label: '...', native: '...', flag: '🏳' }` to `localeOptions` in `SettingsPage.vue`
-3. Add a lazy-load branch to `switchLocale()` in the same file
+2. Import it in `src/i18n/index.ts` and add to the `packs` object
+3. Add `{ code: 'xx', label: '...', native: '...', flag: '🏳' }` to `localeOptions` in `SettingsPage.vue`
 4. Add `xx: 'Native Name'` to the `locale` section of all existing packs
 
 ```ts
-// runtime API (e.g. for plugins or community editions)
+// Runtime API (e.g. for plugins or community editions)
 import { registerLangPack, setLocale } from 'src/i18n';
 registerLangPack('fr', frPack);
 setLocale('fr');
 ```
 
-The locale switcher is in **Settings** (`/settings`). Locale is persisted to `localStorage['locale']` and restored on boot via `src/boot/pinia.ts`.
+The locale switcher is in **Settings** (`/settings`). Locale persists to `localStorage['locale']` and is restored on boot via `src/boot/pinia.ts`.
+
+---
+
+## Testing
+
+### Unit & Integration — 287 tests, 19 suites
+
+```sh
+npm test                     # run all unit/integration tests
+npm test -- --watch          # watch mode
+```
+
+The count shown on the homepage carousel and at `/tests` is read live from `public/test-results.json`. Regenerate it after a test run:
+
+```sh
+npx jest --json --outputFile=public/test-results.json
+```
+
+**Test suites:**
+
+| Suite | Tests | What it covers |
+|-------|-------|---------------|
+| `tests/unit/i18n.test.ts` | 19 | Key parity (en/es/sw), value types, docs.items, queue.status, admin.tabs |
+| `tests/sprint3/calendar-rules.test.ts` | 46 | Calendar rule builder — DST-safe date arithmetic |
+| `tests/sprint3/` (other) | ~120 | Queue pipeline, entry CRUD, location schedules, sync |
+| `tests/sprint1/` | ~102 | Address book, realtime, listing, data model |
+
+### E2E — 13 suites, Puppeteer
+
+```sh
+npm run test:e2e                          # all e2e against local dev server
+npm run test:e2e -- --testPathPattern=smoke   # single suite
+BASE_URL=https://ward.funkypony.space npm run test:e2e  # against deployment
+npm run test:e2e:record                   # regenerate all 4 mp4 recordings
+```
+
+**Functional suites:**
+
+| Suite | What it covers |
+|-------|---------------|
+| `smoke.test.ts` | Critical path: homepage, /info, /calendar, /login all 200 OK |
+| `auth.test.ts` | Login flow, session persistence, sign-out, route guard redirects |
+| `routing.test.ts` | All 19 public routes resolve; protected routes redirect unauthenticated users |
+| `workflows.test.ts` | Role workflows: public visitor, localMode admin, driver/stocker, invite flow |
+| `admin-workflows.test.ts` | ANNOUNCE (compose/stage/send), INVITES (create + email), LAUNCH probe |
+| `platform.test.ts` | IndexedDB persistence, localStorage keys, offline-first behaviour |
+| `storage.test.ts` | Export JSON, import merge, settings restore, error paths |
+| `data-portability.test.ts` | Full data export/import round-trip |
+
+**Recording suites** (output goes to `recordings/`):
+
+| Suite | Recording | Persona |
+|-------|-----------|---------|
+| `record-public-visitor.test.ts` | `public-visitor.mp4` | Unauthenticated visitor — homepage, /info, /calendar, /docs, /launch, /join |
+| `record-admin-tour.test.ts` | `admin-tour.mp4` | Admin — all SILO MANAGER panel tabs including Oracle E8 visualizer |
+| `record-driver-logistics.test.ts` | `driver-logistics.mp4` | Driver/stock — logistics hub, pipeline lanes, role filters, calendar |
+| `record-role-workflows.test.ts` | `login-role-workflows.mp4` | Session lifecycle — sign-in, role gating, admin tabs, sign-out |
+
+Browse the recordings at [/recordings](https://www.funkypony.space/recordings).
+
+---
+
+## Project Structure
+
+```
+src/
+  pages/           # route-level views (19 pages)
+  components/
+    GnuPonyIcon.vue          # GNU × Pony mascot — star constellation SVG, theme-adaptive
+    WelcomeCarousel.vue      # homepage carousel — live test count from test-results.json
+    AppFooter.vue            # bar + drawer variants with GPL mascot link
+    childcomponents/         # EntryModal, LocationModal, SketchPad
+  layouts/         # MainLayout (drawer + header + router-view)
+  store/store.ts   # Pinia store — all reads/writes
+  models/index.ts  # TypeScript types (Entry, Location, etc.)
+  i18n/
+    en.ts          # canonical English pack + LangPack type
+    es.ts          # Spanish — full structural parity with en.ts
+    sw.ts          # Kiswahili — full structural parity with en.ts
+    index.ts       # useI18n() composable, setLocale(), registerLangPack()
+  utils/           # calendar.ts, date helpers
+  lib/e8-integrity/ # crypto commitment layer (adapters + crypto)
+  boot/            # supabase init, pinia (locale restore on boot)
+  css/             # themes.scss (4 themes + --wb-* tokens)
+public/
+  test-results.json          # jest --json output — read by carousel + /tests page
+  email-preview.html         # proof all MTS email templates
+  gnu-pony.svg               # static mascot for email embeds (hardcoded colours)
+  funlyponyspace_pogo.webp   # org logo
+  recordings/                # mp4 recordings served at /recordings/*
+supabase/
+  migrations/      # SQL schema files (ordered by date)
+  functions/       # Deno edge functions (mts, claim-invite, daily-digest, mailgun-webhook)
+docs/
+  funky-pony-explainer.md    # plain-language community guide
+  appwrite-deployment.md     # Appwrite alternative backend setup
+  agent-api.md               # Agent interoperability API reference
+tests/
+  unit/            # i18n parity tests
+  sprint1/         # address book, realtime
+  sprint3/         # calendar rules (DST-safe)
+  e2e/             # Puppeteer functional + recording suites (13 files)
+recordings/        # raw mp4 output from record-*.test.ts (git-ignored)
+```
 
 ---
 
@@ -383,78 +524,6 @@ Category vector dimensions (E8 basis): `[grains, proteins, produce, dairy, prepa
 
 ---
 
-## E2E Tests
-
-Puppeteer + jest-puppeteer. All tests run against a live app (local dev server or remote URL).
-
-```sh
-# Run all e2e tests against local dev server
-npm run test:e2e
-
-# Run against a deployment
-BASE_URL=https://ward.funkypony.space npm run test:e2e
-
-# Generate recordings only (fast — skips functional suites)
-npm run test:e2e:record
-```
-
-**Functional suites:**
-
-| Suite | What it covers |
-|-------|---------------|
-| `smoke.test.ts` | Critical path smoke: homepage, /info, /calendar, /login all 200 OK |
-| `auth.test.ts` | Login flow, session persistence, sign-out, route guard redirects |
-| `routing.test.ts` | All public routes resolve; protected routes redirect unauthenticated users |
-| `workflows.test.ts` | Role workflows: public visitor, localMode admin, driver/stocker, invite flow |
-| `admin-workflows.test.ts` | ANNOUNCE (compose/stage/send), INVITES (create + email), LAUNCH probe |
-| `platform.test.ts` | IndexedDB persistence, localStorage keys, offline-first behaviour |
-| `storage.test.ts` | Export JSON, import merge, settings restore, error paths |
-| `data-portability.test.ts` | Full data export/import round-trip |
-
-**Recording suites** (output goes to `recordings/` + `public/recordings/`):
-
-| Suite | Recording | Persona |
-|-------|-----------|---------|
-| `record-public-visitor.test.ts` | `public-visitor.mp4` | Unauthenticated visitor — homepage, /info, /calendar, /docs, /launch, /join, /recordings |
-| `record-admin-tour.test.ts` | `admin-tour.mp4` | Admin — all SILO MANAGER panel tabs including Oracle E8 visualizer |
-| `record-driver-logistics.test.ts` | `driver-logistics.mp4` | Driver/stock — logistics hub, pipeline lanes, role filters, calendar |
-| `record-role-workflows.test.ts` | `login-role-workflows.mp4` | Session lifecycle — sign-in, role gating, admin tabs, sign-out |
-
-Browse the recordings at [/recordings](https://www.funkypony.space/recordings).
-
----
-
-## Project Structure
-
-```
-src/
-  pages/           # route-level views (14 pages)
-  components/      # shared UI components
-  layouts/         # MainLayout (drawer + header + router)
-  store/store.ts   # Pinia store — all reads/writes
-  models/index.ts  # TypeScript types (Entry, Location, etc.)
-  i18n/            # en.ts, es.ts, sw.ts + composable (lazy-loaded)
-  utils/           # calendar.ts, date helpers
-  lib/e8-integrity/ # crypto commitment layer (adapters + crypto)
-  boot/            # supabase init, pinia
-  css/             # themes.scss (4 themes + --wb-* tokens)
-public/
-  email-preview.html       # proof all MTS email templates
-  funlyponyspace_pogo.webp # org logo
-  recordings/              # mp4 recordings served at /recordings/*
-supabase/
-  migrations/      # SQL schema files (ordered by date)
-  functions/       # Deno edge functions
-docs/
-  funky-pony-explainer.md    # plain-language community guide
-  appwrite-deployment.md     # Appwrite alternative backend setup
-  agent-api.md               # Agent interoperability API reference
-tests/e2e/         # Puppeteer e2e suite (functional + recording)
-recordings/        # raw mp4 output from record-*.test.ts (git-ignored)
-```
-
----
-
 ## Contributing
 
 Issues and PRs welcome at **https://github.com/biomassives/foodbank/issues**
@@ -465,6 +534,7 @@ Conventions:
 - No `--no-verify` or lint bypasses
 - Keep components focused — no premature abstractions
 - Security: no SQL injection, XSS, or secrets in commits
+- All three lang packs (`en`, `es`, `sw`) must remain structurally identical — add keys to all three or TypeScript will fail
 
 ---
 
@@ -472,7 +542,7 @@ Conventions:
 
 **GPL-3.0** — free to use, modify, and redistribute. All derivatives must remain open source.
 
-Maintained by **Worldbridger Pantry**. First deployment: **Ward Food Pantry**, Boulder County, CO.
+Maintained by **Funky Pony Pantry**. First deployment: **Ward Food Pantry**, Boulder County, CO.
 
 ---
 

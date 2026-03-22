@@ -5,7 +5,11 @@
       <div class="app-footer-left">
         <span class="app-footer-copy">&copy; Ward Food Pantry</span>
         <span class="app-footer-sep">&middot;</span>
-        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" class="app-footer-link">GPL-3.0</a>
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer"
+           class="app-footer-link app-footer-gpl" title="GPL-3.0 Free Software License">
+          <GnuPonyIcon :size="20" :stars="false" label="GPL-3.0" />
+          <span>GPL-3.0</span>
+        </a>
       </div>
 
       <div class="app-footer-center">
@@ -68,16 +72,25 @@
         <span class="app-footer-sep">&middot;</span>
         <a href="https://gitlab.com/foodpantry/ward" target="_blank" rel="noopener noreferrer" class="app-footer-drawer-link">GitLab</a>
       </div>
-      <div class="app-footer-drawer-lic">GPL-3.0 open source</div>
+      <div class="app-footer-drawer-lic">
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer"
+           class="app-footer-drawer-gpl" title="GPL-3.0 Free Software License">
+          <GnuPonyIcon :size="16" :stars="false" label="GPL-3.0" />
+          <span>GPL-3.0 open source</span>
+        </a>
+      </div>
     </template>
 
   </div>
 </template>
 
 <script setup lang="ts">
+import GnuPonyIcon from './GnuPonyIcon.vue';
+import { useI18n } from 'src/i18n';
 withDefaults(defineProps<{ variant?: 'bar' | 'drawer' }>(), { variant: 'bar' });
 
-const appName = 'Ward Food Pantry';
+const { t } = useI18n();
+const appName = t.value.app.name;
 </script>
 
 <style scoped>
@@ -134,6 +147,12 @@ const appName = 'Ward Food Pantry';
 .app-footer-link:hover {
   color: var(--wb-accent);
   text-decoration: underline;
+}
+
+.app-footer-gpl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .app-footer-extlink {
@@ -196,5 +215,18 @@ const appName = 'Ward Food Pantry';
   letter-spacing: 1px;
   color: var(--wb-text-faint);
   opacity: 0.6;
+}
+
+.app-footer-drawer-gpl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+
+.app-footer-drawer-gpl:hover {
+  opacity: 1;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
-  <q-dialog v-model="show" persistent :maximized="$q.screen.lt.sm">
-    <q-card class="welcome-card" :class="{ 'welcome-card--mobile': $q.screen.lt.sm }">
+  <q-dialog v-model="show" persistent :maximized="$q.screen.width <= 720">
+    <q-card class="welcome-card" :class="{ 'welcome-card--mobile': $q.screen.width <= 720 }">
 
       <!-- Carousel -->
       <q-carousel
@@ -10,7 +10,8 @@
         swipeable animated
         control-color="accent"
         navigation padding arrows
-        :height="$q.screen.lt.sm ? 'calc(100dvh - 148px)' : '200px'"
+        :autoplay="3500"
+        :height="$q.screen.width <= 720 ? 'calc(100dvh - 148px)' : '200px'"
         class="welcome-carousel"
       >
 
@@ -566,11 +567,6 @@ const show = computed({
 function dismiss() {
   localStorage.setItem('wb-welcomed', 'true');
   show.value = false;
-}
-
-function goLogin() {
-  dismiss();
-  router.push('/login');
 }
 
 function goInfo() {

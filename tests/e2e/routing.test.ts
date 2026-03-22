@@ -22,6 +22,10 @@ const APP_ROUTES = [
   '/profile',
   '/admin',
   '/join',
+  '/docs',
+  '/mcp-docs',
+  '/terms',
+  '/launch',
 ];
 
 describe('SPA Routing — deep-link rewrites', () => {

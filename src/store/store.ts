@@ -106,7 +106,7 @@ export const useAddressStore = defineStore('address', () => {
 
   const userOrgId = computed(() => state.userOrgId);
   const isLoggedIn = computed(() => !!state.user);
-  const userEmail = computed(() => (state.user as any)?.email as string | null ?? null);
+  const userEmail = computed(() => (state.user as { email?: string } | null)?.email ?? null);
   const localMode = computed(() => !!localStorage.getItem('localMode'));
   const canSync = computed(() => !!state.userOrgId);
   const demoMode = computed(() => !!localStorage.getItem('demoMode'));

@@ -60,7 +60,8 @@ module.exports = configure(function (/* ctx */) {
       publicPath: '/',     // Ensure assets are referenced correctly
       vueRouterBase: '/', // This ensures the router knows its home
       target: {
-        browser: [ 'es2022', 'edge100', 'firefox100', 'chrome100', 'safari15.4' ],
+        // CSS nesting support: Chrome 112, Edge 112, Firefox 117, Safari 16.5 (all 2023)
+        browser: [ 'es2022', 'edge112', 'firefox117', 'chrome112', 'safari16.5' ],
         node: 'node20'
       },
       vueRouterMode: 'history', // available values: 'hash', 'history'

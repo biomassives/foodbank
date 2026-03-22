@@ -3,12 +3,23 @@ ALTER DATABASE postgres SET "app.settings.service_role_key" TO 'local-dev-key';
 
 -- 2. ORGANIZATIONS (With Webhook Target)
 -- We add a local webhook URL (e.g., a RequestBin or local server) to test the 'webhook' transport
-INSERT INTO public.organizations (id, name, webhook_url, webhook_secret)
+INSERT INTO public.organizations (id, name, webhook_url, webhook_secret, branding)
 VALUES (
-  '00000000-0000-0000-0000-000000000001', 
-  'Funky Pony Pantry', 
+  '00000000-0000-0000-0000-000000000001',
+  'Funky Pony Pantry',
   'http://localhost:8080/webhook-test',
-  'pony_secret_123'
+  'pony_secret_123',
+  '{
+    "logoUrl":     "https://ward.funkypony.space/funlyponyspace_pogo.webp",
+    "logoWidth":   220,
+    "logoHeight":  110,
+    "logoBg":      "#FFF9F2",
+    "mondrian":    ["#E2725B", "#F9A602", "#4A5D66", "#2C2420"],
+    "accentColor": "#FDD835",
+    "bodyBg":      "#111111",
+    "siteUrl":     "https://ward.funkypony.space",
+    "footerBrand": "Funky Pony Space"
+  }'::jsonb
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 3. AUTH USERS (Admin & Agent)

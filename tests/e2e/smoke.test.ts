@@ -6,7 +6,7 @@ import { BASE_URL, goto, collectConsoleErrors } from './helpers';
 
 describe('Smoke — App loads', () => {
   it('serves the root page with HTTP 200', async () => {
-    const response = await page.goto(BASE_URL, { waitUntil: 'networkidle0' });
+    const response = await page.goto(BASE_URL, { waitUntil: 'load' });
     // 304 Not Modified is also valid — dev server returns it on cache hits
     expect([200, 304]).toContain(response?.status());
   });
