@@ -2,27 +2,42 @@
   <q-page class="admin-page">
     <div class="admin-wrap">
 
-      <!-- Header -->
-      <div class="admin-header">
+      <!-- Tier 1: brand + mode -->
+      <div class="admin-tier1">
         <div class="admin-title">SILO MANAGER</div>
         <div class="admin-sub">
-          <span v-if="store.demoMode" class="admin-mode admin-mode--demo">DEMO</span>
-          <span v-else-if="store.localMode" class="admin-mode admin-mode--local">LOCAL</span>
-          <span v-else-if="store.canSync" class="admin-mode admin-mode--cloud">CLOUD</span>
-          <span v-else class="admin-mode">OFFLINE</span>
+          <span v-if="store.demoMode"         class="admin-mode admin-mode--demo">DEMO</span>
+          <span v-else-if="store.localMode"   class="admin-mode admin-mode--local">LOCAL</span>
+          <span v-else-if="store.canSync"     class="admin-mode admin-mode--cloud">CLOUD</span>
+          <span v-else                         class="admin-mode">OFFLINE</span>
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="admin-tabs">
+      <!-- Tier 2: section selector -->
+      <div class="admin-tier2">
         <button
-          v-for="tabItem in tabs"
+          v-for="sec in SECTIONS"
+          :key="sec.key"
+          class="admin-sec-btn"
+          :class="{ active: activeSection === sec.key }"
+          :data-sec="sec.key"
+          @click="setSection(sec.key)"
+        >
+          <q-icon :name="sec.icon" size="11px" />
+          <span>{{ sec.label }}</span>
+        </button>
+      </div>
+
+      <!-- Tier 3: tabs for the active section -->
+      <div class="admin-tier3">
+        <button
+          v-for="tabItem in visibleTabs"
           :key="tabItem.key"
           class="admin-tab"
           :class="{ active: tab === tabItem.key }"
           @click="tab = tabItem.key"
         >
-          <q-icon :name="tabItem.icon" size="14px" />
+          <q-icon :name="tabItem.icon" size="13px" />
           <span>{{ tabItem.label }}</span>
         </button>
       </div>
@@ -1163,6 +1178,229 @@
         </q-card>
       </q-dialog>
 
+      <!-- ── Queue ───────────────────────────────────────── -->
+      <div v-if="tab === 'queue'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">QUEUE</span>
+          <span class="panel-count">Waterfall dispatch · real-time</span>
+          <q-btn flat dense round icon="add" size="sm" style="margin-left:auto" title="New dispatch" @click="qDispatchOpen = true" />
+        </div>
+
+        <!-- New dispatch dialog -->
+        <q-dialog v-model="qDispatchOpen">
+          <q-card class="qdialog-card">
+            <div class="qdialog-hd">
+              <span>NEW DISPATCH</span>
+              <q-btn flat dense round icon="close" size="sm" v-close-popup />
+            </div>
+            <div class="qdialog-body">
+              <div class="qdialog-field">
+                <div class="qdialog-label">FLOW TYPE</div>
+                <select v-model="qForm.flowType" class="qdialog-select">
+                  <option value="pickup-available">Pickup Available</option>
+                  <option value="outreach-request">Materials Outreach Request</option>
+                  <option value="stocking-needed">Stocking Needed</option>
+                  <option value="emergency">Emergency Broadcast</option>
+                </select>
+              </div>
+              <div class="qdialog-field">
+                <div class="qdialog-label">TASK DETAIL</div>
+                <q-input v-model="qForm.detail" dense filled
+                  :placeholder="qForm.flowType === 'pickup-available' ? 'e.g. Boulder Food Bank, ~200 lbs' :
+                                 qForm.flowType === 'outreach-request' ? 'e.g. canned goods, 3 cases needed' :
+                                 qForm.flowType === 'stocking-needed'  ? 'e.g. 4 boxes dry goods from today\'s run' :
+                                 'Urgent message to broadcast to the whole team'"
+                  class="sys-input" />
+              </div>
+              <div class="qdialog-field">
+                <div class="qdialog-label">TEST PHONE OVERRIDE <span class="qdialog-opt">OPTIONAL</span></div>
+                <q-input v-model="qForm.testPhone" dense filled placeholder="+13035550001 — routes all calls here" class="sys-input" />
+              </div>
+            </div>
+            <div class="qdialog-foot">
+              <button class="qdialog-cancel" @click="qDispatchOpen = false">Cancel</button>
+              <button class="qdialog-launch" :disabled="!qForm.detail.trim() || qLaunching" @click="launchDispatch">
+                <q-icon :name="qLaunching ? 'sync' : 'call'" size="13px" :class="{ spin: qLaunching }" />
+                {{ qLaunching ? 'Launching…' : 'Launch Waterfall' }}
+              </button>
+            </div>
+          </q-card>
+        </q-dialog>
+
+        <!-- Active / recent queues -->
+        <div v-if="queueData.length === 0" class="sys-empty q-mt-sm">No active queues. Click + to dispatch a new flow.</div>
+
+        <div v-for="q in queueData" :key="q.id" class="q-card" :class="'q-card--' + q.status">
+          <!-- Queue header -->
+          <div class="q-card-hd">
+            <div class="q-card-flow">
+              <q-icon :name="qFlowIcon(q.flow_type)" size="13px" />
+              <span>{{ qFlowLabel(q.flow_type) }}</span>
+            </div>
+            <div v-if="q.task_data?.location || q.task_data?.item || q.task_data?.detail || q.task_data?.message" class="q-card-detail">
+              {{ q.task_data.location || q.task_data.item || q.task_data.detail || q.task_data.message }}
+            </div>
+            <div class="q-card-meta">
+              <span class="q-status-pill" :class="'q-status--' + q.status">{{ q.status.toUpperCase() }}</span>
+              <span class="q-card-time">{{ fmtTime(q.created_at) }}</span>
+              <button v-if="q.status === 'active'" class="q-cancel-btn" @click="cancelQueue(q.id)" title="Cancel queue">
+                <q-icon name="close" size="11px" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Waterfall entry list -->
+          <div class="q-entries">
+            <div v-for="entry in q.entries" :key="entry.id" class="q-entry" :class="'q-entry--' + entry.status">
+              <div class="q-entry-pos">{{ entry.position }}</div>
+              <div class="q-entry-icon">
+                <q-icon
+                  :name="entry.status === 'accepted' ? 'check_circle' :
+                         entry.status === 'calling'  ? 'phone_in_talk' :
+                         entry.status === 'passed'   ? 'arrow_forward' :
+                         entry.status === 'timeout'  ? 'timer_off' :
+                         entry.status === 'skipped'  ? 'skip_next' : 'radio_button_unchecked'"
+                  size="14px"
+                />
+              </div>
+              <div class="q-entry-name">{{ entry.display_name || entry.email || entry.user_id.slice(0, 8) }}</div>
+              <div class="q-entry-status">{{ entry.status }}</div>
+              <div v-if="entry.responded_at" class="q-entry-time">{{ fmtTime(entry.responded_at) }}</div>
+              <button
+                v-if="entry.status === 'calling' && q.status === 'active'"
+                class="q-skip-btn"
+                title="Skip — advance to next"
+                @click="skipEntry(q.id, entry.id)"
+              >
+                <q-icon name="skip_next" size="12px" />
+                SKIP
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Test ────────────────────────────────────────── -->
+      <div v-if="tab === 'test'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">TEST</span>
+          <span class="panel-count">Fire real calls &amp; messages</span>
+        </div>
+
+        <!-- Daily Call -->
+        <div class="sys-card">
+          <div class="sys-card-hd">
+            <q-icon name="phone_forwarded" size="15px" style="color:var(--wb-accent)" />
+            <span class="sys-card-title">Daily Call</span>
+          </div>
+          <div class="sys-card-desc">Initiates an outbound Twilio voice call with today's briefing and role-selection menu (1 pickup · 2 outreach · 3 stocking · 9 pass).</div>
+          <q-input v-model="callTestPhone"   dense filled label="Test phone (E.164)" placeholder="+13035550001" class="sys-input q-mt-sm" />
+          <q-input v-model="callTestSummary" dense filled label="Summary override (optional)" placeholder="2 pickups available, pantry at 65 percent capacity." class="sys-input q-mt-xs" />
+          <div class="sys-row">
+            <q-btn unelevated no-caps icon="call" label="Fire Daily Call" class="sys-btn"
+                   :loading="callTestLoading" :disable="!callTestPhone.trim()" @click="fireTestCall" />
+          </div>
+          <pre v-if="callTestResult" class="sys-result" :class="callTestResult.ok ? 'sys-result--ok' : 'sys-result--err'">{{ JSON.stringify(callTestResult, null, 2) }}</pre>
+        </div>
+
+        <!-- SMS -->
+        <div class="sys-card">
+          <div class="sys-card-hd">
+            <q-icon name="sms" size="15px" style="color:var(--wb-info)" />
+            <span class="sys-card-title">SMS</span>
+          </div>
+          <div class="sys-card-desc">Send a test SMS via the MTS transport to verify Twilio SMS delivery.</div>
+          <q-input v-model="smsTestPhone" dense filled label="Phone (E.164)" placeholder="+13035550001" class="sys-input q-mt-sm" />
+          <q-input v-model="smsTestBody"  dense filled label="Message body" class="sys-input q-mt-xs" />
+          <div class="sys-row">
+            <q-btn unelevated no-caps icon="send" label="Send SMS" class="sys-btn sys-btn--info"
+                   :loading="smsTestLoading" :disable="!smsTestPhone.trim() || !smsTestBody.trim()" @click="fireTestSms" />
+          </div>
+          <pre v-if="smsTestResult" class="sys-result" :class="smsTestResult.ok ? 'sys-result--ok' : 'sys-result--err'">{{ JSON.stringify(smsTestResult, null, 2) }}</pre>
+        </div>
+      </div>
+
+      <!-- ── Metrics ───────────────────────────────────────── -->
+      <div v-if="tab === 'metrics'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">METRICS</span>
+          <span class="panel-count">{{ metricsDate }}</span>
+          <q-btn flat dense round icon="refresh" size="xs" style="margin-left:auto" @click="loadMetrics" />
+        </div>
+
+        <!-- Daily Roles -->
+        <div class="sys-card">
+          <div class="sys-card-hd">
+            <q-icon name="how_to_reg" size="15px" style="color:var(--wb-positive)" />
+            <span class="sys-card-title">Today's Role Commitments</span>
+          </div>
+          <div v-if="metricsRoles.length === 0" class="sys-empty">No commitments recorded today.</div>
+          <div v-else class="sys-table">
+            <div class="sys-table-hd">
+              <span>NAME</span><span>ROLE</span><span>TIME</span>
+            </div>
+            <div v-for="r in metricsRoles" :key="r.id" class="sys-table-row">
+              <span class="sys-name">{{ r.display_name || r.email || r.user_id.slice(0, 8) }}</span>
+              <span class="sys-role" :class="'sys-role--' + r.role_type">{{ r.role_type.toUpperCase() }}</span>
+              <span class="sys-time">{{ fmtTime(r.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message Log -->
+        <div class="sys-card">
+          <div class="sys-card-hd">
+            <q-icon name="history" size="15px" style="color:var(--wb-info)" />
+            <span class="sys-card-title">Recent Message Log</span>
+          </div>
+          <div v-if="metricsLog.length === 0" class="sys-empty">No recent log entries.</div>
+          <div v-else class="sys-table sys-table--log">
+            <div class="sys-table-hd">
+              <span>EVENT</span><span>VIA</span><span>RECIPIENT</span><span>TIME</span>
+            </div>
+            <div v-for="l in metricsLog" :key="l.id" class="sys-table-row">
+              <span class="sys-event" :class="'sys-event--' + l.event_type">{{ l.event_type }}</span>
+              <span>{{ l.transport }}</span>
+              <span class="sys-recipient">{{ l.recipient }}</span>
+              <span class="sys-time">{{ fmtTime(l.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Diagnosis ──────────────────────────────────────── -->
+      <div v-if="tab === 'diagnosis'" class="admin-panel">
+        <div class="panel-head">
+          <span class="panel-title">DIAGNOSIS</span>
+          <span class="panel-count">Function health · config checks</span>
+        </div>
+
+        <div class="sys-card">
+          <div class="sys-card-hd">
+            <q-icon name="monitor_heart" size="15px" style="color:var(--wb-positive)" />
+            <span class="sys-card-title">System Checks</span>
+          </div>
+          <div class="diag-list">
+            <div v-for="chk in diagChecks" :key="chk.key" class="diag-row">
+              <q-icon
+                :name="chk.status === 'ok' ? 'check_circle' : chk.status === 'err' ? 'cancel' : chk.status === 'running' ? 'hourglass_empty' : 'radio_button_unchecked'"
+                size="15px"
+                :class="'diag-icon--' + chk.status"
+              />
+              <div class="diag-info">
+                <span class="diag-label">{{ chk.label }}</span>
+                <span v-if="chk.detail" class="diag-detail">{{ chk.detail }}</span>
+              </div>
+              <span v-if="chk.latency != null" class="diag-latency">{{ chk.latency }}ms</span>
+            </div>
+          </div>
+          <div class="sys-row">
+            <q-btn unelevated no-caps icon="play_arrow" label="Run All Checks"
+                   class="sys-btn" :loading="diagRunning" @click="runDiagnosis" />
+          </div>
+        </div>
+      </div>
+
       <!-- ── Oracle ──────────────────────────────────────── -->
       <div v-if="tab === 'oracle'" class="admin-panel">
         <div class="panel-head">
@@ -1201,26 +1439,325 @@ const router = useRouter();
 const route  = useRoute();
 const { t }  = useI18n();
 
-const tab = ref('members');
+const tab      = ref('members');
 const showHelp = ref(false);
+
+// ── Three-tier nav ────────────────────────────────────────────────
+
+interface NavSection { key: string; label: string; icon: string; tabs: string[] }
+
+const SECTIONS: NavSection[] = [
+  { key: 'pantry', label: 'PANTRY', icon: 'storefront', tabs: ['welcome', 'infopage', 'locations', 'schedule', 'calendar'] },
+  { key: 'team',   label: 'TEAM',   icon: 'group',      tabs: ['members', 'invites', 'audio'] },
+  { key: 'comms',  label: 'COMMS',  icon: 'campaign',   tabs: ['announce', 'messages'] },
+  { key: 'ops',    label: 'OPS',    icon: 'tune',       tabs: ['data', 'launch', 'oracle'] },
+  { key: 'system', label: 'SYSTEM', icon: 'terminal',   tabs: ['queue', 'test', 'metrics', 'diagnosis'] },
+];
+
+const activeSection = computed(() =>
+  SECTIONS.find(s => s.tabs.includes(tab.value))?.key ?? 'team'
+);
+
+function setSection(key: string) {
+  const sec = SECTIONS.find(s => s.key === key);
+  if (sec && !sec.tabs.includes(tab.value)) tab.value = sec.tabs[0];
+}
 const genLoading = ref(false);
 const newLocName = ref('');
 
 const tabs = computed(() => [
-  { key: 'welcome',  icon: 'storefront',      label: t('admin.tabs.welcome') },
-  { key: 'infopage', icon: 'description',     label: t('admin.tabs.infoPage') },
-  { key: 'members',  icon: 'group',           label: t('admin.tabs.members') },
-  { key: 'announce', icon: 'campaign',        label: t('admin.tabs.announce') },
-  { key: 'messages', icon: 'mark_email_read', label: t('admin.tabs.messages') },
-  { key: 'audio',    icon: 'graphic_eq',      label: t('admin.tabs.audio') },
-  { key: 'schedule', icon: 'event',           label: t('admin.tabs.schedule') },
-  { key: 'locations',icon: 'map',             label: t('admin.tabs.locations') },
-  { key: 'invites',  icon: 'vpn_key',         label: t('admin.tabs.invites') },
-  { key: 'data',     icon: 'storage',         label: t('admin.tabs.data') },
-  { key: 'launch',   icon: 'rocket_launch',   label: t('admin.tabs.launch') },
-  { key: 'calendar', icon: 'calendar_month',  label: t('admin.tabs.calendar') },
-  { key: 'oracle',   icon: 'auto_awesome',    label: t('admin.tabs.oracle') },
+  { key: 'welcome',   icon: 'storefront',      label: t('admin.tabs.welcome') },
+  { key: 'infopage',  icon: 'description',     label: t('admin.tabs.infoPage') },
+  { key: 'members',   icon: 'group',           label: t('admin.tabs.members') },
+  { key: 'announce',  icon: 'campaign',        label: t('admin.tabs.announce') },
+  { key: 'messages',  icon: 'mark_email_read', label: t('admin.tabs.messages') },
+  { key: 'audio',     icon: 'graphic_eq',      label: t('admin.tabs.audio') },
+  { key: 'schedule',  icon: 'event',           label: t('admin.tabs.schedule') },
+  { key: 'locations', icon: 'map',             label: t('admin.tabs.locations') },
+  { key: 'invites',   icon: 'vpn_key',         label: t('admin.tabs.invites') },
+  { key: 'data',      icon: 'storage',         label: t('admin.tabs.data') },
+  { key: 'launch',    icon: 'rocket_launch',   label: t('admin.tabs.launch') },
+  { key: 'calendar',  icon: 'calendar_month',  label: t('admin.tabs.calendar') },
+  { key: 'oracle',    icon: 'auto_awesome',    label: t('admin.tabs.oracle') },
+  // ── System section ──
+  { key: 'queue',     icon: 'queue',           label: 'QUEUE' },
+  { key: 'test',      icon: 'science',         label: 'TEST' },
+  { key: 'metrics',   icon: 'bar_chart',       label: 'METRICS' },
+  { key: 'diagnosis', icon: 'monitor_heart',   label: 'DIAGNOSIS' },
 ]);
+
+const visibleTabs = computed(() => {
+  const sec = SECTIONS.find(s => s.key === activeSection.value);
+  return sec ? tabs.value.filter(t => sec.tabs.includes(t.key)) : tabs.value;
+});
+
+// ── System: Queue panel ───────────────────────────────────────────
+
+interface QueueEntry {
+  id: string; user_id: string; position: number; status: string;
+  called_at?: string; responded_at?: string; display_name?: string; email?: string;
+}
+interface QueueRecord {
+  id: string; flow_type: string; task_data: Record<string, unknown>;
+  status: string; accepted_by?: string; created_at: string;
+  entries: QueueEntry[];
+}
+
+const queueData      = ref<QueueRecord[]>([]);
+const qDispatchOpen  = ref(false);
+const qLaunching     = ref(false);
+const qForm          = reactive({ flowType: 'pickup-available', detail: '', testPhone: '' });
+
+const FLOW_ICONS: Record<string, string> = {
+  'pickup-available': 'local_shipping',
+  'outreach-request': 'volunteer_activism',
+  'stocking-needed':  'inventory_2',
+  'emergency':        'warning',
+};
+const FLOW_LABELS: Record<string, string> = {
+  'pickup-available': 'PICKUP AVAILABLE',
+  'outreach-request': 'OUTREACH REQUEST',
+  'stocking-needed':  'STOCKING NEEDED',
+  'emergency':        'EMERGENCY',
+};
+function qFlowIcon(ft: string)  { return FLOW_ICONS[ft]  ?? 'call'; }
+function qFlowLabel(ft: string) { return FLOW_LABELS[ft] ?? ft.toUpperCase(); }
+
+function buildTaskData(flowType: string, detail: string): Record<string, unknown> {
+  if (flowType === 'pickup-available')  return { location: detail };
+  if (flowType === 'outreach-request')  return { item:     detail };
+  if (flowType === 'stocking-needed')   return { detail };
+  return { message: detail };
+}
+
+async function loadQueues() {
+  const orgId = store.userOrgId || '00000000-0000-0000-0000-000000000001';
+  const { data } = await supabase
+    .from('call_queue')
+    .select(`id, flow_type, task_data, status, accepted_by, created_at,
+             call_queue_entries(id, user_id, position, status, called_at, responded_at,
+               profiles(display_name, email))`)
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  queueData.value = (data ?? []).map((q: any) => ({
+    id: q.id, flow_type: q.flow_type, task_data: q.task_data ?? {},
+    status: q.status, accepted_by: q.accepted_by, created_at: q.created_at,
+    entries: (q.call_queue_entries ?? [])
+      .sort((a: any, b: any) => a.position - b.position)
+      .map((e: any) => ({
+        id: e.id, user_id: e.user_id, position: e.position, status: e.status,
+        called_at: e.called_at, responded_at: e.responded_at,
+        display_name: e.profiles?.display_name, email: e.profiles?.email,
+      })),
+  }));
+}
+
+async function launchDispatch() {
+  if (!qForm.detail.trim()) return;
+  qLaunching.value = true;
+  try {
+    const orgId    = store.userOrgId || '00000000-0000-0000-0000-000000000001';
+    const taskData = buildTaskData(qForm.flowType, qForm.detail.trim());
+    const resp     = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/waterfall-call`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        orgId, flowType: qForm.flowType, taskData,
+        ...(qForm.testPhone.trim() ? { testPhone: qForm.testPhone.trim() } : {}),
+      }),
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      qDispatchOpen.value = false;
+      qForm.detail = '';
+      qForm.testPhone = '';
+      await loadQueues();
+      $q.notify({ message: `Calling ${result.calling?.name ?? 'first volunteer'}…`, color: 'positive', icon: 'phone_forwarded' });
+    } else {
+      $q.notify({ message: result.error ?? 'Dispatch failed', color: 'negative' });
+    }
+  } catch (e) {
+    $q.notify({ message: e instanceof Error ? e.message : 'Network error', color: 'negative' });
+  } finally {
+    qLaunching.value = false;
+  }
+}
+
+async function cancelQueue(queueId: string) {
+  await supabase.from('call_queue').update({ status: 'cancelled' }).eq('id', queueId);
+  await loadQueues();
+}
+
+async function skipEntry(queueId: string, entryId: string) {
+  await supabase.from('call_queue_entries').update({ status: 'skipped' }).eq('id', entryId);
+  // Trigger advance
+  await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/waterfall-call`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ queueId, advance: true, currentEntryId: entryId, result: 'passed' }),
+  });
+  await loadQueues();
+}
+
+let queueChannel: ReturnType<typeof supabase.channel> | null = null;
+
+function subscribeQueues() {
+  const orgId = store.userOrgId || '00000000-0000-0000-0000-000000000001';
+  queueChannel = supabase
+    .channel('queue-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'call_queue',         filter: `org_id=eq.${orgId}` }, () => loadQueues())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'call_queue_entries' },                               () => loadQueues())
+    .subscribe();
+}
+
+function unsubscribeQueues() {
+  if (queueChannel) { supabase.removeChannel(queueChannel); queueChannel = null; }
+}
+
+// ── System: Test panel ────────────────────────────────────────────
+
+const callTestPhone   = ref('');
+const callTestSummary = ref('');
+const callTestLoading = ref(false);
+const callTestResult  = ref<Record<string, unknown> | null>(null);
+
+async function fireTestCall() {
+  callTestLoading.value = true;
+  callTestResult.value  = null;
+  try {
+    const orgId = store.userOrgId || '00000000-0000-0000-0000-000000000001';
+    const resp  = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/daily-call`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orgId,
+        testPhone: callTestPhone.value.trim(),
+        ...(callTestSummary.value.trim() ? { summary: callTestSummary.value.trim() } : {}),
+      }),
+    });
+    callTestResult.value = await resp.json();
+  } catch (e) {
+    callTestResult.value = { ok: false, error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    callTestLoading.value = false;
+  }
+}
+
+const smsTestPhone   = ref('');
+const smsTestBody    = ref('Test from Ward Pantry MTS.');
+const smsTestLoading = ref(false);
+const smsTestResult  = ref<Record<string, unknown> | null>(null);
+
+async function fireTestSms() {
+  smsTestLoading.value = true;
+  smsTestResult.value  = null;
+  try {
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mts`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        type:           'test',
+        orgId:          '__setup_test__',
+        recipientPhone: smsTestPhone.value.trim(),
+        transports:     ['sms'],
+        data:           { orgName: 'Ward Pantry' },
+      }),
+    });
+    smsTestResult.value = await resp.json();
+  } catch (e) {
+    smsTestResult.value = { ok: false, error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    smsTestLoading.value = false;
+  }
+}
+
+// ── System: Metrics panel ─────────────────────────────────────────
+
+interface DailyRoleRow  { id: string; user_id: string; role_type: string; created_at: string; display_name?: string; email?: string }
+interface MessageLogRow { id: string; event_type: string; transport: string; recipient: string; created_at: string }
+
+const metricsDate  = computed(() =>
+  new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+);
+const metricsRoles = ref<DailyRoleRow[]>([]);
+const metricsLog   = ref<MessageLogRow[]>([]);
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+async function loadMetrics() {
+  const orgId = store.userOrgId || '00000000-0000-0000-0000-000000000001';
+  const today = new Date().toISOString().slice(0, 10);
+  const [rolesRes, logRes] = await Promise.all([
+    supabase
+      .from('daily_roles')
+      .select('id, user_id, role_type, created_at, profiles(display_name, email)')
+      .eq('org_id', orgId)
+      .eq('date', today)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('message_log')
+      .select('id, event_type, transport, recipient, created_at')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(20),
+  ]);
+  metricsRoles.value = (rolesRes.data ?? []).map((r: any) => ({
+    id: r.id, user_id: r.user_id, role_type: r.role_type, created_at: r.created_at,
+    display_name: r.profiles?.display_name, email: r.profiles?.email,
+  }));
+  metricsLog.value = logRes.data ?? [];
+}
+
+// ── System: Diagnosis panel ───────────────────────────────────────
+
+interface DiagCheck { key: string; label: string; status: 'idle'|'running'|'ok'|'err'; detail?: string; latency?: number }
+
+const diagRunning = ref(false);
+const diagChecks  = ref<DiagCheck[]>([
+  { key: 'daily-call',   label: 'daily-call function',    status: 'idle' },
+  { key: 'twiml-gather', label: 'twiml-gather function',  status: 'idle' },
+  { key: 'mts',          label: 'mts function',           status: 'idle' },
+  { key: 'db-profiles',  label: 'Supabase DB (profiles)', status: 'idle' },
+  { key: 'daily-roles',  label: 'daily_roles table',      status: 'idle' },
+]);
+
+async function runDiagnosis() {
+  diagRunning.value = true;
+  diagChecks.value  = diagChecks.value.map(c => ({ ...c, status: 'running' as const, detail: undefined, latency: undefined }));
+  const base  = import.meta.env.VITE_SUPABASE_URL as string;
+  const orgId = store.userOrgId || '00000000-0000-0000-0000-000000000001';
+
+  const probe = async (key: string, fn: () => Promise<{ ok: boolean; detail?: string }>) => {
+    const t0 = Date.now();
+    try {
+      const r = await fn();
+      diagChecks.value = diagChecks.value.map(c =>
+        c.key === key ? { ...c, status: r.ok ? 'ok' : 'err', detail: r.detail, latency: Date.now() - t0 } : c
+      );
+    } catch (e) {
+      diagChecks.value = diagChecks.value.map(c =>
+        c.key === key ? { ...c, status: 'err', detail: e instanceof Error ? e.message : String(e), latency: Date.now() - t0 } : c
+      );
+    }
+  };
+
+  await Promise.all([
+    probe('daily-call',   async () => { const r = await fetch(`${base}/functions/v1/daily-call`,   { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"orgId":"__ping__"}' }); return { ok: r.status !== 404 && r.status !== 503, detail: `HTTP ${r.status}` }; }),
+    probe('twiml-gather', async () => { const r = await fetch(`${base}/functions/v1/twiml-gather`, { method: 'POST' });                    return { ok: r.status !== 404 && r.status !== 503, detail: `HTTP ${r.status}` }; }),
+    probe('mts',          async () => { const r = await fetch(`${base}/functions/v1/mts`,          { method: 'OPTIONS' });                  return { ok: r.ok, detail: `HTTP ${r.status}` }; }),
+    probe('db-profiles',  async () => { const { error } = await supabase.from('profiles').select('id').eq('org_id', orgId).limit(1);        return { ok: !error, detail: error?.message }; }),
+    probe('daily-roles',  async () => { const { error, count } = await supabase.from('daily_roles').select('id', { count: 'exact', head: true }).eq('org_id', orgId); return { ok: !error, detail: error ? error.message : `${count ?? 0} rows today` }; }),
+  ]);
+
+  diagRunning.value = false;
+}
 
 // ── Members ──────────────────────────────────────────────────────
 
@@ -2672,8 +3209,15 @@ function copyInfoLink() {
 // ── Init ─────────────────────────────────────────────────────────
 
 watch(tab, (t) => {
-  if (t === 'messages') fetchMsgLog();
+  if (t === 'messages')  fetchMsgLog();
+  if (t === 'metrics')   loadMetrics();
+  if (t === 'diagnosis') runDiagnosis();
+  if (t === 'queue') { loadQueues(); subscribeQueues(); }
 });
+
+watch(tab, (newTab, oldTab) => {
+  if (oldTab === 'queue' && newTab !== 'queue') unsubscribeQueues();
+}, { flush: 'post' });
 
 onMounted(async () => {
   // Honor ?tab= query from flyout shortcuts (case-insensitive)
@@ -2716,10 +3260,15 @@ onUnmounted(() => {
   padding: 0 12px 48px;
 }
 
-/* ── Header ── */
-.admin-header {
-  padding: 16px 4px 8px;
+/* ══ Three-tier nav ══════════════════════════════════════════════ */
+
+/* Tier 1 — brand bar */
+.admin-tier1 {
+  padding: 16px 4px 10px;
   border-bottom: 2px solid var(--wb-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .admin-title {
@@ -2730,9 +3279,7 @@ onUnmounted(() => {
   color: var(--wb-text);
 }
 
-.admin-sub {
-  margin-top: 4px;
-}
+.admin-sub { display: flex; align-items: center; gap: 6px; }
 
 .admin-mode {
   display: inline-block;
@@ -2745,36 +3292,59 @@ onUnmounted(() => {
   letter-spacing: 3px;
   color: var(--wb-text-muted);
 }
+.admin-mode--demo  { color: #ce93d8;              border-color: rgba(206,147,216,0.4); }
+.admin-mode--local { color: var(--wb-info);       border-color: var(--wb-info);    opacity: 0.7; }
+.admin-mode--cloud { color: var(--wb-positive);   border-color: var(--wb-positive); opacity: 0.7; }
 
-.admin-mode--demo {
-  color: #ce93d8;
-  border-color: rgba(206, 147, 216, 0.4);
+/* Tier 2 — section selector */
+.admin-tier2 {
+  display: flex;
+  gap: 2px;
+  padding: 6px 0 0;
+  border-bottom: 1px solid var(--wb-border-mid);
 }
 
-.admin-mode--local {
-  color: var(--wb-info);
-  border-color: var(--wb-info);
-  opacity: 0.7;
+.admin-sec-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.admin-sec-btn:hover { color: var(--wb-text-muted); }
+.admin-sec-btn.active {
+  color: var(--wb-text);
+  border-bottom-color: var(--wb-border);
+}
+/* SYSTEM section gets accent treatment */
+.admin-sec-btn.active[data-sec="system"] {
+  color: var(--wb-accent);
+  border-bottom-color: var(--wb-accent);
 }
 
-.admin-mode--cloud {
-  color: var(--wb-positive);
-  border-color: var(--wb-positive);
-  opacity: 0.7;
-}
-
-/* ── Tabs ── */
-.admin-tabs {
+/* Tier 3 — tab strip */
+.admin-tier3 {
   display: flex;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--wb-border-subtle);
+  min-height: 36px;
 }
 
 .admin-tab {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -2787,15 +3357,148 @@ onUnmounted(() => {
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
 }
+.admin-tab:hover  { color: var(--wb-text-mid); }
+.admin-tab.active { color: var(--wb-accent); border-bottom-color: var(--wb-accent); }
 
-.admin-tab:hover {
-  color: var(--wb-text-mid);
+/* ══ System panel shared ═════════════════════════════════════════ */
+
+.sys-card {
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--wb-surface-hover);
 }
 
-.admin-tab.active {
-  color: var(--wb-accent);
-  border-bottom-color: var(--wb-accent);
+.sys-card-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
+
+.sys-card-title {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: var(--wb-text);
+  text-transform: uppercase;
+}
+
+.sys-card-desc {
+  font-size: 0.75rem;
+  color: var(--wb-text-muted);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.sys-input { margin-bottom: 6px; }
+
+.sys-row { margin-top: 10px; }
+
+.sys-btn {
+  background: var(--wb-accent);
+  color: #0e1117;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  border-radius: 4px;
+}
+.sys-btn--info {
+  background: var(--wb-info);
+}
+
+.sys-result {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.sys-result--ok  { background: rgba(105,240,174,0.07); color: var(--wb-positive); border: 1px solid rgba(105,240,174,0.2); }
+.sys-result--err { background: rgba(239, 83, 80,0.07); color: var(--wb-negative); border: 1px solid rgba(239, 83, 80,0.2); }
+
+.sys-empty {
+  font-size: 0.72rem;
+  color: var(--wb-text-faint);
+  padding: 8px 0;
+  font-style: italic;
+}
+
+/* ── Metrics tables ── */
+.sys-table { margin-top: 8px; font-size: 0.7rem; }
+
+.sys-table-hd {
+  display: grid;
+  grid-template-columns: 1fr 80px 70px;
+  gap: 4px;
+  padding: 4px 6px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.58rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+.sys-table--log .sys-table-hd,
+.sys-table--log .sys-table-row {
+  grid-template-columns: 80px 50px 1fr 60px;
+}
+
+.sys-table-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 70px;
+  gap: 4px;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  align-items: center;
+}
+.sys-table-row:last-child { border-bottom: none; }
+
+.sys-name      { color: var(--wb-text-mid); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-recipient { color: var(--wb-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-time      { color: var(--wb-text-faint); font-size: 0.65rem; }
+
+.sys-role { font-family: var(--wb-font); font-weight: 800; font-size: 0.62rem; letter-spacing: 1px; padding: 2px 6px; border-radius: 3px; width: fit-content; }
+.sys-role--pickup   { background: rgba(253,216,53,0.12);  color: var(--wb-accent); }
+.sys-role--outreach { background: rgba(130,177,255,0.12); color: var(--wb-info); }
+.sys-role--stocking { background: rgba(105,240,174,0.12); color: var(--wb-positive); }
+.sys-role--pass     { background: rgba(255,255,255,0.06); color: var(--wb-text-faint); }
+
+.sys-event { font-family: var(--wb-font); font-size: 0.62rem; font-weight: 800; }
+.sys-event--sent      { color: var(--wb-positive); }
+.sys-event--delivered { color: var(--wb-positive); }
+.sys-event--opened    { color: var(--wb-info); }
+.sys-event--clicked   { color: var(--wb-accent); }
+.sys-event--bounced_perm { color: var(--wb-negative); }
+.sys-event--complained   { color: var(--wb-negative); }
+
+/* ── Diagnosis list ── */
+.diag-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+
+.diag-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+.diag-row:last-child { border-bottom: none; }
+
+.diag-info    { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.diag-label   { font-family: var(--wb-font); font-weight: 700; font-size: 0.72rem; color: var(--wb-text-mid); }
+.diag-detail  { font-size: 0.65rem; color: var(--wb-text-faint); }
+.diag-latency { font-family: monospace; font-size: 0.65rem; color: var(--wb-text-faint); white-space: nowrap; }
+
+.diag-icon--idle    { color: var(--wb-text-faint); }
+.diag-icon--running { color: var(--wb-warning);    animation: spin 1s linear infinite; }
+.diag-icon--ok      { color: var(--wb-positive); }
+.diag-icon--err     { color: var(--wb-negative); }
 
 /* ── Panel shared ── */
 .admin-panel {
@@ -4766,4 +5469,280 @@ onUnmounted(() => {
 .msglog-chip--complained   { color: var(--wb-warning);       border-color: var(--wb-warning); }
 .msglog-chip--opened       { color: var(--wb-info);          border-color: var(--wb-info); }
 .msglog-chip--clicked      { color: var(--wb-accent);        border-color: var(--wb-accent); }
+
+/* ══ Queue panel ═════════════════════════════════════════════════ */
+
+.q-card {
+  border: 1px solid var(--wb-border-subtle);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.q-card--active   { border-color: var(--wb-border-mid); }
+.q-card--accepted { border-color: rgba(105,240,174,0.3); }
+.q-card--escalated { border-color: rgba(239,83,80,0.3); }
+.q-card--cancelled { opacity: 0.5; }
+
+.q-card-hd {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--wb-surface-hover);
+  border-bottom: 1px solid var(--wb-border-subtle);
+}
+
+.q-card-flow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--wb-text);
+}
+
+.q-card-detail {
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.q-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.q-status-pill {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+}
+.q-status--active   { background: rgba(253,216,53,0.12);  color: var(--wb-accent); }
+.q-status--accepted { background: rgba(105,240,174,0.12); color: var(--wb-positive); }
+.q-status--escalated { background: rgba(239,83,80,0.12);  color: var(--wb-negative); }
+.q-status--cancelled { background: rgba(255,255,255,0.06); color: var(--wb-text-faint); }
+
+.q-card-time {
+  font-size: 0.62rem;
+  color: var(--wb-text-faint);
+}
+
+.q-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: var(--wb-text-faint);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.q-cancel-btn:hover { color: var(--wb-negative); border-color: var(--wb-negative); }
+
+/* Waterfall entries */
+.q-entries {
+  padding: 4px 0;
+}
+
+.q-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  font-size: 0.72rem;
+  transition: background 0.15s;
+}
+.q-entry:last-child { border-bottom: none; }
+.q-entry--calling  { background: rgba(253,216,53,0.05); }
+.q-entry--accepted { background: rgba(105,240,174,0.05); }
+
+.q-entry-pos {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.6rem;
+  color: var(--wb-text-faint);
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.q-entry-icon { flex-shrink: 0; }
+.q-entry--pending  .q-entry-icon { color: var(--wb-text-faint); }
+.q-entry--calling  .q-entry-icon { color: var(--wb-accent);     animation: pulse 1.2s ease-in-out infinite; }
+.q-entry--accepted .q-entry-icon { color: var(--wb-positive); }
+.q-entry--passed   .q-entry-icon { color: var(--wb-text-faint); }
+.q-entry--timeout  .q-entry-icon { color: var(--wb-warning); }
+.q-entry--skipped  .q-entry-icon { color: var(--wb-text-faint); }
+
+.q-entry-name {
+  flex: 1;
+  color: var(--wb-text-mid);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-entry--passed  .q-entry-name,
+.q-entry--timeout .q-entry-name,
+.q-entry--skipped .q-entry-name { color: var(--wb-text-faint); text-decoration: line-through; }
+
+.q-entry-status {
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--wb-text-faint);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.q-entry--calling  .q-entry-status { color: var(--wb-accent); }
+.q-entry--accepted .q-entry-status { color: var(--wb-positive); }
+
+.q-entry-time {
+  font-size: 0.62rem;
+  color: var(--wb-text-faint);
+  flex-shrink: 0;
+}
+
+.q-skip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 3px;
+  padding: 2px 7px;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.q-skip-btn:hover { color: var(--wb-warning); border-color: var(--wb-warning); }
+
+/* Dispatch dialog */
+.qdialog-card {
+  width: 400px;
+  max-width: 96vw;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.qdialog-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 3px;
+  color: var(--wb-text);
+}
+
+.qdialog-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.qdialog-field { display: flex; flex-direction: column; gap: 5px; }
+
+.qdialog-label {
+  font-family: var(--wb-font);
+  font-weight: 800;
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--wb-text-faint);
+}
+.qdialog-opt {
+  margin-left: 6px;
+  font-size: 0.55rem;
+  color: var(--wb-text-faint);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  padding: 1px 4px;
+  letter-spacing: 1px;
+}
+
+.qdialog-select {
+  background: var(--wb-surface-hover);
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 5px;
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+  font-size: 0.75rem;
+  padding: 8px 10px;
+  width: 100%;
+  outline: none;
+}
+.qdialog-select:focus { border-color: var(--wb-accent); }
+
+.qdialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--wb-border-subtle);
+}
+
+.qdialog-cancel {
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 5px;
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: border-color 0.15s;
+}
+.qdialog-cancel:hover { border-color: var(--wb-text-muted); }
+
+.qdialog-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--wb-accent);
+  border: none;
+  border-radius: 5px;
+  color: #0e1117;
+  font-family: var(--wb-font);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.qdialog-launch:disabled { opacity: 0.4; cursor: not-allowed; }
+.qdialog-launch:not(:disabled):hover { opacity: 0.85; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
 </style>
