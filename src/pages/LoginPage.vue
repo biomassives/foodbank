@@ -99,8 +99,9 @@
             <q-input
               v-model="prefsPhone"
               dense filled :dark="darkInputs" color="yellow"
-              label="Phone (E.164)"
-              placeholder="+13035550001 — for daily call-ins"
+              label="Phone (optional)"
+              placeholder="+13035550001"
+              hint="Only needed for voice call-ins — leave blank to use email"
               class="wcard-input"
               type="tel"
             />
@@ -125,9 +126,9 @@
               <div class="prefs-toggle-row">
                 <div class="prefs-toggle-info">
                   <div class="prefs-toggle-label">Daily call-in</div>
-                  <div class="prefs-toggle-hint">Receive the morning role-selection call</div>
+                  <div class="prefs-toggle-hint">{{ prefsPhone.trim() ? 'Receive the morning role-selection call' : 'Add a phone number above to enable' }}</div>
                 </div>
-                <q-toggle v-model="prefsCallIn" color="yellow" dense />
+                <q-toggle v-model="prefsCallIn" color="yellow" dense :disable="!prefsPhone.trim()" />
               </div>
             </div>
 
@@ -307,6 +308,13 @@ async function savePrefs() {
   prefsSaving.value = true;
   prefsSaved.value  = false;
   prefsError.value  = '';
+
+  // No phone → call-in is impossible; fall back to digest email
+  if (!prefsPhone.value.trim()) {
+    if (prefsCallIn.value) prefsDigest.value = true;
+    prefsCallIn.value = false;
+  }
+
   try {
     const { error } = await supabase
       .from('profiles')
