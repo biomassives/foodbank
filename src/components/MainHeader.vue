@@ -11,7 +11,43 @@
         <div class="header-title">{{ t.app.brand }}</div>
       </router-link>
 
+      <!-- Role chip — taps straight to primary role destination -->
+      <router-link
+        v-if="roleChip"
+        :to="roleChip.to"
+        class="header-role-chip"
+        :data-role="roleChip.key"
+      >{{ roleChip.label }}</router-link>
+
       <div class="header-spacer" />
+
+      <!-- Quick-add (+) — opens entry type picker -->
+      <div v-if="canQuickAdd" class="header-add-wrap">
+        <button class="header-add-btn" title="Add entry">
+          <q-icon name="add" size="18px" />
+          <q-menu
+            anchor="bottom right"
+            self="top right"
+            :offset="[0, 2]"
+            style="border-radius:3px;"
+          >
+            <div class="qadd-menu">
+              <button class="qadd-item" @click="emitAdd('need')">
+                <q-icon name="volunteer_activism" size="14px" />Need
+              </button>
+              <button class="qadd-item" @click="emitAdd('offering')">
+                <q-icon name="card_giftcard" size="14px" />Offering
+              </button>
+              <button class="qadd-item" @click="emitAdd('looking_for')">
+                <q-icon name="search" size="14px" />Looking for
+              </button>
+              <button class="qadd-item" @click="emitAdd('upcoming_need')">
+                <q-icon name="event" size="14px" />Upcoming need
+              </button>
+            </div>
+          </q-menu>
+        </button>
+      </div>
 
       <!-- Notification bell + popover -->
       <button v-if="store.isLoggedIn" class="header-notif-btn">
@@ -121,9 +157,33 @@ import { useI18n } from 'src/i18n';
 import { useRouter } from 'vue-router';
 import NotificationPanel from './NotificationDrawer.vue';
 
-defineEmits(['toggleDrawer']);
+const emit = defineEmits<{
+  (e: 'toggleDrawer'): void;
+  (e: 'openAdd', type: string): void;
+}>();
+
+function emitAdd(type: string) {
+  emit('openAdd', type);
+}
 
 const store = useAddressStore();
+
+// ── Role chip ─────────────────────────────────────────────
+const roleChip = computed(() => {
+  if (!store.isLoggedIn && !store.localMode && !store.demoMode) return null;
+  const role = store.userRole;
+  if (role === 'driver')  return { key: 'driver',  label: 'DRIVER',  to: '/logistics' };
+  if (role === 'stocker') return { key: 'stocker', label: 'STOCKER', to: '/logistics' };
+  if (role === 'admin')   return { key: 'admin',   label: 'ADMIN',   to: '/admin'     };
+  if (role === 'editor')  return { key: 'editor',  label: 'EDITOR',  to: '/admin'     };
+  if (store.localMode)    return { key: 'local',   label: 'LOCAL',   to: '/admin'     };
+  if (store.demoMode)     return { key: 'demo',    label: 'DEMO',    to: '/'          };
+  return null;
+});
+
+const canQuickAdd = computed(() =>
+  store.canEdit || store.localMode || store.demoMode
+);
 const notifStore = useNotificationStore();
 const router = useRouter();
 const { t } = useI18n();
@@ -423,6 +483,95 @@ function entrySearchLabel(type?: string): string {
 .header-profile-btn:hover {
   color: var(--wb-accent);
   background: var(--wb-surface-hover);
+}
+
+/* ── Role chip ── */
+.header-role-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  margin-left: 10px;
+  border: 1px solid var(--wb-border-mid);
+  border-radius: 2px;
+  font-family: var(--wb-font);
+  font-size: 0.45rem;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  text-decoration: none;
+  color: var(--wb-text-faint);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.header-role-chip:hover {
+  color: var(--wb-accent);
+  border-color: var(--wb-accent);
+}
+.header-role-chip[data-role="driver"],
+.header-role-chip[data-role="stocker"] {
+  color: var(--wb-positive);
+  border-color: var(--wb-positive);
+}
+.header-role-chip[data-role="admin"],
+.header-role-chip[data-role="editor"] {
+  color: var(--wb-accent);
+  border-color: var(--wb-accent);
+}
+.header-role-chip[data-role="local"] {
+  color: var(--wb-info);
+  border-color: var(--wb-info);
+}
+
+/* ── Quick-add (+) ── */
+.header-add-wrap {
+  border-left: 2px solid var(--wb-border-mid);
+}
+.header-add-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.header-add-btn:hover {
+  color: var(--wb-accent);
+  background: var(--wb-surface-hover);
+}
+
+/* Quick-add dropdown */
+.qadd-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  background: var(--wb-surface);
+  border: 2px solid var(--wb-border-mid);
+}
+.qadd-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--wb-border-subtle);
+  color: var(--wb-text-muted);
+  font-family: var(--wb-font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.qadd-item:last-child { border-bottom: none; }
+.qadd-item:hover {
+  background: var(--wb-surface-hover);
+  color: var(--wb-accent);
 }
 
 /* ── Notification bell ── */

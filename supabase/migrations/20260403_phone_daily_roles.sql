@@ -4,10 +4,10 @@
 -- call-in commitments (pickup / outreach / stocking / pass).
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- ── 1. Phone on profiles ──────────────────────────────────────────────────────
--- E.164 format, e.g. +13035550001
+-- ── 1. Phone + notification opt-ins on profiles ──────────────────────────────
 ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS phone TEXT;
+  ADD COLUMN IF NOT EXISTS phone           TEXT,    -- E.164, e.g. +13035550001
+  ADD COLUMN IF NOT EXISTS call_in_opt_in  BOOLEAN DEFAULT false;  -- daily call-in toggle
 
 -- ── 2. Daily role commitment table ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.daily_roles (

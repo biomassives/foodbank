@@ -217,10 +217,11 @@ function renderMessage(
         bodyHtml: `
           <p>You've joined <strong>${esc(orgName)}</strong>.</p>
           <p>You can now view the directory, claim pickups, and post community needs.</p>
+          ${ctaBtn('Open Dashboard', deepLink(branding.siteUrl, '/'))}
           <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 24px;">
             Log in anytime to check your queue and connect with your community.
           </p>`,
-        bodyText: `Welcome to ${orgName}! You can now view the directory, claim pickups, and post community needs.`,
+        bodyText: `Welcome to ${orgName}! Open your dashboard: ${deepLink(branding.siteUrl, '/')}`,
         bodyJson: { type, orgName, ...data },
       };
 
@@ -231,8 +232,9 @@ function renderMessage(
         heading: 'New Member Joined',
         bodyHtml: `
           <p><strong>${esc(memberName)}</strong> has joined ${esc(orgName)}.</p>
-          <p>They can now access the directory and claim pickups.</p>`,
-        bodyText: `${memberName} has joined ${orgName}.`,
+          <p>They can now access the directory and claim pickups.</p>
+          ${ctaBtn('View Team', deepLink(branding.siteUrl, '/admin?tab=team'), '#82b1ff')}`,
+        bodyText: `${memberName} has joined ${orgName}. View team: ${deepLink(branding.siteUrl, '/admin?tab=team')}`,
         bodyJson: { type, orgName, memberName, ...data },
       };
 
@@ -243,8 +245,9 @@ function renderMessage(
         heading: 'Pickup Claimed',
         bodyHtml: `
           <p><strong>${esc(claimedBy)}</strong> claimed a pickup:</p>
-          ${taskBlock(taskDesc, taskLoc, '#82b1ff')}`,
-        bodyText: `${claimedBy} claimed: ${taskDesc}${taskLoc ? ` at ${taskLoc}` : ''}`,
+          ${taskBlock(taskDesc, taskLoc, '#82b1ff')}
+          ${ctaBtn('View Queue', deepLink(branding.siteUrl, '/?view=queue'), '#82b1ff')}`,
+        bodyText: `${claimedBy} claimed: ${taskDesc}${taskLoc ? ` at ${taskLoc}` : ''}. View queue: ${deepLink(branding.siteUrl, '/?view=queue')}`,
         bodyJson: { type, orgName, taskDescription: taskDesc, taskLocation: taskLoc, claimedBy, ...data },
       };
 
@@ -254,10 +257,10 @@ function renderMessage(
         subject: `Pickup delivered — ${orgName}`,
         heading: 'Pickup Delivered',
         bodyHtml: `
-          <p>A pickup has been delivered:</p>
+          <p>A pickup has been delivered and is ready to be stocked:</p>
           ${taskBlock(taskDesc, taskLoc, '#69f0ae')}
-          <p style="color: rgba(255,255,255,0.6);">Ready to be marked as STOCKED.</p>`,
-        bodyText: `Delivered: ${taskDesc}${taskLoc ? ` at ${taskLoc}` : ''}`,
+          ${ctaBtn('Mark as Stocked', deepLink(branding.siteUrl, '/logistics'), '#69f0ae')}`,
+        bodyText: `Delivered: ${taskDesc}${taskLoc ? ` at ${taskLoc}` : ''}. Mark as stocked: ${deepLink(branding.siteUrl, '/logistics')}`,
         bodyJson: { type, orgName, taskDescription: taskDesc, taskLocation: taskLoc, ...data },
       };
 
@@ -268,8 +271,9 @@ function renderMessage(
         heading: 'Pickup Stocked',
         bodyHtml: `
           <p>Items have been stocked and are ready for the community:</p>
-          ${taskBlock(taskDesc, taskLoc, '#69f0ae')}`,
-        bodyText: `Stocked: ${taskDesc}${taskLoc ? ` at ${taskLoc}` : ''}`,
+          ${taskBlock(taskDesc, taskLoc, '#69f0ae')}
+          ${ctaBtn('View Dashboard', deepLink(branding.siteUrl, '/'), '#69f0ae')}`,
+        bodyText: `Stocked: ${taskDesc}${taskLoc ? ` at ${taskLoc}` : ''}. Dashboard: ${deepLink(branding.siteUrl, '/')}`,
         bodyJson: { type, orgName, taskDescription: taskDesc, taskLocation: taskLoc, ...data },
       };
 
@@ -329,8 +333,9 @@ function renderMessage(
           </table>
         </div>` : ''}
 
-        <div style="margin-top:22px;padding-top:14px;border-top:1px solid #222;font-size:11px;color:#555;">
-          Visit the <a href="https://ward.funkypony.space/logistics" style="color:#FDD835;">Logistics page</a> to claim or update pickups.
+        ${ctaBtn('Open Logistics', deepLink(branding.siteUrl, '/logistics'))}
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #222;font-size:11px;color:#555;">
+          Claim or update pickups on the <a href="${deepLink(branding.siteUrl, '/logistics')}" style="color:#FDD835;">Logistics page</a>.
         </div>`;
 
       return {
@@ -385,6 +390,18 @@ function renderMessage(
         bodyJson: { type, orgName, ...data },
       };
   }
+}
+
+// Deep-link helper — routes unauthenticated users through /login?next=<dest>
+function deepLink(siteUrl: string, dest: string): string {
+  return `${siteUrl}/#/login?next=${encodeURIComponent(dest)}`;
+}
+
+// CTA button block for email bodies
+function ctaBtn(label: string, url: string, color = '#FDD835'): string {
+  return `<div style="margin:20px 0 6px;">
+    <a href="${url}" style="display:inline-block;padding:11px 28px;background:${color};color:#1a1a1a;font-family:'Courier New',Courier,monospace;font-size:11px;font-weight:900;letter-spacing:3px;text-transform:uppercase;text-decoration:none;">${label}</a>
+  </div>`;
 }
 
 function queueRow(color: string, label: string, count: number): string {

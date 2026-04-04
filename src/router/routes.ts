@@ -11,7 +11,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/IndexPage.vue'),
         meta: { title: 'Address Book' },
       },
-      { path: 'login', component: () => import('pages/LoginPage.vue'), meta: { title: 'Sign In' } },
       { path: 'onboard', component: () => import('pages/OnboardPage.vue'), meta: { title: 'Get Started' } },
       { path: 'join', component: () => import('pages/JoinPantry.vue'), meta: { title: 'Join Pantry' } },
       { path: 'profile', component: () => import('pages/ProfilePage.vue'), meta: { title: 'My Profile' } },
@@ -54,6 +53,13 @@ const routes: RouteRecordRaw[] = [
       title: 'Contact Management System - Vue',
     },
   },
+  // Login — standalone (no header/footer) so it renders truly full-screen
+  {
+    path: '/login',
+    component: () => import('pages/LoginPage.vue'),
+    meta: { title: 'Sign In' },
+  },
+
   // Maps — /maps stacks children as /maps/mountain, /maps/southwest, /maps/regional
   // Always use absolute paths (e.g. to="/maps/southwest") to avoid relative-link stacking issues
   {
