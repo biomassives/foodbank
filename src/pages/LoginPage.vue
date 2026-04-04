@@ -318,19 +318,20 @@ async function savePrefs() {
   try {
     const { error } = await supabase
       .from('profiles')
-      .update({
+      .upsert({
+        id:              prefsUserId,
         display_name:    prefsName.value.trim()  || null,
         phone:           prefsPhone.value.trim() || null,
         email:           prefsEmail.value.trim() || null,
         digest_opt_in:   prefsDigest.value,
         call_in_opt_in:  prefsCallIn.value,
-      })
-      .eq('id', prefsUserId);
+      }, { onConflict: 'id' });
     if (error) throw error;
     prefsSaved.value = true;
     setTimeout(() => { navigateAfterAuth(); }, 900);
-  } catch (e) {
-    prefsError.value = e instanceof Error ? e.message : 'Save failed.';
+  } catch (e: unknown) {
+    const msg = (e as { message?: string })?.message;
+    prefsError.value = msg || String(e) || 'Save failed.';
   } finally {
     prefsSaving.value = false;
   }
