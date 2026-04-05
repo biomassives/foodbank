@@ -1,14 +1,17 @@
 <template>
   <div class="welcome-cell">
 
-    <!-- Content when set -->
+    <!-- Has welcome content (from org or localStorage) -->
     <template v-if="hasContent">
-      <div v-if="content.name" class="welcome-org">{{ content.name }}</div>
+      <div v-if="displayName" class="welcome-org">{{ displayName }}</div>
       <div v-if="content.tagline" class="welcome-tagline">{{ content.tagline }}</div>
       <div v-if="content.about" class="welcome-about">{{ content.about }}</div>
       <img v-if="drawing" :src="drawing" alt="" class="welcome-drawing" />
 
-      <!-- Edit shortcut (canEdit users only) -->
+      <div v-if="roleName" class="welcome-role-row">
+        <span class="welcome-role-badge">{{ roleName }}</span>
+      </div>
+
       <div v-if="canEdit" class="welcome-edit-row">
         <router-link to="/admin?tab=welcome" class="welcome-edit-link">
           <q-icon name="edit" size="11px" />
@@ -17,7 +20,24 @@
       </div>
     </template>
 
-    <!-- Placeholder when empty -->
+    <!-- In a pantry but no welcome content set yet -->
+    <template v-else-if="orgName">
+      <div class="welcome-org">{{ orgName }}</div>
+      <div v-if="roleName" class="welcome-role-row">
+        <span class="welcome-role-badge">{{ roleName }}</span>
+      </div>
+      <div v-if="canEdit" class="welcome-placeholder-body welcome-placeholder-body--centered">
+        Add a description visible to all pantry members.
+      </div>
+      <div v-if="canEdit" class="welcome-edit-row">
+        <router-link to="/admin?tab=welcome" class="welcome-edit-link">
+          <q-icon name="edit" size="11px" />
+          <span>Set up welcome content</span>
+        </router-link>
+      </div>
+    </template>
+
+    <!-- Not in a pantry — setup placeholder -->
     <div v-else class="welcome-placeholder">
       <q-icon name="storefront" size="24px" class="welcome-placeholder-icon" />
       <div class="welcome-placeholder-title">Name your pantry</div>
@@ -49,6 +69,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAddressStore } from 'src/store/store';
+import { supabase } from 'src/dbManagement';
 
 const WELCOME_KEY = 'pantry-welcome';
 const DRAWING_KEY = 'pantry-homepage-drawing';
@@ -59,22 +80,72 @@ interface WelcomeContent {
   about: string;
 }
 
-const store = useAddressStore();
+const store   = useAddressStore();
 const canEdit = computed(() => store.canEdit);
 
 const content = ref<WelcomeContent>({ name: '', tagline: '', about: '' });
+const orgName = ref('');   // org.name from Supabase — always the authoritative org name
 const drawing = ref('');
+
+// The display name: welcome content name takes priority, falls back to org name
+const displayName = computed(() => content.value.name || orgName.value);
 
 const hasContent = computed(() =>
   !!(content.value.name || content.value.about || drawing.value)
 );
 
-onMounted(() => {
+const ROLE_LABELS: Record<string, string> = {
+  owner:   'Owner',
+  admin:   'Admin',
+  editor:  'Editor',
+  driver:  'Driver',
+  stocker: 'Stocker',
+  member:  'Member',
+};
+
+const roleName = computed(() => {
+  const r = store.userRole;
+  // Only show role badge when the user is actually a member of an org
+  if (!store.userOrgId || !r || r === 'viewer') return '';
+  return ROLE_LABELS[r] ?? '';
+});
+
+onMounted(async () => {
+  // Load drawing from localStorage (device-local, not synced)
+  drawing.value = localStorage.getItem(DRAWING_KEY) || '';
+
+  const orgId = store.userOrgId;
+  if (orgId) {
+    // Load authoritative content from Supabase
+    const { data } = await supabase
+      .from('organizations')
+      .select('name, welcome')
+      .eq('id', orgId)
+      .maybeSingle();
+
+    if (data) {
+      orgName.value = data.name || '';
+      const w = (data.welcome && typeof data.welcome === 'object')
+        ? data.welcome as Partial<WelcomeContent>
+        : {};
+      content.value = {
+        name:    w.name    || '',
+        tagline: w.tagline || '',
+        about:   w.about   || '',
+      };
+      // Cache locally for offline/fast re-render
+      if (content.value.name || content.value.about) {
+        localStorage.setItem(WELCOME_KEY, JSON.stringify(content.value));
+      }
+      return;
+    }
+  }
+
+  // No org or Supabase unavailable — fall back to localStorage
   try {
     const raw = localStorage.getItem(WELCOME_KEY);
     if (raw) content.value = { ...content.value, ...JSON.parse(raw) };
   } catch { /* ignore */ }
-  drawing.value = localStorage.getItem(DRAWING_KEY) || '';
 });
 </script>
 
@@ -122,6 +193,25 @@ onMounted(() => {
   opacity: 0.92;
   background: #0a0a0a;
   margin-top: 4px;
+}
+
+/* Role badge */
+.welcome-role-row {
+  margin-top: 4px;
+}
+
+.welcome-role-badge {
+  display: inline-block;
+  font-family: var(--wb-font);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--wb-accent);
+  background: color-mix(in srgb, var(--wb-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wb-accent) 30%, transparent);
+  border-radius: 2px;
+  padding: 2px 6px;
 }
 
 /* Edit shortcut */
@@ -180,6 +270,11 @@ onMounted(() => {
   color: var(--wb-text-faint);
   line-height: 1.6;
   max-width: 220px;
+}
+
+.welcome-placeholder-body--centered {
+  text-align: center;
+  margin-top: 4px;
 }
 
 .welcome-placeholder-actions {

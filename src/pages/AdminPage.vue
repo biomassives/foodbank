@@ -2367,15 +2367,47 @@ interface WelcomeContent { name: string; tagline: string; about: string; }
 
 const welcomeContent = ref<WelcomeContent>({ name: '', tagline: '', about: '' });
 
-function loadWelcome() {
+async function loadWelcome() {
+  // Supabase is authoritative when org is connected
+  const orgId = store.userOrgId;
+  if (orgId) {
+    const { data } = await supabase
+      .from('organizations')
+      .select('name, welcome')
+      .eq('id', orgId)
+      .maybeSingle();
+    if (data) {
+      const w = (data.welcome && typeof data.welcome === 'object') ? data.welcome as Partial<WelcomeContent> : {};
+      welcomeContent.value = {
+        name:    (w.name    || data.name || ''),
+        tagline: (w.tagline || ''),
+        about:   (w.about   || ''),
+      };
+      localStorage.setItem(WELCOME_KEY, JSON.stringify(welcomeContent.value));
+      return;
+    }
+  }
+  // Fall back to localStorage for local/offline mode
   try {
     const raw = localStorage.getItem(WELCOME_KEY);
     if (raw) welcomeContent.value = { ...welcomeContent.value, ...JSON.parse(raw) };
   } catch { /* ignore */ }
 }
 
-function saveWelcome() {
-  localStorage.setItem(WELCOME_KEY, JSON.stringify(welcomeContent.value));
+async function saveWelcome() {
+  const payload = { ...welcomeContent.value };
+  localStorage.setItem(WELCOME_KEY, JSON.stringify(payload));
+  const orgId = store.userOrgId;
+  if (orgId) {
+    const { error } = await supabase
+      .from('organizations')
+      .update({ welcome: payload })
+      .eq('id', orgId);
+    if (error) {
+      $q.notify({ color: 'negative', message: `Save failed: ${error.message}`, timeout: 4000 });
+      return;
+    }
+  }
   $q.notify({ color: 'positive', icon: 'storefront', message: 'Welcome content saved', timeout: 1500 });
 }
 
@@ -3224,7 +3256,7 @@ onMounted(async () => {
   const qtab = String(route.query.tab || '').toLowerCase();
   if (qtab && tabs.value.some(t => t.key === qtab)) tab.value = qtab;
 
-  loadWelcome();
+  await loadWelcome();
   loadWeekSchedule();
   loadStagedMessages();
   loadOpsPage();
