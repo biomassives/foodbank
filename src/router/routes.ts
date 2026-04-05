@@ -9,7 +9,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         component: () => import('pages/IndexPage.vue'),
-        meta: { title: 'Address Book' },
+        meta: { title: 'Ward Food Pantry — Funky Pony' },
       },
       { path: 'onboard', component: () => import('pages/OnboardPage.vue'), meta: { title: 'Get Started' } },
       { path: 'join', component: () => import('pages/JoinPantry.vue'), meta: { title: 'Join Pantry' } },
