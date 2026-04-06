@@ -707,7 +707,7 @@ function requireSim(id: string) {
 const DEMO_SIMS = [
   { ...requireSim('inventory-manager'), icon: 'inventory_2' },
   { ...requireSim('driver-notify'),     icon: 'notifications_active' },
-  { ...requireSim('logistics14day'),    icon: 'local_shipping' },
+  { ...requireSim('logistics-14day'),   icon: 'local_shipping' },
 ];
 
 const activeSimName = computed(() => {
