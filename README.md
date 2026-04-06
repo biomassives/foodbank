@@ -15,6 +15,14 @@ A GPL-licensed, local-first food pantry coordination platform. Track needs, coor
 
 ## Deploy
 
+**New to the project? Use the guided wizard — it collects your credentials step by step and generates a ready-to-paste `.env` file.**
+
+[![Deploy a Pantry — Guided Wizard](https://img.shields.io/badge/Deploy_a_Pantry-Guided_Wizard-FDD835?style=for-the-badge&logo=rocket&logoColor=black)](https://biomassives.github.io/funkypony/)
+
+Covers Vercel, Netlify, Cloudflare Pages, Nile multi-tenant DB, Heroku Postgres, Mailgun, and Twilio — all in one place.
+
+**Quick deploy (you'll need your keys ready):**
+
 | Platform | Button |
 |----------|--------|
 | **Vercel** (+ Supabase) | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/biomassives/foodbank&env=VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY&envDescription=Supabase+project+keys&project-name=funky-pony-pantry) |

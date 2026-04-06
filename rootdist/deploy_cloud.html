@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud Deployment — Funky Pony Space</title>
+  <meta name="description" content="Deploy Funky Pony Space to Vercel, Netlify, or Cloudflare Pages with Supabase, Nile, or Heroku Postgres — step-by-step setup wizard." />
+  <link rel="icon" href="https://ward.funkypony.space/icons/favicon-32x32.png" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#111;--bg2:#181818;--bg3:#1f1f1f;--surface:#242424;
+      --border:#2e2e2e;--border-hi:#444;
+      --text:#f0ece4;--muted:#888;--faint:#555;
+      --accent:#FDD835;--accent2:#F9A602;
+      --terracotta:#E2725B;--slate:#4A5D66;--dark:#2C2420;
+      --green:#69f0ae;--blue:#82b1ff;--purple:#ce93d8;--red:#ef5350;
+      --vercel:#fff;--netlify:#00AD9F;--supabase:#3ECF8E;
+      --nile:#7B61FF;--heroku:#430098;--cf:#F48120;
+      --font:'Georgia','Times New Roman',serif;
+      --mono:'Courier New',monospace;
+      --sans:system-ui,-apple-system,sans-serif;
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.65}
+
+    .mondrian{height:5px;display:flex;width:100%;position:sticky;top:0;z-index:200}
+    .mondrian span{flex:1}
+    .mondrian span:nth-child(1){background:var(--terracotta)}
+    .mondrian span:nth-child(2){background:var(--accent2)}
+    .mondrian span:nth-child(3){background:var(--slate)}
+    .mondrian span:nth-child(4){background:var(--dark)}
+
+    nav{background:rgba(17,17,17,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);position:sticky;top:5px;z-index:100}
+    .nav-inner{max-width:1060px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .nav-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);font-weight:700;font-size:.82rem;letter-spacing:1px;text-transform:uppercase}
+    .nav-brand img{height:28px;border-radius:3px}
+    .nav-links{display:flex;gap:16px}
+    .nav-links a{font-size:.75rem;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:5px 12px;border-radius:3px;transition:color .15s,border-color .15s}
+    .nav-links a:hover{color:var(--accent);border-color:var(--accent)}
+
+    .page{max-width:900px;margin:0 auto;padding:48px 24px 80px}
+
+    /* ── Hero ── */
+    .hero{text-align:center;margin-bottom:52px}
+    .hero-eye{font-size:.62rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);padding:3px 12px;border-radius:2px;display:inline-block;margin-bottom:16px}
+    .hero h1{font-family:var(--font);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;margin-bottom:12px}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem;line-height:1.75}
+
+    /* ── Path picker ── */
+    .picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:40px 0 48px}
+    .path-card{
+      background:var(--bg2);border:2px solid var(--border);border-radius:8px;
+      padding:20px 18px;cursor:pointer;transition:border-color .2s,background .2s;
+      display:flex;flex-direction:column;gap:9px;
+    }
+    .path-card:hover{border-color:var(--border-hi);background:var(--bg3)}
+    .path-card.selected{border-color:var(--accent);background:var(--bg3)}
+    .path-card.selected .path-sel{color:var(--accent)}
+    .path-logos{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .logo-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:3px;font-size:.65rem;font-weight:800;letter-spacing:.5px}
+    .lp-vercel {background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
+    .lp-netlify{background:rgba(0,173,159,.1);color:var(--netlify);border:1px solid rgba(0,173,159,.3)}
+    .lp-supa   {background:rgba(62,207,142,.1);color:var(--supabase);border:1px solid rgba(62,207,142,.3)}
+    .lp-nile   {background:rgba(123,97,255,.1);color:var(--nile);border:1px solid rgba(123,97,255,.3)}
+    .lp-heroku {background:rgba(67,0,152,.2);color:#b39ddb;border:1px solid rgba(103,58,183,.4)}
+    .lp-mailgun{background:rgba(253,216,53,.08);color:var(--accent);border:1px solid rgba(253,216,53,.25)}
+    .lp-cf     {background:rgba(244,129,32,.1);color:var(--cf);border:1px solid rgba(244,129,32,.3)}
+    .path-title{font-weight:700;font-size:.92rem}
+    .path-desc{font-size:.76rem;color:var(--muted);line-height:1.55}
+    .path-tag{font-size:.58rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;align-self:flex-start}
+    .tag-recommended{background:rgba(62,207,142,.12);color:var(--supabase);border:1px solid rgba(62,207,142,.3)}
+    .tag-multitenant {background:rgba(123,97,255,.12);color:var(--nile);border:1px solid rgba(123,97,255,.3)}
+    .tag-simple      {background:rgba(103,58,183,.15);color:#b39ddb;border:1px solid rgba(103,58,183,.35)}
+    .tag-edge        {background:rgba(244,129,32,.12);color:var(--cf);border:1px solid rgba(244,129,32,.3)}
+    .path-sel{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--faint);margin-top:2px}
+
+    /* ── Steps ── */
+    .steps-area{display:none}
+    .steps-area.visible{display:block}
+    .steps-title{
+      font-size:.62rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;
+      color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:10px;
+    }
+    .steps-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    .step{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden;transition:border-color .2s}
+    .step.active{border-color:var(--accent)}
+    .step.done{border-color:var(--green)}
+    .step-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;user-select:none}
+    .step-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;color:var(--faint)}
+    .step.active .step-num{background:var(--accent);border-color:var(--accent);color:#000}
+    .step.done   .step-num{background:var(--green);border-color:var(--green);color:#000}
+    .step-info{flex:1}
+    .step-title{font-weight:700;font-size:.92rem}
+    .step-sub{font-size:.72rem;color:var(--faint);margin-top:2px}
+    .step-status{font-size:.62rem;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+    .step.done   .step-status{color:var(--green)}
+    .step.active .step-status{color:var(--accent)}
+    .step:not(.active):not(.done) .step-status{color:var(--faint)}
+    .chevron{color:var(--faint);font-size:.75rem;transition:transform .2s}
+    .step.open .chevron{transform:rotate(90deg)}
+    .step-body{display:none;padding:0 20px 22px;border-top:1px solid var(--border)}
+    .step.open .step-body{display:block}
+    .step-body p{font-size:.84rem;color:var(--muted);line-height:1.7;margin:12px 0 8px}
+    .step-body h4{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+    .step-body a{color:var(--blue);text-decoration:none}
+    .step-body a:hover{text-decoration:underline}
+    .step-body ul{padding-left:18px;margin-bottom:10px}
+    .step-body li{font-size:.84rem;color:var(--muted);margin-bottom:5px;line-height:1.6}
+
+    /* ── Checklist ── */
+    .cl{list-style:none;padding:0;display:flex;flex-direction:column;gap:7px;margin:10px 0 16px}
+    .cl li{display:flex;align-items:flex-start;gap:10px;padding:9px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:border-color .15s}
+    .cl li:hover{border-color:var(--border-hi)}
+    .cl li.checked{border-color:var(--green)}
+    .cb{flex-shrink:0;width:17px;height:17px;border-radius:3px;border:1.5px solid var(--faint);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:.6rem;color:transparent;margin-top:2px;transition:all .15s}
+    .cl li.checked .cb{background:var(--green);border-color:var(--green);color:#000}
+    .ct{font-size:.82rem;color:var(--muted);line-height:1.5}
+    .cl li.checked .ct{color:var(--text)}
+
+    /* ── Credential inputs ── */
+    .cred-group{display:flex;flex-direction:column;gap:11px;margin:12px 0 18px}
+    .cred-row{display:flex;flex-direction:column;gap:5px}
+    .cred-label{font-size:.67rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+    .cred-req{color:var(--terracotta);font-size:.6rem;font-weight:700}
+    .cred-opt{color:var(--slate);font-size:.6rem;font-weight:700}
+    .cred-input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:.79rem;padding:8px 11px;border-radius:4px;width:100%;outline:none;transition:border-color .15s,background .15s}
+    .cred-input:focus{border-color:var(--accent);background:rgba(253,216,53,.03)}
+    .cred-input.has-val{border-color:rgba(105,240,174,.5)}
+    .cred-hint{font-size:.67rem;color:var(--faint);line-height:1.5;margin-top:1px}
+    .cred-store-note{font-size:.68rem;color:var(--faint);padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:4px;margin-top:4px;line-height:1.5}
+
+    /* ── Generated .env output ── */
+    .env-out-wrap{position:relative;margin:12px 0 18px}
+    .env-out{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:14px 16px 14px;font-family:var(--mono);font-size:.75rem;line-height:1.7;color:#cdd6f4;white-space:pre;overflow-x:auto;min-height:80px}
+    .env-empty{color:var(--faint);font-style:italic}
+    .env-copy-btn{position:absolute;top:8px;right:8px;background:var(--surface);border:1px solid var(--border);color:var(--faint);font-size:.6rem;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:3px;cursor:pointer;transition:color .15s}
+    .env-copy-btn:hover{color:var(--accent)}
+    .env-copy-btn.copied{color:var(--green)}
+
+    /* ── Env var table ── */
+    .env-grid{display:flex;flex-direction:column;gap:8px;margin:10px 0 16px}
+    .env-row{display:flex;gap:10px;align-items:stretch;background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+    .env-key{font-family:var(--mono);font-size:.74rem;padding:9px 12px;color:var(--accent);background:rgba(253,216,53,.05);border-right:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;min-width:0;word-break:break-all}
+    .env-desc{font-size:.75rem;color:var(--muted);padding:9px 12px;flex:1;display:flex;align-items:center;line-height:1.5}
+    .env-src{font-size:.65rem;padding:9px 10px;color:var(--faint);border-left:1px solid var(--border);display:flex;align-items:center;white-space:nowrap}
+    .env-req{color:var(--terracotta);font-weight:700}
+    .env-opt{color:var(--slate)}
+
+    /* ── Code blocks ── */
+    pre{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:14px 16px;overflow-x:auto;margin:10px 0 16px;font-family:var(--mono);font-size:.77rem;line-height:1.7;color:#cdd6f4;position:relative}
+    .copy-btn{position:absolute;top:8px;right:8px;background:var(--surface);border:1px solid var(--border);color:var(--faint);font-size:.6rem;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:3px;cursor:pointer;transition:color .15s}
+    .copy-btn:hover{color:var(--accent)}
+    .copy-btn.copied{color:var(--green)}
+    code{font-family:var(--mono);font-size:.82em;color:var(--accent);background:rgba(253,216,53,.07);padding:1px 5px;border-radius:3px}
+    pre code{background:none;padding:0;color:inherit;font-size:inherit}
+
+    /* ── Buttons ── */
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:4px;font-weight:700;font-size:.82rem;letter-spacing:.4px;text-decoration:none;cursor:pointer;border:none;transition:filter .15s,background .15s}
+    .btn-primary{background:var(--accent);color:#000}
+    .btn-vercel{background:#fff;color:#000}
+    .btn-netlify{background:var(--netlify);color:#fff}
+    .btn-supa{background:var(--supabase);color:#000}
+    .btn-nile{background:var(--nile);color:#fff}
+    .btn-heroku{background:#430098;color:#fff}
+    .btn-mailgun{background:#F06B28;color:#fff}
+    .btn-cf{background:var(--cf);color:#fff}
+    .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+    .btn-sm{padding:6px 14px;font-size:.75rem}
+    .btn:hover{filter:brightness(1.1)}
+    .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+
+    /* ── Alert ── */
+    .alert{border-radius:5px;padding:12px 16px;font-size:.82rem;line-height:1.65;margin:10px 0}
+    .alert-info{background:rgba(130,177,255,.08);border:1px solid rgba(130,177,255,.25);color:var(--blue)}
+    .alert-warn{background:rgba(253,216,53,.07);border:1px solid rgba(253,216,53,.25);color:var(--accent)}
+    .alert-note{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted)}
+    .alert-success{background:rgba(105,240,174,.07);border:1px solid rgba(105,240,174,.25);color:var(--green)}
+
+    /* ── Launch card ── */
+    .launch-card{background:var(--bg2);border:2px solid var(--accent);border-radius:8px;padding:32px;text-align:center;margin-top:32px}
+    .launch-card h2{font-family:var(--font);font-size:1.35rem;margin-bottom:10px}
+    .launch-card p{color:var(--muted);font-size:.86rem;max-width:480px;margin:0 auto 24px;line-height:1.7}
+
+    /* ── Or divider ── */
+    .or-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--faint);font-size:.72rem;font-weight:700;letter-spacing:1px}
+    .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    /* ── Svc card ── */
+    .svc-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:16px;margin:10px 0}
+    .svc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .svc-name{font-weight:700;font-size:.9rem}
+    .svc-note{font-size:.75rem;color:var(--muted)}
+
+    @media(max-width:600px){.nav-links{display:none}.env-src{display:none}.picker{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+
+<div class="mondrian"><span></span><span></span><span></span><span></span></div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img src="https://ward.funkypony.space/funlyponyspace_pogo.webp" alt="Funky Pony" />
+      Funky Pony Space
+    </a>
+    <div class="nav-links">
+      <a href="index.html">← Overview</a>
+      <a href="deploy_appwrite.html">Appwrite Guide</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eye">Cloud Deployment Wizard</div>
+    <h1>Deploy Your Pantry</h1>
+    <p>
+      Pick your platform. The wizard collects your credentials step by step —
+      Supabase, Mailgun, Twilio, Cloudflare, Nile — then generates a ready-to-paste
+      <code>.env</code> file and a one-click deploy button with everything wired up.
+      <strong>Nothing you enter here leaves your browser.</strong>
+    </p>
+  </div>
+
+  <!-- Path picker -->
+  <div style="font-size:.63rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Choose your hosting platform</div>
+  <div class="picker">
+
+    <div class="path-card selected" onclick="selectPath('vercel-supabase')" id="pc-vercel-supabase">
+      <div class="path-logos">
+        <span class="logo-pill lp-vercel">▲ Vercel</span>
+        <span>+</span>
+        <span class="logo-pill lp-supa">Supabase</span>
+      </div>
+      <div class="path-title">Vercel + Supabase</div>
+      <div class="path-desc">Full-stack cloud. Auth, database, edge functions, realtime. One-click deploy.</div>
+      <span class="path-tag tag-recommended">Recommended</span>
+      <div class="path-sel">▶ Selected</div>
+    </div>
+
+    <div class="path-card" onclick="selectPath('netlify-supabase')" id="pc-netlify-supabase">
+      <div class="path-logos">
+        <span class="logo-pill lp-netlify">◆ Netlify</span>
+        <span>+</span>
+        <span class="logo-pill lp-supa">Supabase</span>
+      </div>
+      <div class="path-title">Netlify + Supabase</div>
+      <div class="path-desc">Same full stack, Netlify CDN. Good if you're already in the Netlify ecosystem.</div>
+      <span class="path-tag tag-recommended">Recommended</span>
+      <div class="path-sel"></div>
+    </div>
+
+    <div class="path-card" onclick="selectPath('cloudflare')" id="pc-cloudflare">
+      <div class="path-logos">
+        <span class="logo-pill lp-cf">⚡ CF Pages</span>
+        <span>+</span>
+        <span class="logo-pill lp-supa">Supabase</span>
+      </div>
+      <div class="path-title">Cloudflare Pages</div>
+      <div class="path-desc">Edge-native hosting on Cloudflare's global network. Fast anywhere, free tier generous.</div>
+      <span class="path-tag tag-edge">Edge</span>
+      <div class="path-sel"></div>
+    </div>
+
+    <div class="path-card" onclick="selectPath('nile')" id="pc-nile">
+      <div class="path-logos">
+        <span class="logo-pill lp-nile">◉ Nile</span>
+        <span>+</span>
+        <span class="logo-pill lp-supa">Supabase Auth</span>
+      </div>
+      <div class="path-title">Nile Multi-Tenant DB</div>
+      <div class="path-desc">Nile's tenant-isolated PostgreSQL. Already active in this project's env vars.</div>
+      <span class="path-tag tag-multitenant">Multi-tenant</span>
+      <div class="path-sel"></div>
+    </div>
+
+    <div class="path-card" onclick="selectPath('heroku')" id="pc-heroku">
+      <div class="path-logos">
+        <span class="logo-pill lp-heroku">⬡ Heroku PG</span>
+        <span>+</span>
+        <span class="logo-pill lp-supa">Supabase Auth</span>
+      </div>
+      <div class="path-title">Heroku Postgres</div>
+      <div class="path-desc">Heroku Postgres as your database. Simplest if you already have a Heroku account.</div>
+      <span class="path-tag tag-simple">Simple DB</span>
+      <div class="path-sel"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PATH: Vercel + Supabase                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="steps-area visible" id="steps-vercel-supabase">
+    <div class="steps-title">Vercel + Supabase — Setup Wizard</div>
+
+    <!-- Step 1: Fork -->
+    <div class="step active open" id="vs-0">
+      <div class="step-header" onclick="tog('vs-0')">
+        <div class="step-num">1</div>
+        <div class="step-info"><div class="step-title">Fork the repo to your GitHub</div><div class="step-sub">Your deployment pulls from your own fork</div></div>
+        <div class="step-status">In progress</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <p>Vercel deploys from a GitHub (or GitLab/Bitbucket) repo you own. Fork first so you can push customisations.</p>
+        <div class="btn-row">
+          <a href="https://github.com/biomassives/foodbank/fork" class="btn btn-secondary btn-sm" target="_blank">Fork biomassives/foodbank →</a>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Forked — your copy is at <strong>github.com/YOUR_USERNAME/foodbank</strong></div></li>
+        </ul>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Your GitHub username <span class="cred-req">required</span></label>
+            <input class="cred-input" id="gh_user" type="text" placeholder="your-github-username" oninput="CR.set('gh_user',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">Used to build your Vercel deploy URL</div>
+          </div>
+        </div>
+        <div class="cred-store-note">&#128274; Credentials are saved only in your browser's localStorage. Nothing is sent to any server.</div>
+        <button class="btn btn-primary btn-sm" onclick="done('vs-0','vs-1')">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Supabase -->
+    <div class="step" id="vs-1">
+      <div class="step-header" onclick="tog('vs-1')">
+        <div class="step-num">2</div>
+        <div class="step-info"><div class="step-title">Create your Supabase project</div><div class="step-sub">Auth, database, edge functions — free tier covers a full pantry</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://supabase.com/dashboard/new" class="btn btn-supa btn-sm" target="_blank">Open Supabase → New Project</a></div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Sign up / log in at <strong>supabase.com</strong></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Create project, choose a region close to your users</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Wait for provisioning (~90 s), then go to <strong>Settings → API</strong></div></li>
+        </ul>
+        <h4>Paste your Supabase keys</h4>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Project URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_url" type="url" placeholder="https://xxxxxxxxxxx.supabase.co" oninput="CR.set('supabase_url',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">Settings → API → Project URL</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Anon public key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_anon" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_anon',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">Settings → API → Project API Keys → anon public</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">service_role key <span class="cred-req">required — keep secret</span></label>
+            <input class="cred-input" id="supabase_service" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_service',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+            <div class="cred-hint">Same page — <strong>never</strong> expose this in browser-side code</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Project ref (short ID) <span class="cred-req">required for migrations</span></label>
+            <input class="cred-input" id="supabase_ref" type="text" placeholder="xxxxxxxxxxx" oninput="CR.set('supabase_ref',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">The 11-character code from your project URL, e.g. <code>niqxxmrjqrgl</code></div>
+          </div>
+        </div>
+        <h4>Run migrations</h4>
+        <pre id="vs-migrate-cmd"><button class="copy-btn" onclick="cp(this)">COPY</button><code>npx supabase link --project-ref PROJECT_REF
+npx supabase db push</code></pre>
+        <button class="btn btn-primary btn-sm" onclick="done('vs-1','vs-2')">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Mailgun -->
+    <div class="step" id="vs-2">
+      <div class="step-header" onclick="tog('vs-2')">
+        <div class="step-num">3</div>
+        <div class="step-info"><div class="step-title">Set up Mailgun</div><div class="step-sub">Outbound email — digests, invites, notifications</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row">
+          <a href="https://signup.mailgun.com/" class="btn btn-mailgun btn-sm" target="_blank">Create Mailgun account</a>
+          <a href="https://app.mailgun.com/mg/sending/domains" class="btn btn-secondary btn-sm" target="_blank">Add sending domain</a>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Sign up — free trial: 1,000 emails/month</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Add a sending domain (e.g. <code>mg.yourdomain.com</code>) and verify DNS records</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct"><strong>API Security</strong> → create new API key → copy it</div></li>
+        </ul>
+        <div class="alert alert-note">No custom domain yet? Use Mailgun's sandbox domain for testing — add your email as a verified recipient first.</div>
+        <h4>Paste your Mailgun keys</h4>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Mailgun API key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_key" type="password" placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="CR.set('mailgun_key',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+            <div class="cred-hint">Mailgun → API Security → API Keys</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Sending domain <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_domain" type="text" placeholder="mg.yourdomain.com" oninput="CR.set('mailgun_domain',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">The domain you verified in Mailgun</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">From email address <span class="cred-req">required</span></label>
+            <input class="cred-input" id="notify_from" type="email" placeholder="notify@mg.yourdomain.com" oninput="CR.set('notify_from',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+            <div class="cred-hint">Must be on your verified Mailgun domain</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('vs-2','vs-3')">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Twilio (optional) -->
+    <div class="step" id="vs-3">
+      <div class="step-header" onclick="tog('vs-3')">
+        <div class="step-num">4</div>
+        <div class="step-info"><div class="step-title">Twilio voice call-ins <span style="font-size:.7rem;color:var(--faint);font-weight:400">(optional)</span></div><div class="step-sub">Skip if you only need email digests</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="alert alert-note">Twilio is only needed for the daily voice call-in feature. The app works fully without it — leave these blank to skip.</div>
+        <div class="btn-row"><a href="https://www.twilio.com/try-twilio" class="btn btn-secondary btn-sm" target="_blank">Create Twilio account</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Account SID <span class="cred-opt">optional</span></label>
+            <input class="cred-input" id="twilio_sid" type="text" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="CR.set('twilio_sid',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">Twilio Console → Account SID</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Auth Token <span class="cred-opt">optional</span></label>
+            <input class="cred-input" id="twilio_token" type="password" placeholder="your auth token" oninput="CR.set('twilio_token',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+            <div class="cred-hint">Twilio Console → Auth Token</div>
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">From phone number <span class="cred-opt">optional</span></label>
+            <input class="cred-input" id="twilio_from" type="text" placeholder="+13035550001" oninput="CR.set('twilio_from',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">Your Twilio number in E.164 format</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('vs-3','vs-4')">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Deploy -->
+    <div class="step" id="vs-4">
+      <div class="step-header" onclick="tog('vs-4')">
+        <div class="step-num">5</div>
+        <div class="step-info"><div class="step-title">Deploy to Vercel</div><div class="step-sub">Generated .env ready to paste — then one click</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <h4>Your generated .env — copy and paste into Vercel's environment variable form</h4>
+        <div class="env-out-wrap">
+          <div class="env-out" id="env-vs"><!-- generated by JS --></div>
+          <button class="env-copy-btn" onclick="cpEnv('env-vs')">COPY</button>
+        </div>
+        <div class="alert alert-info">
+          In Vercel's deploy flow, go to <strong>Environment Variables</strong> and paste each key/value pair from the block above. Or use the Vercel CLI after deploy: <code>vercel env add VARNAME</code>
+        </div>
+        <h4>One-click deploy</h4>
+        <div class="btn-row">
+          <a id="vs-deploy-btn" href="#" class="btn btn-vercel" target="_blank" onclick="return checkDeployReady('vs')">
+            ▲ Deploy to Vercel
+          </a>
+        </div>
+        <div class="alert alert-warn">After deploying, go to <strong>Supabase → Authentication → URL Configuration</strong> and set the Site URL to your new Vercel deployment URL. Add it to the Redirect URLs allowlist too.</div>
+        <button class="btn btn-primary btn-sm" onclick="done('vs-4','vs-5')">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Supabase function secrets -->
+    <div class="step" id="vs-5">
+      <div class="step-header" onclick="tog('vs-5')">
+        <div class="step-num">6</div>
+        <div class="step-info"><div class="step-title">Set Supabase edge function secrets</div><div class="step-sub">Separate from Vercel env vars — the functions need their own copy</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <p>Supabase edge functions read secrets separately. The command below is pre-filled from what you entered above:</p>
+        <pre id="vs-secrets-cmd"><button class="copy-btn" onclick="cp(this)">COPY</button><code id="vs-secrets-code">npx supabase secrets set \
+  MAILGUN_API_KEY="..." \
+  MAILGUN_DOMAIN="..." \
+  NOTIFY_FROM_EMAIL="..."</code></pre>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Secrets set for <code>daily-digest</code>, <code>mts</code>, <code>mailgun-webhook</code></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Secrets set for <code>daily-call</code>, <code>twiml-gather</code>, <code>waterfall-call</code> (if using Twilio)</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Supabase Site URL updated to match your Vercel deployment domain</div></li>
+        </ul>
+        <button class="btn btn-primary btn-sm" onclick="done('vs-5',null)">Mark complete ✓</button>
+      </div>
+    </div>
+
+    <div class="launch-card">
+      <h2>You're live on Vercel ▲</h2>
+      <p>Open your deployment URL, complete the pantry setup wizard, and send your first invite.</p>
+      <div class="btn-row" style="justify-content:center">
+        <a href="https://supabase.com/dashboard" class="btn btn-supa" target="_blank">Supabase Dashboard</a>
+        <a href="https://vercel.com/dashboard" class="btn btn-vercel" target="_blank">Vercel Dashboard</a>
+        <a href="index.html#donate" class="btn btn-ghost">Support the project ♥</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PATH: Netlify + Supabase                                -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="steps-area" id="steps-netlify-supabase">
+    <div class="steps-title">Netlify + Supabase — Setup Wizard</div>
+
+    <div class="step active open" id="ns-0">
+      <div class="step-header" onclick="tog('ns-0')">
+        <div class="step-num">1</div>
+        <div class="step-info"><div class="step-title">Fork the repo to your GitHub</div><div class="step-sub">Netlify deploys from your own fork</div></div>
+        <div class="step-status">In progress</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row">
+          <a href="https://github.com/biomassives/foodbank/fork" class="btn btn-secondary btn-sm" target="_blank">Fork biomassives/foodbank →</a>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Forked — your copy is at <strong>github.com/YOUR_USERNAME/foodbank</strong></div></li>
+        </ul>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Your GitHub username <span class="cred-req">required</span></label>
+            <input class="cred-input" id="gh_user_n" type="text" placeholder="your-github-username" oninput="CR.set('gh_user',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('ns-0','ns-1')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="ns-1">
+      <div class="step-header" onclick="tog('ns-1')">
+        <div class="step-num">2</div>
+        <div class="step-info"><div class="step-title">Create your Supabase project</div><div class="step-sub">Free tier covers a full pantry deployment</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://supabase.com/dashboard/new" class="btn btn-supa btn-sm" target="_blank">Open Supabase → New Project</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Project URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_url_n" type="url" placeholder="https://xxxxxxxxxxx.supabase.co" oninput="CR.set('supabase_url',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Anon public key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_anon_n" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_anon',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">service_role key <span class="cred-req">keep secret</span></label>
+            <input class="cred-input" id="supabase_service_n" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_service',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Project ref <span class="cred-req">for migrations</span></label>
+            <input class="cred-input" id="supabase_ref_n" type="text" placeholder="xxxxxxxxxxx" oninput="CR.set('supabase_ref',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <pre><button class="copy-btn" onclick="cp(this)">COPY</button><code>npx supabase link --project-ref YOUR_REF
+npx supabase db push</code></pre>
+        <button class="btn btn-primary btn-sm" onclick="done('ns-1','ns-2')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="ns-2">
+      <div class="step-header" onclick="tog('ns-2')">
+        <div class="step-num">3</div>
+        <div class="step-info"><div class="step-title">Set up Mailgun</div><div class="step-sub">Outbound email for digests and invites</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://signup.mailgun.com/" class="btn btn-mailgun btn-sm" target="_blank">Create Mailgun account</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">API key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_key_n" type="password" placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="CR.set('mailgun_key',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Sending domain <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_domain_n" type="text" placeholder="mg.yourdomain.com" oninput="CR.set('mailgun_domain',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">From email <span class="cred-req">required</span></label>
+            <input class="cred-input" id="notify_from_n" type="email" placeholder="notify@mg.yourdomain.com" oninput="CR.set('notify_from',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('ns-2','ns-3')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="ns-3">
+      <div class="step-header" onclick="tog('ns-3')">
+        <div class="step-num">4</div>
+        <div class="step-info"><div class="step-title">Deploy to Netlify</div><div class="step-sub">netlify.toml pre-configured — paste env vars then click</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <h4>Your generated .env — copy and paste into Netlify's environment variable form</h4>
+        <div class="env-out-wrap">
+          <div class="env-out" id="env-ns"><!-- generated by JS --></div>
+          <button class="env-copy-btn" onclick="cpEnv('env-ns')">COPY</button>
+        </div>
+        <div class="alert alert-info">In Netlify: <strong>Site configuration → Environment variables → Add a variable</strong>. Paste each pair from above, then trigger a new deploy.</div>
+        <div class="btn-row">
+          <a id="ns-deploy-btn" href="#" class="btn btn-netlify" target="_blank" onclick="return checkDeployReady('ns')">
+            ◆ Deploy to Netlify
+          </a>
+        </div>
+        <div class="alert alert-warn">After deploy, update Supabase Site URL to your Netlify deployment domain.</div>
+        <button class="btn btn-primary btn-sm" onclick="done('ns-3','ns-4')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="ns-4">
+      <div class="step-header" onclick="tog('ns-4')">
+        <div class="step-num">5</div>
+        <div class="step-info"><div class="step-title">Set Supabase edge function secrets</div><div class="step-sub">Separate from Netlify env vars</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <pre><button class="copy-btn" onclick="cp(this)">COPY</button><code id="ns-secrets-code">npx supabase secrets set \
+  MAILGUN_API_KEY="..." \
+  MAILGUN_DOMAIN="..." \
+  NOTIFY_FROM_EMAIL="..."</code></pre>
+        <button class="btn btn-primary btn-sm" onclick="done('ns-4',null)">Mark complete ✓</button>
+      </div>
+    </div>
+
+    <div class="launch-card">
+      <h2>You're live on Netlify ◆</h2>
+      <p>Open your Netlify deployment URL, complete the setup wizard, and update the Supabase Site URL to match.</p>
+      <div class="btn-row" style="justify-content:center">
+        <a href="https://supabase.com/dashboard" class="btn btn-supa" target="_blank">Supabase Dashboard</a>
+        <a href="https://app.netlify.com" class="btn btn-netlify" target="_blank">Netlify Dashboard</a>
+        <a href="index.html#donate" class="btn btn-ghost">Support the project ♥</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PATH: Cloudflare Pages                                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="steps-area" id="steps-cloudflare">
+    <div class="steps-title">Cloudflare Pages — Setup Wizard</div>
+
+    <div class="alert alert-info" style="margin-bottom:20px">
+      <strong>Cloudflare Pages</strong> hosts your frontend on Cloudflare's global edge network. Supabase handles auth, database, and edge functions as usual. Your domain DNS moves to Cloudflare for free SSL + DDoS protection.
+    </div>
+
+    <div class="step active open" id="cf-0">
+      <div class="step-header" onclick="tog('cf-0')">
+        <div class="step-num">1</div>
+        <div class="step-info"><div class="step-title">Fork the repo to your GitHub</div><div class="step-sub">Cloudflare Pages auto-deploys from your fork on every push</div></div>
+        <div class="step-status">In progress</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row">
+          <a href="https://github.com/biomassives/foodbank/fork" class="btn btn-secondary btn-sm" target="_blank">Fork biomassives/foodbank →</a>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Forked to <strong>github.com/YOUR_USERNAME/foodbank</strong></div></li>
+        </ul>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Your GitHub username <span class="cred-req">required</span></label>
+            <input class="cred-input" id="gh_user_cf" type="text" placeholder="your-github-username" oninput="CR.set('gh_user',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('cf-0','cf-1')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="cf-1">
+      <div class="step-header" onclick="tog('cf-1')">
+        <div class="step-num">2</div>
+        <div class="step-info"><div class="step-title">Create your Supabase project</div><div class="step-sub">Auth, database, edge functions</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://supabase.com/dashboard/new" class="btn btn-supa btn-sm" target="_blank">Open Supabase → New Project</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Project URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_url_cf" type="url" placeholder="https://xxxxxxxxxxx.supabase.co" oninput="CR.set('supabase_url',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Anon public key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_anon_cf" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_anon',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">service_role key <span class="cred-req">keep secret</span></label>
+            <input class="cred-input" id="supabase_service_cf" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_service',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Project ref <span class="cred-req">for migrations</span></label>
+            <input class="cred-input" id="supabase_ref_cf" type="text" placeholder="xxxxxxxxxxx" oninput="CR.set('supabase_ref',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <pre><button class="copy-btn" onclick="cp(this)">COPY</button><code>npx supabase link --project-ref YOUR_REF
+npx supabase db push</code></pre>
+        <button class="btn btn-primary btn-sm" onclick="done('cf-1','cf-2')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="cf-2">
+      <div class="step-header" onclick="tog('cf-2')">
+        <div class="step-num">3</div>
+        <div class="step-info"><div class="step-title">Set up Mailgun</div><div class="step-sub">Outbound email for digests and invites</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://signup.mailgun.com/" class="btn btn-mailgun btn-sm" target="_blank">Create Mailgun account</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">API key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_key_cf" type="password" placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="CR.set('mailgun_key',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Sending domain <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_domain_cf" type="text" placeholder="mg.yourdomain.com" oninput="CR.set('mailgun_domain',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">From email <span class="cred-req">required</span></label>
+            <input class="cred-input" id="notify_from_cf" type="email" placeholder="notify@mg.yourdomain.com" oninput="CR.set('notify_from',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('cf-2','cf-3')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="cf-3">
+      <div class="step-header" onclick="tog('cf-3')">
+        <div class="step-num">4</div>
+        <div class="step-info"><div class="step-title">Connect repo to Cloudflare Pages</div><div class="step-sub">Cloudflare auto-deploys on every push to your fork</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row">
+          <a href="https://dash.cloudflare.com/?to=/:account/pages/new/provider/github" class="btn btn-cf btn-sm" target="_blank">⚡ Connect GitHub repo in Cloudflare Pages</a>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">In Cloudflare Dashboard → <strong>Pages → Create a project → Connect to Git</strong></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Authorise Cloudflare to access your GitHub account, then select your <code>foodbank</code> fork</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Set <strong>Build command:</strong> <code>npm install &amp;&amp; quasar build</code></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Set <strong>Build output directory:</strong> <code>dist/spa</code></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Set <strong>Root directory:</strong> <code>/</code> (repo root)</div></li>
+        </ul>
+        <div class="alert alert-note">Cloudflare Pages uses Node.js 18 by default. Set the environment variable <code>NODE_VERSION=18</code> if you see build errors.</div>
+        <button class="btn btn-primary btn-sm" onclick="done('cf-3','cf-4')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="cf-4">
+      <div class="step-header" onclick="tog('cf-4')">
+        <div class="step-num">5</div>
+        <div class="step-info"><div class="step-title">Add environment variables to Cloudflare Pages</div><div class="step-sub">Copy the generated block below into the CF Pages settings</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <p>In your Cloudflare Pages project go to <strong>Settings → Environment variables → Production</strong> and add each key below.</p>
+        <h4>Your generated .env</h4>
+        <div class="env-out-wrap">
+          <div class="env-out" id="env-cf"><!-- generated by JS --></div>
+          <button class="env-copy-btn" onclick="cpEnv('env-cf')">COPY</button>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">All env vars added under <strong>Production</strong></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Triggered a new deploy (or Cloudflare auto-triggered on git push)</div></li>
+        </ul>
+        <button class="btn btn-primary btn-sm" onclick="done('cf-4','cf-5')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="cf-5">
+      <div class="step-header" onclick="tog('cf-5')">
+        <div class="step-num">6</div>
+        <div class="step-info"><div class="step-title">Custom domain + Supabase URL update</div><div class="step-sub">Point your domain and finalise auth redirect URLs</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">In Cloudflare Pages → <strong>Custom domains</strong> → add your domain (e.g. <code>pantry.yourdomain.com</code>). Cloudflare auto-creates the DNS record and SSL cert.</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">In Supabase → <strong>Authentication → URL Configuration</strong> → set Site URL to your Cloudflare Pages domain</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Add your Cloudflare Pages URL to Supabase Redirect URLs allowlist</div></li>
+        </ul>
+        <pre><button class="copy-btn" onclick="cp(this)">COPY</button><code id="cf-secrets-code">npx supabase secrets set \
+  MAILGUN_API_KEY="..." \
+  MAILGUN_DOMAIN="..." \
+  NOTIFY_FROM_EMAIL="..."</code></pre>
+        <button class="btn btn-primary btn-sm" onclick="done('cf-5',null)">Mark complete ✓</button>
+      </div>
+    </div>
+
+    <div class="launch-card">
+      <h2>You're live on Cloudflare Pages ⚡</h2>
+      <p>Your pantry runs on Cloudflare's global edge — fast everywhere, free SSL, and DDoS protection built in.</p>
+      <div class="btn-row" style="justify-content:center">
+        <a href="https://dash.cloudflare.com" class="btn btn-cf" target="_blank">Cloudflare Dashboard</a>
+        <a href="https://supabase.com/dashboard" class="btn btn-supa" target="_blank">Supabase Dashboard</a>
+        <a href="index.html#donate" class="btn btn-ghost">Support the project ♥</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PATH: Nile                                              -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="steps-area" id="steps-nile">
+    <div class="steps-title">Nile Multi-Tenant DB — Setup</div>
+
+    <div class="alert alert-info" style="margin-bottom:20px">
+      <strong>How this path works:</strong> Nile provides a tenant-isolated PostgreSQL database. App data lives in Nile; Supabase handles authentication and edge functions. This is already how this project's env is configured — both <code>NILEDB_*</code> and <code>SUPABASE_*</code> vars are active.
+    </div>
+
+    <div class="step active open" id="ni-1">
+      <div class="step-header" onclick="tog('ni-1')">
+        <div class="step-num">1</div>
+        <div class="step-info"><div class="step-title">Create a Nile database</div><div class="step-sub">thenile.dev — free tier available</div></div>
+        <div class="step-status">In progress</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://console.thenile.dev" class="btn btn-nile btn-sm" target="_blank">Open Nile Console</a></div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Sign up at <strong>thenile.dev</strong></div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Create a new database — choose a region</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Go to <strong>Connection</strong> → copy the Postgres connection string</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Note the API URL from the dashboard</div></li>
+        </ul>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Postgres connection string <span class="cred-req">required</span></label>
+            <input class="cred-input" id="nile_postgres" type="text" placeholder="postgres://USER:PASS@eu-central-1.db.thenile.dev/YOUR_DB" oninput="CR.set('nile_postgres',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Nile API URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="nile_api" type="url" placeholder="https://eu-central-1.api.thenile.dev/v2/databases/YOUR_DB_ID" oninput="CR.set('nile_api',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('ni-1','ni-2')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="ni-2">
+      <div class="step-header" onclick="tog('ni-2')">
+        <div class="step-num">2</div>
+        <div class="step-info"><div class="step-title">Create Supabase project (auth + functions)</div><div class="step-sub">Data lives in Nile; Supabase manages user sessions</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://supabase.com/dashboard/new" class="btn btn-supa btn-sm" target="_blank">Open Supabase → New Project</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Project URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_url_ni" type="url" placeholder="https://xxxxxxxxxxx.supabase.co" oninput="CR.set('supabase_url',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Anon public key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_anon_ni" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_anon',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">service_role key <span class="cred-req">keep secret</span></label>
+            <input class="cred-input" id="supabase_service_ni" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_service',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('ni-2','ni-3')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="ni-3">
+      <div class="step-header" onclick="tog('ni-3')">
+        <div class="step-num">3</div>
+        <div class="step-info"><div class="step-title">Set up Mailgun + Deploy</div><div class="step-sub">Generated .env covers both Supabase and Nile keys</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://signup.mailgun.com/" class="btn btn-mailgun btn-sm" target="_blank">Create Mailgun account</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">API key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_key_ni" type="password" placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="CR.set('mailgun_key',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Sending domain <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_domain_ni" type="text" placeholder="mg.yourdomain.com" oninput="CR.set('mailgun_domain',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">From email <span class="cred-req">required</span></label>
+            <input class="cred-input" id="notify_from_ni" type="email" placeholder="notify@mg.yourdomain.com" oninput="CR.set('notify_from',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+        </div>
+        <h4>Your generated .env</h4>
+        <div class="env-out-wrap">
+          <div class="env-out" id="env-ni"><!-- generated by JS --></div>
+          <button class="env-copy-btn" onclick="cpEnv('env-ni')">COPY</button>
+        </div>
+        <div class="btn-row">
+          <a id="ni-deploy-btn" href="#" class="btn btn-vercel" target="_blank" onclick="return checkDeployReady('ni')">▲ Deploy to Vercel</a>
+          <a id="ni-deploy-btn-n" href="#" class="btn btn-netlify" target="_blank" onclick="return checkDeployReady('ni-n')">◆ Deploy to Netlify</a>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('ni-3',null)">Mark complete ✓</button>
+      </div>
+    </div>
+
+    <div class="launch-card">
+      <h2>Running on Nile ◉</h2>
+      <p>Multi-tenant PostgreSQL with Supabase auth. Each pantry organisation runs as an isolated Nile tenant.</p>
+      <div class="btn-row" style="justify-content:center">
+        <a href="https://console.thenile.dev" class="btn btn-nile" target="_blank">Nile Console</a>
+        <a href="https://supabase.com/dashboard" class="btn btn-supa" target="_blank">Supabase Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PATH: Heroku Postgres                                   -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="steps-area" id="steps-heroku">
+    <div class="steps-title">Heroku Postgres — Setup</div>
+
+    <div class="alert alert-info" style="margin-bottom:20px">
+      <strong>How this path works:</strong> Heroku provides the PostgreSQL database via an add-on. Supabase handles authentication and edge functions. Simplest option if you already have a Heroku account.
+    </div>
+
+    <div class="step active open" id="hp-1">
+      <div class="step-header" onclick="tog('hp-1')">
+        <div class="step-num">1</div>
+        <div class="step-info"><div class="step-title">Create Heroku app + add Postgres</div><div class="step-sub">Essential plan starts at $5/mo</div></div>
+        <div class="step-status">In progress</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row">
+          <a href="https://dashboard.heroku.com/new-app" class="btn btn-heroku btn-sm" target="_blank">Create Heroku App</a>
+          <a href="https://elements.heroku.com/addons/heroku-postgresql" class="btn btn-secondary btn-sm" target="_blank">Heroku Postgres add-on</a>
+        </div>
+        <ul class="cl">
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct">Create a new Heroku app</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct"><strong>Resources</strong> → search for <strong>Heroku Postgres</strong> → attach it (Essential-0 plan)</div></li>
+          <li onclick="ck(this)"><div class="cb">✓</div><div class="ct"><strong>Settings → Config Vars</strong> → copy the <code>DATABASE_URL</code> value</div></li>
+        </ul>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">DATABASE_URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="database_url" type="text" placeholder="postgres://USER:PASS@ec2-xxx.compute-1.amazonaws.com:5432/dbname" oninput="CR.set('database_url',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+            <div class="cred-hint">From Heroku → Settings → Config Vars → DATABASE_URL</div>
+          </div>
+        </div>
+        <h4>Run migrations against Heroku Postgres</h4>
+        <pre><button class="copy-btn" onclick="cp(this)">COPY</button><code>psql YOUR_DATABASE_URL -f supabase/migrations/20260218_site_messages.sql
+psql YOUR_DATABASE_URL -f supabase/migrations/20260222_profile_media.sql
+# run each migration file in filename order</code></pre>
+        <button class="btn btn-primary btn-sm" onclick="done('hp-1','hp-2')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="hp-2">
+      <div class="step-header" onclick="tog('hp-2')">
+        <div class="step-num">2</div>
+        <div class="step-info"><div class="step-title">Create Supabase project (auth + functions)</div><div class="step-sub">Supabase manages sessions; Heroku holds the data</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://supabase.com/dashboard/new" class="btn btn-supa btn-sm" target="_blank">Open Supabase → New Project</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">Project URL <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_url_hp" type="url" placeholder="https://xxxxxxxxxxx.supabase.co" oninput="CR.set('supabase_url',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Anon public key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="supabase_anon_hp" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_anon',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">service_role key <span class="cred-req">keep secret</span></label>
+            <input class="cred-input" id="supabase_service_hp" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." oninput="CR.set('supabase_service',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+        </div>
+        <div class="alert alert-warn">Connecting an external database requires a Supabase Pro plan ($25/mo). On the free plan, use Supabase's own database.</div>
+        <button class="btn btn-primary btn-sm" onclick="done('hp-2','hp-3')">Next →</button>
+      </div>
+    </div>
+
+    <div class="step" id="hp-3">
+      <div class="step-header" onclick="tog('hp-3')">
+        <div class="step-num">3</div>
+        <div class="step-info"><div class="step-title">Set up Mailgun + Deploy</div><div class="step-sub">Final step — generated .env ready</div></div>
+        <div class="step-status">Pending</div><div class="chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="btn-row"><a href="https://signup.mailgun.com/" class="btn btn-mailgun btn-sm" target="_blank">Create Mailgun account</a></div>
+        <div class="cred-group">
+          <div class="cred-row">
+            <label class="cred-label">API key <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_key_hp" type="password" placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="CR.set('mailgun_key',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">Sending domain <span class="cred-req">required</span></label>
+            <input class="cred-input" id="mailgun_domain_hp" type="text" placeholder="mg.yourdomain.com" oninput="CR.set('mailgun_domain',this.value);markFilled(this);refreshAll()" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="cred-row">
+            <label class="cred-label">From email <span class="cred-req">required</span></label>
+            <input class="cred-input" id="notify_from_hp" type="email" placeholder="notify@mg.yourdomain.com" oninput="CR.set('notify_from',this.value);markFilled(this);refreshAll()" autocomplete="off" />
+          </div>
+        </div>
+        <h4>Your generated .env</h4>
+        <div class="env-out-wrap">
+          <div class="env-out" id="env-hp"><!-- generated by JS --></div>
+          <button class="env-copy-btn" onclick="cpEnv('env-hp')">COPY</button>
+        </div>
+        <div class="btn-row">
+          <a id="hp-deploy-btn" href="#" class="btn btn-vercel" target="_blank" onclick="return checkDeployReady('hp')">▲ Deploy to Vercel</a>
+          <a id="hp-deploy-btn-n" href="#" class="btn btn-netlify" target="_blank" onclick="return checkDeployReady('hp-n')">◆ Deploy to Netlify</a>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="done('hp-3',null)">Mark complete ✓</button>
+      </div>
+    </div>
+
+    <div class="launch-card">
+      <h2>Running on Heroku Postgres ⬡</h2>
+      <p>Pantry data in Heroku Postgres, auth in Supabase, frontend on Vercel or Netlify.</p>
+      <div class="btn-row" style="justify-content:center">
+        <a href="https://dashboard.heroku.com" class="btn btn-heroku" target="_blank">Heroku Dashboard</a>
+        <a href="https://supabase.com/dashboard" class="btn btn-supa" target="_blank">Supabase Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+
+<script>
+/* ────────────────────────────────────────────────
+   Credential Registry — localStorage only, never sent anywhere
+   ──────────────────────────────────────────────── */
+var CR = (function() {
+  var KEY = 'fp-deploy-creds';
+  var d = {};
+  try { d = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
+  return {
+    set: function(k, v) { d[k] = v; try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e){} },
+    get: function(k)    { return d[k] || ''; },
+    all: function()     { return d; }
+  };
+})();
+
+/* ────────────────────────────────────────────────
+   Build .env text for each path
+   ──────────────────────────────────────────────── */
+function buildEnvText(path) {
+  var c = CR.all();
+  var lines = [];
+
+  // Supabase — always present
+  lines.push('# Supabase');
+  lines.push('VITE_SUPABASE_URL='           + (c.supabase_url     || ''));
+  lines.push('VITE_SUPABASE_ANON_KEY='      + (c.supabase_anon    || ''));
+  lines.push('SUPABASE_URL='                + (c.supabase_url     || ''));
+  lines.push('SUPABASE_SERVICE_ROLE_KEY='   + (c.supabase_service || ''));
+
+  // Nile
+  if (path === 'ni' || c.nile_postgres) {
+    lines.push('');
+    lines.push('# Nile multi-tenant DB');
+    lines.push('NILEDB_POSTGRES_URL=' + (c.nile_postgres || ''));
+    lines.push('NILEDB_API_URL='      + (c.nile_api     || ''));
+  }
+
+  // Heroku
+  if (path === 'hp' || c.database_url) {
+    lines.push('');
+    lines.push('# Heroku Postgres');
+    lines.push('DATABASE_URL=' + (c.database_url || ''));
+  }
+
+  // Mailgun — always
+  lines.push('');
+  lines.push('# Mailgun');
+  lines.push('MAILGUN_API_KEY='    + (c.mailgun_key    || ''));
+  lines.push('MAILGUN_DOMAIN='     + (c.mailgun_domain || ''));
+  lines.push('NOTIFY_FROM_EMAIL='  + (c.notify_from    || ''));
+
+  // Twilio (if filled)
+  if (c.twilio_sid || c.twilio_token || c.twilio_from) {
+    lines.push('');
+    lines.push('# Twilio (optional — voice call-ins)');
+    lines.push('TWILIO_ACCOUNT_SID='  + (c.twilio_sid   || ''));
+    lines.push('TWILIO_AUTH_TOKEN='   + (c.twilio_token || ''));
+    lines.push('TWILIO_FROM_NUMBER='  + (c.twilio_from  || ''));
+  }
+
+  // Node version hint for Cloudflare
+  if (path === 'cf') {
+    lines.push('');
+    lines.push('# Cloudflare Pages');
+    lines.push('NODE_VERSION=18');
+  }
+
+  return lines.join('\n');
+}
+
+function buildSecretsCmd() {
+  var c = CR.all();
+  var parts = ['npx supabase secrets set \\'];
+  parts.push('  MAILGUN_API_KEY="'   + (c.mailgun_key    || 'YOUR_KEY')    + '" \\');
+  parts.push('  MAILGUN_DOMAIN="'    + (c.mailgun_domain || 'mg.yourdomain.com') + '" \\');
+  parts.push('  NOTIFY_FROM_EMAIL="' + (c.notify_from    || 'notify@mg.yourdomain.com') + '"');
+  if (c.twilio_sid) {
+    parts[parts.length - 1] = parts[parts.length - 1].replace(/[^"]*$/, '" \\');
+    parts.push('  TWILIO_ACCOUNT_SID="'  + c.twilio_sid              + '" \\');
+    parts.push('  TWILIO_AUTH_TOKEN="'   + (c.twilio_token || '...') + '" \\');
+    parts.push('  TWILIO_FROM_NUMBER="'  + (c.twilio_from  || '...') + '"');
+  }
+  return parts.join('\n');
+}
+
+function buildMigrateCmd() {
+  var ref = CR.get('supabase_ref');
+  if (!ref) return 'npx supabase link --project-ref YOUR_PROJECT_REF\nnpx supabase db push';
+  return 'npx supabase link --project-ref ' + ref + '\nnpx supabase db push';
+}
+
+function buildVercelUrl(ghUser) {
+  var u = ghUser || CR.get('gh_user') || 'YOUR_GITHUB_USERNAME';
+  var repo = 'https://github.com/' + u + '/foodbank';
+  var env = [
+    'VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY',
+    'SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY',
+    'MAILGUN_API_KEY','MAILGUN_DOMAIN','NOTIFY_FROM_EMAIL',
+    'TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_FROM_NUMBER',
+    'NOTIFY_FROM_EMAIL'
+  ].join(',');
+  return 'https://vercel.com/new/clone'
+    + '?repository-url=' + encodeURIComponent(repo)
+    + '&env=' + encodeURIComponent(env)
+    + '&envDescription=' + encodeURIComponent('Supabase, Mailgun, and optional Twilio keys')
+    + '&envLink=' + encodeURIComponent('https://funkypony.space/deploy_cloud.html')
+    + '&project-name=funky-pony-pantry'
+    + '&demo-title=' + encodeURIComponent('Funky Pony Space')
+    + '&demo-description=' + encodeURIComponent('Community food pantry coordination')
+    + '&demo-url=' + encodeURIComponent('https://ward.funkypony.space');
+}
+
+function buildNetlifyUrl(ghUser) {
+  var u = ghUser || CR.get('gh_user') || 'YOUR_GITHUB_USERNAME';
+  return 'https://app.netlify.com/start/deploy?repository=https://github.com/' + u + '/foodbank';
+}
+
+/* ────────────────────────────────────────────────
+   Refresh all generated output blocks
+   ──────────────────────────────────────────────── */
+function refreshAll() {
+  var pathMap = { 'env-vs':'vs', 'env-ns':'ns', 'env-cf':'cf', 'env-ni':'ni', 'env-hp':'hp' };
+  Object.keys(pathMap).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = buildEnvText(pathMap[id]);
+  });
+
+  // Secrets commands
+  var sc = buildSecretsCmd();
+  ['vs-secrets-code','ns-secrets-code','cf-secrets-code'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = sc;
+  });
+
+  // Migration commands
+  var mc = buildMigrateCmd();
+  var vsm = document.querySelector('#vs-migrate-cmd code');
+  if (vsm) vsm.textContent = mc;
+
+  // Deploy buttons
+  var ghUser = CR.get('gh_user');
+  var vUrl = buildVercelUrl(ghUser);
+  var nUrl = buildNetlifyUrl(ghUser);
+  var btnMap = {
+    'vs-deploy-btn': vUrl,
+    'ns-deploy-btn': nUrl,
+    'ni-deploy-btn': vUrl,
+    'ni-deploy-btn-n': nUrl,
+    'hp-deploy-btn': vUrl,
+    'hp-deploy-btn-n': nUrl
+  };
+  Object.keys(btnMap).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.href = btnMap[id];
+  });
+
+  // Sync mirror inputs (inputs that share the same CR key across paths)
+  var mirrorMap = {
+    gh_user:          ['gh_user','gh_user_n','gh_user_cf'],
+    supabase_url:     ['supabase_url','supabase_url_n','supabase_url_cf','supabase_url_ni','supabase_url_hp'],
+    supabase_anon:    ['supabase_anon','supabase_anon_n','supabase_anon_cf','supabase_anon_ni','supabase_anon_hp'],
+    supabase_service: ['supabase_service','supabase_service_n','supabase_service_cf','supabase_service_ni','supabase_service_hp'],
+    supabase_ref:     ['supabase_ref','supabase_ref_n','supabase_ref_cf'],
+    mailgun_key:      ['mailgun_key','mailgun_key_n','mailgun_key_cf','mailgun_key_ni','mailgun_key_hp'],
+    mailgun_domain:   ['mailgun_domain','mailgun_domain_n','mailgun_domain_cf','mailgun_domain_ni','mailgun_domain_hp'],
+    notify_from:      ['notify_from','notify_from_n','notify_from_cf','notify_from_ni','notify_from_hp']
+  };
+  Object.keys(mirrorMap).forEach(function(key) {
+    var val = CR.get(key);
+    mirrorMap[key].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el !== document.activeElement) {
+        if (el.value !== val) el.value = val;
+        el.classList.toggle('has-val', !!val);
+      }
+    });
+  });
+}
+
+function markFilled(el) {
+  el.classList.toggle('has-val', !!el.value);
+}
+
+/* ────────────────────────────────────────────────
+   Deploy button guard — prompt if keys missing
+   ──────────────────────────────────────────────── */
+function checkDeployReady(path) {
+  var c = CR.all();
+  if (!c.gh_user) {
+    alert('Please enter your GitHub username in Step 1 first — the deploy URL needs it to point to your fork.');
+    return false;
+  }
+  return true;
+}
+
+/* ────────────────────────────────────────────────
+   Path picker + step controls
+   ──────────────────────────────────────────────── */
+var currentPath = 'vercel-supabase';
+
+function selectPath(p) {
+  document.querySelectorAll('.path-card').forEach(function(c) {
+    c.classList.remove('selected');
+    c.querySelector('.path-sel').textContent = '';
+  });
+  var card = document.getElementById('pc-' + p);
+  if (card) {
+    card.classList.add('selected');
+    card.querySelector('.path-sel').textContent = '▶ Selected';
+  }
+  document.querySelectorAll('.steps-area').forEach(function(a) { a.classList.remove('visible'); });
+  var area = document.getElementById('steps-' + p);
+  if (area) area.classList.add('visible');
+  currentPath = p;
+  history.replaceState(null, '', '#' + p.replace('-supabase','').replace('vercel','vercel').replace('netlify','netlify'));
+  window.scrollTo({ top: (area || document.body).offsetTop - 120, behavior: 'smooth' });
+  refreshAll();
+}
+
+function tog(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+function done(id, nextId) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('active','open');
+  el.classList.add('done');
+  el.querySelector('.step-status').textContent = 'Done';
+  if (nextId) {
+    var nx = document.getElementById(nextId);
+    if (nx) {
+      nx.classList.add('active','open');
+      nx.querySelector('.step-status').textContent = 'In progress';
+      setTimeout(function() { nx.scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
+    }
+  }
+  save();
+}
+
+function ck(li) { li.classList.toggle('checked'); save(); }
+
+/* ────────────────────────────────────────────────
+   Copy helpers
+   ──────────────────────────────────────────────── */
+function cp(btn) {
+  var code = btn.nextElementSibling ? btn.nextElementSibling.textContent : '';
+  navigator.clipboard.writeText(code).then(function() {
+    btn.textContent = 'COPIED'; btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
+function cpEnv(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var btn = el.nextElementSibling;
+  navigator.clipboard.writeText(el.textContent).then(function() {
+    if (btn) { btn.textContent = 'COPIED'; btn.classList.add('copied'); }
+    setTimeout(function() { if (btn) { btn.textContent = 'COPY'; btn.classList.remove('copied'); } }, 1800);
+  });
+}
+
+/* ────────────────────────────────────────────────
+   Persist wizard state (step progress + checklist)
+   ──────────────────────────────────────────────── */
+function save() {
+  var state = { path: currentPath, steps: {} };
+  document.querySelectorAll('.step[id]').forEach(function(s) {
+    state.steps[s.id] = {
+      done:   s.classList.contains('done'),
+      active: s.classList.contains('active'),
+      open:   s.classList.contains('open'),
+      checks: Array.from(s.querySelectorAll('.cl li')).map(function(l) { return l.classList.contains('checked'); })
+    };
+  });
+  try { localStorage.setItem('fp-cloud-deploy', JSON.stringify(state)); } catch(e) {}
+}
+
+/* ────────────────────────────────────────────────
+   Restore state on page load
+   ──────────────────────────────────────────────── */
+(function init() {
+  // Hash-based deep linking: #vercel → vercel-supabase, #netlify → netlify-supabase, #cloudflare → cloudflare, #nile → nile, #heroku → heroku
+  var hashMap = {
+    vercel:      'vercel-supabase',
+    netlify:     'netlify-supabase',
+    cloudflare:  'cloudflare',
+    cf:          'cloudflare',
+    nile:        'nile',
+    heroku:      'heroku'
+  };
+  var hash = window.location.hash.replace('#','').toLowerCase();
+  var pathFromHash = hashMap[hash];
+
+  // Restore saved wizard progress
+  try {
+    var state = JSON.parse(localStorage.getItem('fp-cloud-deploy') || '{}');
+    var savedPath = pathFromHash || state.path || 'vercel-supabase';
+    selectPath(savedPath);
+    Object.keys(state.steps || {}).forEach(function(id) {
+      var el = document.getElementById(id); if (!el) return;
+      var s = state.steps[id];
+      el.classList.toggle('done',   !!s.done);
+      el.classList.toggle('active', !!s.active);
+      el.classList.toggle('open',   !!s.open);
+      if (s.done)   el.querySelector('.step-status').textContent = 'Done';
+      if (s.active) el.querySelector('.step-status').textContent = 'In progress';
+      var lis = el.querySelectorAll('.cl li');
+      (s.checks || []).forEach(function(c, j) { if (lis[j] && c) lis[j].classList.add('checked'); });
+    });
+  } catch(e) {
+    selectPath(pathFromHash || 'vercel-supabase');
+  }
+
+  // Restore saved credential values into inputs
+  var credFieldMap = {
+    gh_user:          ['gh_user','gh_user_n','gh_user_cf'],
+    supabase_url:     ['supabase_url','supabase_url_n','supabase_url_cf','supabase_url_ni','supabase_url_hp'],
+    supabase_anon:    ['supabase_anon','supabase_anon_n','supabase_anon_cf','supabase_anon_ni','supabase_anon_hp'],
+    supabase_service: ['supabase_service','supabase_service_n','supabase_service_cf','supabase_service_ni','supabase_service_hp'],
+    supabase_ref:     ['supabase_ref','supabase_ref_n','supabase_ref_cf'],
+    mailgun_key:      ['mailgun_key','mailgun_key_n','mailgun_key_cf','mailgun_key_ni','mailgun_key_hp'],
+    mailgun_domain:   ['mailgun_domain','mailgun_domain_n','mailgun_domain_cf','mailgun_domain_ni','mailgun_domain_hp'],
+    notify_from:      ['notify_from','notify_from_n','notify_from_cf','notify_from_ni','notify_from_hp'],
+    twilio_sid:       ['twilio_sid'],
+    twilio_token:     ['twilio_token'],
+    twilio_from:      ['twilio_from'],
+    nile_postgres:    ['nile_postgres'],
+    nile_api:         ['nile_api'],
+    database_url:     ['database_url']
+  };
+  Object.keys(credFieldMap).forEach(function(key) {
+    var val = CR.get(key);
+    if (!val) return;
+    credFieldMap[key].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.value = val; el.classList.add('has-val'); }
+    });
+  });
+
+  refreshAll();
+})();
+</script>
+</body>
+</html>
