@@ -1,53 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title><%= productName %></title>
-
     <meta charset="utf-8" />
-    <meta name="description" content="<%= productDescription %>" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-tap-highlight" content="no" />
-    <!-- <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width<% if (ctx.mode.cordova || ctx.mode.capacitor) { %>, viewport-fit=cover<% } %>"> -->
-    <meta name="viewport" content="width=640" initial-scale="1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- PWA install support -->
+    <!-- ── Primary meta ─────────────────────────────────────────── -->
+    <title>Ward Food Pantry — Funky Pony | Community Coordination</title>
+    <meta name="description" content="Ward Food Pantry is a community-run mutual aid platform powered by Funky Pony — coordinating food pickups, tracking needs and offerings, and connecting neighbors. Free and open source under GPL-3.0." />
+    <meta name="keywords" content="food pantry, mutual aid, community food, food bank, ward food pantry, funky pony, open source, coordination, pickup, community needs" />
+    <meta name="author" content="Ward Food Pantry Community" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://ward.funkypony.space/" />
+
+    <!-- ── Open Graph (Facebook, LinkedIn, iMessage previews) ───── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:site_name"   content="Ward Food Pantry — Funky Pony" />
+    <meta property="og:title"       content="Ward Food Pantry — Funky Pony" />
+    <meta property="og:description" content="Community food pantry coordination — mutual aid pickups, needs &amp; offerings board, team scheduling. Free and open source." />
+    <meta property="og:url"         content="https://ward.funkypony.space/" />
+    <meta property="og:image"       content="https://ward.funkypony.space/funlyponyspace_pogo.webp" />
+    <meta property="og:image:width"  content="820" />
+    <meta property="og:image:height" content="618" />
+    <meta property="og:image:alt"   content="Funky Pony — Ward Food Pantry mascot" />
+    <meta property="og:locale"      content="en_US" />
+
+    <!-- ── Twitter / X Card ─────────────────────────────���───────── -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="Ward Food Pantry — Funky Pony" />
+    <meta name="twitter:description" content="Community food pantry coordination — mutual aid pickups, needs &amp; offerings, team scheduling. Free and open source." />
+    <meta name="twitter:image"       content="https://ward.funkypony.space/funlyponyspace_pogo.webp" />
+    <meta name="twitter:image:alt"   content="Funky Pony — Ward Food Pantry mascot" />
+
+    <!-- ── Structured data (schema.org) ─────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Ward Food Pantry",
+      "alternateName": "Funky Pony Space",
+      "description": "Community-run food pantry coordination platform — mutual aid pickups, needs and offerings board, volunteer scheduling. Free and open source under GPL-3.0.",
+      "url": "https://ward.funkypony.space",
+      "logo": "https://ward.funkypony.space/funlyponyspace_pogo.webp",
+      "sameAs": [
+        "https://github.com/biomassives/foodbank",
+        "https://gitlab.com/foodpantry/ward"
+      ],
+      "knowsAbout": ["food pantry", "mutual aid", "community food coordination"],
+      "license": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+    </script>
+
+    <!-- ── PWA ──────────────────────────���───────────────────────── -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#fdd835" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <!-- iOS install support -->
+    <meta name="application-name" content="Ward Food Pantry" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="msapplication-TileColor" content="#fdd835" />
+
+    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="FunkyPony" />
+    <meta name="apple-mobile-web-app-title" content="Ward Pantry" />
     <link rel="apple-touch-icon" href="icons/pwa-icon.svg" />
 
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="128x128"
-      href="icons/favicon-128x128.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="96x96"
-      href="icons/favicon-96x96.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="icons/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="icons/favicon-16x16.png"
-    />
-    <link rel="icon" type="image/ico" href="favicon.ico" />
+    <!-- ── Favicons ──────────────────────────────��───────────────── -->
+    <link rel="icon" type="image/png" sizes="128x128" href="icons/favicon-128x128.png" />
+    <link rel="icon" type="image/png" sizes="96x96"   href="icons/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="32x32"   href="icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16"   href="icons/favicon-16x16.png" />
+    <link rel="icon" type="image/x-icon"              href="favicon.ico" />
 
+    <!-- ── Service worker (PWA install eligibility) ──────────────�� -->
     <script>
-      // Register service worker for PWA install eligibility
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
           navigator.serviceWorker.register('/sw.js');

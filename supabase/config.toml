@@ -1,0 +1,15 @@
+# Supabase project configuration
+# https://supabase.com/docs/guides/functions/deploy#configuration
+
+[functions.twiml-gather]
+# Twilio POSTs to this endpoint without an Authorization header.
+# Disabling JWT verification allows the DTMF callback to succeed.
+verify_jwt = false
+
+[functions.daily-call]
+# Manual trigger endpoint — no user session needed.
+verify_jwt = false
+
+[functions.waterfall-call]
+# Called from admin UI (no session) and from twiml-gather (no auth header).
+verify_jwt = false

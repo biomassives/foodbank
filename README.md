@@ -5,7 +5,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883)](https://vuejs.org)
 [![Quasar](https://img.shields.io/badge/Quasar-2-1976D2)](https://quasar.dev)
-[![Tests](https://img.shields.io/badge/tests-287%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-331%20passing%20·%2020%20suites-brightgreen)](#testing)
 
 A GPL-licensed, local-first food pantry coordination platform. Track needs, coordinate pickups, manage volunteers, and share resources — all while keeping each community in full control of their own data. Runs entirely offline by default; cloud sync via Supabase or Appwrite is additive and optional.
 
@@ -14,6 +14,14 @@ A GPL-licensed, local-first food pantry coordination platform. Track needs, coor
 ---
 
 ## Deploy
+
+**New to the project? Use the guided wizard — it collects your credentials step by step and generates a ready-to-paste `.env` file.**
+
+[![Deploy a Pantry — Guided Wizard](https://img.shields.io/badge/Deploy_a_Pantry-Guided_Wizard-FDD835?style=for-the-badge&logo=rocket&logoColor=black)](https://biomassives.github.io/funkypony/)
+
+Covers Vercel, Netlify, Cloudflare Pages, Nile multi-tenant DB, Heroku Postgres, Mailgun, and Twilio — all in one place.
+
+**Quick deploy (you'll need your keys ready):**
 
 | Platform | Button |
 |----------|--------|

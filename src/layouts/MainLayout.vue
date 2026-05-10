@@ -6,7 +6,7 @@
       <img src="/dawn-header.svg" class="mondrian-svg-header" alt="" />
     </div>
 
-    <header-component @toggle-drawer="drawer = !drawer" />
+    <header-component @toggle-drawer="drawer = !drawer" @open-add="quickAdd" />
 
     <q-drawer
       v-model="drawer"
@@ -191,8 +191,68 @@
       </router-view>
     </q-page-container>
 
-    <q-footer class="layout-footer" elevated>
+    <!-- Desktop footer -->
+    <q-footer v-if="$q.screen.gt.sm" class="layout-footer" elevated>
       <app-footer variant="bar" />
+    </q-footer>
+
+    <!-- Mobile bottom nav — role-aware quick actions -->
+    <q-footer v-else class="mob-footer" elevated>
+      <div class="mob-nav">
+        <router-link to="/" class="mob-nav-item" active-class="mob-nav-item--active" exact>
+          <q-icon name="grid_view" size="20px" />
+          <span>Board</span>
+        </router-link>
+
+        <router-link
+          v-if="store.userRole === 'driver' || store.userRole === 'stocker'"
+          to="/logistics"
+          class="mob-nav-item"
+          active-class="mob-nav-item--active"
+        >
+          <q-icon name="local_shipping" size="20px" />
+          <span>Queue</span>
+        </router-link>
+
+        <button
+          v-if="store.canEdit || store.localMode || store.demoMode"
+          class="mob-nav-item mob-nav-item--add"
+          @click="quickAdd('need')"
+        >
+          <q-icon name="add_circle" size="22px" />
+          <span>Add</span>
+        </button>
+
+        <router-link
+          v-if="store.isAdmin || store.localMode"
+          to="/admin"
+          class="mob-nav-item"
+          active-class="mob-nav-item--active"
+        >
+          <q-icon name="token" size="20px" />
+          <span>Admin</span>
+        </router-link>
+
+        <button
+          v-if="store.isLoggedIn"
+          class="mob-nav-item"
+          :class="{ 'mob-nav-item--alert': notifStore.unreadCount > 0 }"
+          @click="router.push('/profile')"
+        >
+          <q-icon name="account_circle" size="20px" />
+          <span v-if="notifStore.unreadCount > 0" class="mob-nav-badge">{{ notifStore.unreadCount > 9 ? '9+' : notifStore.unreadCount }}</span>
+          <span>{{ notifStore.unreadCount > 0 ? 'Alerts' : 'Profile' }}</span>
+        </button>
+
+        <button
+          v-if="!store.isLoggedIn && !store.localMode && !store.demoMode"
+          class="mob-nav-item"
+          @click="router.push('/login')"
+        >
+          <q-icon name="login" size="20px" />
+          <span>Sign in</span>
+        </button>
+      </div>
     </q-footer>
 
     <entry-modal v-model:card-state="entryModalOpen" :initial-type="entryModalType" @saved="handleEntrySaved" />
@@ -570,6 +630,81 @@ async function handleLogout() {
 .layout-footer {
   background: transparent !important;
   box-shadow: none !important;
+}
+
+// ── Mobile bottom nav ───────────────────────────────────────────
+
+.mob-footer {
+  background: var(--wb-surface) !important;
+  border-top: 2px solid var(--wb-border-mid) !important;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.25) !important;
+}
+
+.mob-nav {
+  display: flex;
+  align-items: stretch;
+  height: 56px;
+}
+
+.mob-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px 4px;
+  background: none;
+  border: none;
+  color: var(--wb-text-faint);
+  font-family: var(--wb-font);
+  font-size: 0.44rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+
+  .q-icon { transition: color 0.15s; }
+}
+
+.mob-nav-item:hover,
+.mob-nav-item--active {
+  color: var(--wb-accent);
+  background: var(--wb-surface-hover);
+}
+.mob-nav-item--active .q-icon { color: var(--wb-accent); }
+
+.mob-nav-item--add {
+  color: var(--wb-positive);
+}
+.mob-nav-item--add .q-icon { color: var(--wb-positive); }
+.mob-nav-item--add:hover {
+  color: var(--wb-positive);
+  background: var(--wb-surface-hover);
+}
+
+.mob-nav-item--alert { color: var(--wb-warning); }
+.mob-nav-item--alert .q-icon { color: var(--wb-warning); }
+
+.mob-nav-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  background: var(--wb-negative);
+  color: #fff;
+  border-radius: 7px;
+  font-size: 0.45rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 // Profile row

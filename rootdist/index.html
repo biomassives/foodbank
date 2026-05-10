@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Funky Pony Space — Community Food Pantry Platform</title>
+  <meta name="description" content="Open-source, local-first food pantry coordination. GPL-licensed. Pluggable Quasar/Vue components, community themes, and a growing marketplace for pantry tech." />
+  <meta property="og:title" content="Funky Pony Space" />
+  <meta property="og:description" content="Community food pantry coordination with full data autonomy. GPL-licensed. Deploy in an hour." />
+  <meta property="og:image" content="https://ward.funkypony.space/funlyponyspace_pogo.webp" />
+  <link rel="icon" href="https://ward.funkypony.space/icons/favicon-32x32.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #111111;
+      --bg2:       #181818;
+      --bg3:       #1f1f1f;
+      --surface:   #242424;
+      --border:    #2e2e2e;
+      --text:      #f0ece4;
+      --muted:     #888;
+      --faint:     #555;
+      --accent:    #FDD835;
+      --accent2:   #F9A602;
+      --terracotta:#E2725B;
+      --slate:     #4A5D66;
+      --dark:      #2C2420;
+      --font:      'Georgia', 'Times New Roman', serif;
+      --mono:      'Courier New', monospace;
+      --sans:      system-ui, -apple-system, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* ── Mondrian stripe ── */
+    .mondrian {
+      height: 5px;
+      display: flex;
+      width: 100%;
+    }
+    .mondrian span { flex: 1; }
+    .mondrian span:nth-child(1) { background: var(--terracotta); }
+    .mondrian span:nth-child(2) { background: var(--accent2); }
+    .mondrian span:nth-child(3) { background: var(--slate); }
+    .mondrian span:nth-child(4) { background: var(--dark); }
+
+    /* ── Layout ── */
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+    .wide      { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    section { padding: 64px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(17,17,17,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      gap: 16px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .nav-brand img {
+      height: 32px;
+      width: auto;
+      border-radius: 4px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 80px 0 64px;
+      text-align: center;
+    }
+    .hero-logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 24px;
+      border-radius: 8px;
+    }
+    .hero h1 {
+      font-family: var(--font);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-tagline {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      line-height: 1.7;
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 36px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--bg2);
+    }
+    .badge-accent { border-color: var(--accent); color: var(--accent); }
+    .badge-green  { border-color: #69f0ae; color: #69f0ae; }
+    .badge-blue   { border-color: #82b1ff; color: #82b1ff; }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      transition: filter 0.15s, background 0.15s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary   { background: var(--accent); color: #000; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost     { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-donate    { background: #4CAF50; color: #fff; }
+    .btn:hover { filter: brightness(1.12); }
+
+    /* ── Section headings ── */
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-family: var(--font);
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .section-intro {
+      color: var(--muted);
+      max-width: 640px;
+      margin-bottom: 36px;
+      font-size: 0.97rem;
+      line-height: 1.75;
+    }
+
+    /* ── Docs grid ── */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .doc-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .doc-card:hover {
+      border-color: var(--accent);
+      background: var(--bg3);
+    }
+    .doc-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+    .doc-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    .doc-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .doc-tag {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 2px;
+      background: var(--surface);
+      color: var(--faint);
+      border: 1px solid var(--border);
+      margin-top: auto;
+      align-self: flex-start;
+    }
+
+    /* ── Download cards ── */
+    .dl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .dl-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dl-platform {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .dl-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    .dl-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── Vision / roadmap ── */
+    .vision-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .vision-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .vision-num {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0;
+    }
+    .vision-body h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .vision-body p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── Plugin marketplace teaser ── */
+    .plugin-strip {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      margin-top: 32px;
+    }
+    .plugin-strip h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .plugin-strip p {
+      font-size: 0.83rem;
+      color: var(--muted);
+      max-width: 580px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .plugin-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .ptag {
+      padding: 4px 12px;
+      border-radius: 3px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--surface);
+    }
+
+    /* ── Contribute ── */
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .contrib-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+    }
+    .contrib-card h3 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .contrib-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.55; }
+
+    /* ── Donate ── */
+    .donate-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid #4CAF50;
+      border-radius: 6px;
+      padding: 32px;
+      max-width: 560px;
+    }
+    .donate-box h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .donate-box p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    .donate-tiers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tier {
+      padding: 8px 16px;
+      border-radius: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .tier:hover, .tier.active { border-color: #4CAF50; color: #4CAF50; }
+    .donate-note {
+      font-size: 0.7rem;
+      color: var(--faint);
+      margin-top: 12px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      justify-content: space-between;
+    }
+    .footer-col h4 {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-col a {
+      font-size: 0.82rem;
+      color: var(--faint);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom {
+      text-align: center;
+      padding: 20px 24px 0;
+      font-size: 0.72rem;
+      color: var(--faint);
+      border-top: 1px solid var(--border);
+      margin-top: 32px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      section { padding: 40px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Mondrian stripe -->
+<div class="mondrian"><span></span><span></span><span></span><span></span></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      <img src="https://ward.funkypony.space/funlyponyspace_pogo.webp" alt="Funky Pony" />
+      Funky Pony Space
+    </a>
+    <ul class="nav-links">
+      <li><a href="#docs">Docs</a></li>
+      <li><a href="#download">Download</a></li>
+      <li><a href="#vision">Vision</a></li>
+      <li><a href="#contribute">Contribute</a></li>
+      <li><a href="#donate">Donate</a></li>
+      <li><a href="https://ward.funkypony.space" target="_blank">Live Demo →</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <img
+      src="https://ward.funkypony.space/funlyponyspace_pogo.webp"
+      alt="Funky Pony logo"
+      class="hero-logo"
+    />
+    <h1>Funky Pony <span>Space</span></h1>
+    <p class="hero-tagline">
+      Open-source community food pantry coordination — local-first, data-sovereign,
+      and built on a growing ecosystem of pluggable Quasar&nbsp;+&nbsp;Vue components
+      that anyone can build, share, or sell.
+    </p>
+    <div class="badge-row">
+      <span class="badge badge-accent">GPL-3.0</span>
+      <span class="badge badge-green">287 tests passing</span>
+      <span class="badge badge-blue">Vue 3 + Quasar 2</span>
+      <span class="badge">Local-first / offline</span>
+      <span class="badge">i18n: EN · ES · SW</span>
+      <span class="badge">E8 ZK Lattice integrity</span>
+    </div>
+    <div class="btn-row">
+      <a href="https://github.com/biomassives/foodbank" class="btn btn-primary" target="_blank">
+        ⬇ Get the Source
+      </a>
+      <a href="https://ward.funkypony.space" class="btn btn-secondary" target="_blank">
+        ▶ Live Deployment
+      </a>
+      <a href="#donate" class="btn btn-donate">
+        ♥ Donate
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Documentation index -->
+<section id="docs">
+  <div class="container">
+    <div class="section-label">Documentation</div>
+    <h2>Project Documents</h2>
+    <p class="section-intro">
+      All documentation is plain markdown — readable in any editor, on GitHub, or
+      rendered through this index. Start with the explainer if you're new;
+      jump to the agent API if you're integrating.
+    </p>
+    <div class="docs-grid">
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/README.md" target="_blank">
+        <div class="doc-icon">📋</div>
+        <div class="doc-title">README</div>
+        <div class="doc-desc">
+          Full project overview — architecture, deploy buttons, test coverage,
+          data model, and contribution guide.
+        </div>
+        <span class="doc-tag">Start Here</span>
+      </a>
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/docs/funky-pony-explainer.md" target="_blank">
+        <div class="doc-icon">🌽</div>
+        <div class="doc-title">Plain-Language Explainer</div>
+        <div class="doc-desc">
+          Written for community partners, pantry admins, and supporters.
+          Covers the daily loop, who uses it, security, and how to help.
+        </div>
+        <span class="doc-tag">Community</span>
+      </a>
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/docs/agent-api.md" target="_blank">
+        <div class="doc-icon">🤖</div>
+        <div class="doc-title">Agent Interoperability API</div>
+        <div class="doc-desc">
+          Practical reference for agents and integrations — endpoints, auth,
+          and webhook contracts for external systems.
+        </div>
+        <span class="doc-tag">Developer</span>
+      </a>
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/docs/appwrite-deployment.md" target="_blank">
+        <div class="doc-icon">🚀</div>
+        <div class="doc-title">Appwrite Deployment Guide</div>
+        <div class="doc-desc">
+          Self-sovereign deployment using Appwrite — full data control
+          without reliance on any third-party cloud service.
+        </div>
+        <span class="doc-tag">Ops</span>
+      </a>
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/crypto/E8_ZK_INFOGRAPHIC_SPEC.md" target="_blank">
+        <div class="doc-icon">🔐</div>
+        <div class="doc-title">E8 ZK Lattice — Infographic Spec</div>
+        <div class="doc-desc">
+          Educational deep-dive into the E8 lattice zero-knowledge integrity
+          layer that backs every data commitment in the system.
+        </div>
+        <span class="doc-tag">Security</span>
+      </a>
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/crypto/FIPS_COMPLIANCE_ELABORATION.md" target="_blank">
+        <div class="doc-icon">📐</div>
+        <div class="doc-title">FIPS Compliance & E8 Theta</div>
+        <div class="doc-desc">
+          Supplement to the E8 infographic — how the integrity scheme relates
+          to FIPS standards and lattice-based cryptographic primitives.
+        </div>
+        <span class="doc-tag">Security</span>
+      </a>
+
+      <a class="doc-card" href="https://github.com/biomassives/foodbank/blob/master/public/user-stories.md" target="_blank">
+        <div class="doc-icon">📖</div>
+        <div class="doc-title">User Stories</div>
+        <div class="doc-desc">
+          Acceptance criteria for every major flow — admin setup, volunteer
+          onboarding, pickup lifecycle, and community access.
+        </div>
+        <span class="doc-tag">Product</span>
+      </a>
+
+      <a class="doc-card" href="https://ward.funkypony.space/docs" target="_blank">
+        <div class="doc-icon">🌐</div>
+        <div class="doc-title">In-App Docs</div>
+        <div class="doc-desc">
+          Full interactive documentation rendered inside the live app —
+          searchable, with deep links to every feature.
+        </div>
+        <span class="doc-tag">Interactive</span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- Download -->
+<section id="download">
+  <div class="container">
+    <div class="section-label">Download &amp; Deploy</div>
+    <h2>Get It Running</h2>
+    <p class="section-intro">
+      Guided cloud wizards for Vercel and Netlify — Supabase, Mailgun, Twilio, and optional
+      Nile or Heroku Postgres all covered step by step. Self-sovereign Appwrite path for
+      communities that need full on-premise control. Local-only mode requires zero cloud
+      credentials — just clone and run.
+    </p>
+    <div class="dl-grid">
+
+      <div class="dl-card">
+        <div class="dl-platform">Vercel + Supabase</div>
+        <div class="dl-title">Recommended Cloud Deploy</div>
+        <div class="dl-desc">Free tier covers a full pantry. Step-by-step wizard covers Supabase, Mailgun email, Twilio voice, and all environment variables.</div>
+        <a href="deploy_cloud.html#vercel" class="btn btn-primary" style="margin-top:auto">
+          Cloud Deploy Wizard →
+        </a>
+      </div>
+
+      <div class="dl-card">
+        <div class="dl-platform">Netlify + Supabase</div>
+        <div class="dl-title">Netlify Deploy</div>
+        <div class="dl-desc">Same guided wizard, Netlify CDN. Also covers Nile multi-tenant DB and Heroku Postgres as database alternatives.</div>
+        <a href="deploy_cloud.html#netlify" class="btn btn-secondary" style="margin-top:auto">
+          Cloud Deploy Wizard →
+        </a>
+      </div>
+
+      <div class="dl-card">
+        <div class="dl-platform">Appwrite — Self-Sovereign</div>
+        <div class="dl-title">Full On-Premise Control</div>
+        <div class="dl-desc">Run every layer yourself — no third-party cloud. Ideal for communities with privacy or compliance requirements.</div>
+        <a href="deploy_appwrite.html" class="btn btn-ghost" style="margin-top:auto">
+          Appwrite Wizard →
+        </a>
+      </div>
+
+      <div class="dl-card">
+        <div class="dl-platform">Local Only</div>
+        <div class="dl-title">Zero Cloud, Zero Keys</div>
+        <div class="dl-desc">
+          Clone the repo, <code style="font-family:var(--mono);font-size:0.8em;color:var(--accent)">npm install</code>,
+          then <code style="font-family:var(--mono);font-size:0.8em;color:var(--accent)">quasar dev</code>.
+          All data lives in the browser's IndexedDB.
+        </div>
+        <a href="https://github.com/biomassives/foodbank" class="btn btn-ghost" target="_blank" style="margin-top:auto">
+          GitHub →
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Vision / roadmap -->
+<section id="vision">
+  <div class="container">
+    <div class="section-label">Platform Vision</div>
+    <h2>Where This Is Going</h2>
+    <p class="section-intro">
+      Funky Pony started as one pantry's coordination tool. The long-term goal is a
+      maintained open core with a pluggable component ecosystem — security patches
+      centrally delivered, community features independently grown.
+    </p>
+
+    <div class="vision-list">
+      <div class="vision-item">
+        <div class="vision-num">1</div>
+        <div class="vision-body">
+          <h3>Stable Open Core</h3>
+          <p>
+            The GPL-licensed base — pickup queue, logistics hub, volunteer management,
+            calendar, community board, and the E8 ZK integrity layer — receives long-term
+            security maintenance. Pantries deploying it can take security updates without
+            touching their customisations.
+          </p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-num">2</div>
+        <div class="vision-body">
+          <h3>Pluggable Quasar / Vue Component Architecture</h3>
+          <p>
+            A defined plugin interface for Quasar + Vue 3 components means pantries can
+            extend the UI without forking the core. Dashboard widgets, custom report
+            panels, themed homepage layouts, and role-specific views all become
+            independently installable packages.
+          </p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-num">3</div>
+        <div class="vision-body">
+          <h3>Community Theme &amp; Feature Marketplace</h3>
+          <p>
+            Designers and developers can publish themes and feature packs — free or
+            paid — and pantry admins install them through the admin panel. Revenue
+            goes to the creator. The platform takes no cut on community contributions;
+            a small platform fee applies to commercial listings to sustain core development.
+          </p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-num">4</div>
+        <div class="vision-body">
+          <h3>Multi-Pantry Coordination</h3>
+          <p>
+            Regional networks of pantries sharing inventory signals, driver pools,
+            and donor relationships — while each pantry retains full sovereignty over
+            its own data and member list.
+          </p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-num">5</div>
+        <div class="vision-body">
+          <h3>Security-First Updates</h3>
+          <p>
+            The E8 ZK Lattice integrity layer is actively developed against emerging
+            lattice-based cryptography standards. FIPS-adjacent compliance, tamper-evident
+            audit logs, and post-quantum readiness are first-class goals, not afterthoughts.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="plugin-strip">
+      <h3>&#x1F9E9; Build &amp; Sell Plugins — Coming Soon</h3>
+      <p>
+        The plugin API is in active design. If you're a Vue / Quasar developer interested
+        in building components for the ecosystem — custom dashboards, SMS integrations,
+        nutrition databases, accessibility themes, regional map skins — get in touch early.
+        Early contributors shape the API contract and get preferred placement in the marketplace.
+      </p>
+      <div class="plugin-tags">
+        <span class="ptag">Dashboard Widgets</span>
+        <span class="ptag">Custom Themes</span>
+        <span class="ptag">Report Panels</span>
+        <span class="ptag">SMS Integrations</span>
+        <span class="ptag">Map Skins</span>
+        <span class="ptag">Nutrition Data</span>
+        <span class="ptag">Accessibility Packs</span>
+        <span class="ptag">Multi-Language Packs</span>
+        <span class="ptag">Role Workflows</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contribute -->
+<section id="contribute">
+  <div class="container">
+    <div class="section-label">Get Involved</div>
+    <h2>Contribute</h2>
+    <p class="section-intro">
+      GPL-3.0 licensed. All contributions welcome. The project is built in public —
+      open issues, open PRs, open design discussions.
+    </p>
+    <div class="contrib-grid">
+      <div class="contrib-card">
+        <h3>&#128187; Code</h3>
+        <p>Vue 3, Quasar 2, TypeScript, Supabase edge functions. Check the open issues on GitHub — good-first-issue tags are maintained for newcomers.</p>
+      </div>
+      <div class="contrib-card">
+        <h3>&#127912; Design &amp; Themes</h3>
+        <p>The component library uses CSS custom properties throughout. Build a theme, share it, or list it in the coming marketplace. Light and dark base themes are in the repo.</p>
+      </div>
+      <div class="contrib-card">
+        <h3>&#127758; Translations</h3>
+        <p>Currently EN, ES, SW (Kiswahili). Every string is in <code style="font-family:var(--mono);font-size:0.85em">src/i18n/</code>. Adding a language is a single file addition plus a PR.</p>
+      </div>
+      <div class="contrib-card">
+        <h3>&#128214; Documentation</h3>
+        <p>Plain markdown in <code style="font-family:var(--mono);font-size:0.85em">docs/</code>. If you deployed it, wrote a guide, or found a gap — a PR improving the docs is always welcome.</p>
+      </div>
+      <div class="contrib-card">
+        <h3>&#127919; Deploy &amp; Report</h3>
+        <p>Run it for a real pantry and file issues. Real-world feedback from food pantry coordinators directly shapes the roadmap. Your pantry's needs are the spec.</p>
+      </div>
+      <div class="contrib-card">
+        <h3>&#128176; Marketplace Listings</h3>
+        <p>When the plugin API ships, list your component, feature pack, or theme. Free community listings always available. Paid listings supported with a small platform fee.</p>
+      </div>
+    </div>
+    <div class="btn-row" style="justify-content:flex-start">
+      <a href="https://github.com/biomassives/foodbank" class="btn btn-primary" target="_blank">GitHub Repository</a>
+      <a href="https://github.com/biomassives/foodbank/issues" class="btn btn-secondary" target="_blank">Open Issues</a>
+      <a href="https://github.com/biomassives/foodbank/issues/new" class="btn btn-ghost" target="_blank">File an Issue</a>
+    </div>
+  </div>
+</section>
+
+<!-- Donate -->
+<section id="donate">
+  <div class="container">
+    <div class="section-label">Support the Project</div>
+    <h2>Keep the Lights On</h2>
+    <p class="section-intro">
+      Funky Pony is free and open-source. Infrastructure — Supabase, email delivery,
+      CDN, domain — runs $20–50 / month for a full pantry deployment.
+      Donations directly fund hosting costs and core development time.
+    </p>
+    <div class="donate-box">
+      <h3>♥ Make a Donation</h3>
+      <p>
+        Every dollar goes toward keeping the Ward Food Pantry live, maintaining the
+        open-source codebase, and building out the pluggable component ecosystem
+        that lets other communities self-host for free.
+      </p>
+      <div class="donate-tiers" id="tierRow">
+        <div class="tier active" data-amount="5">$5</div>
+        <div class="tier" data-amount="20">$20</div>
+        <div class="tier" data-amount="50">$50</div>
+        <div class="tier" data-amount="100">$100</div>
+        <div class="tier" data-amount="custom">Other</div>
+      </div>
+      <!-- Replace this href with your actual PayPal/Stripe/Open Collective link -->
+      <a
+        id="donateBtn"
+        href="https://www.paypal.com/donate?hosted_button_id=REPLACE_WITH_YOUR_BUTTON_ID"
+        class="btn btn-donate"
+        target="_blank"
+        rel="noopener"
+      >
+        Donate via PayPal
+      </a>
+      <div class="donate-note">
+        Prefer another method? <a href="mailto:greg@funkypony.space" style="color:var(--muted)">Email us</a>
+        for bank transfer, crypto, or Open Collective options.<br />
+        All donations acknowledged. This project is not a registered nonprofit —
+        donations are not tax-deductible.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/biomassives/foodbank" target="_blank">GitHub</a></li>
+        <li><a href="https://github.com/biomassives/foodbank/blob/master/README.md" target="_blank">README</a></li>
+        <li><a href="https://github.com/biomassives/foodbank/blob/master/LICENSE" target="_blank">GPL-3.0 License</a></li>
+        <li><a href="https://github.com/biomassives/foodbank/issues" target="_blank">Issues</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Documentation</h4>
+      <ul>
+        <li><a href="https://github.com/biomassives/foodbank/blob/master/docs/funky-pony-explainer.md" target="_blank">Explainer</a></li>
+        <li><a href="https://github.com/biomassives/foodbank/blob/master/docs/agent-api.md" target="_blank">Agent API</a></li>
+        <li><a href="https://github.com/biomassives/foodbank/blob/master/docs/appwrite-deployment.md" target="_blank">Appwrite Deployment</a></li>
+        <li><a href="https://github.com/biomassives/foodbank/blob/master/crypto/E8_ZK_INFOGRAPHIC_SPEC.md" target="_blank">E8 ZK Spec</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Live Deployment</h4>
+      <ul>
+        <li><a href="https://ward.funkypony.space" target="_blank">Ward Food Pantry</a></li>
+        <li><a href="https://ward.funkypony.space/docs" target="_blank">In-App Docs</a></li>
+        <li><a href="https://ward.funkypony.space/recordings" target="_blank">E2E Recordings</a></li>
+        <li><a href="https://ward.funkypony.space/launch" target="_blank">Run Your Own</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Community</h4>
+      <ul>
+        <li><a href="#contribute">Contribute</a></li>
+        <li><a href="#donate">Donate</a></li>
+        <li><a href="mailto:greg@funkypony.space">Contact</a></li>
+        <li><a href="https://ward.funkypony.space/terms" target="_blank">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="mondrian" style="max-width:200px;margin:0 auto 12px;height:3px"><span></span><span></span><span></span><span></span></div>
+    Funky Pony Space &nbsp;·&nbsp; GPL-3.0 &nbsp;·&nbsp; Ward, Colorado &nbsp;·&nbsp;
+    Built with Vue 3 + Quasar 2
+  </div>
+</footer>
+
+<script>
+  // Donation tier selector
+  document.querySelectorAll('.tier').forEach(function(t) {
+    t.addEventListener('click', function() {
+      document.querySelectorAll('.tier').forEach(function(x) { x.classList.remove('active'); });
+      t.classList.add('active');
+      var amt = t.dataset.amount;
+      var btn = document.getElementById('donateBtn');
+      if (amt === 'custom') {
+        btn.href = 'https://www.paypal.com/donate?hosted_button_id=REPLACE_WITH_YOUR_BUTTON_ID';
+      } else {
+        btn.href = 'https://www.paypal.com/donate?hosted_button_id=REPLACE_WITH_YOUR_BUTTON_ID&amount=' + amt;
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

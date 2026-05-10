@@ -95,7 +95,7 @@ export const useAddressStore = defineStore('address', () => {
         }
       }
 
-      const { data } = await supabase.from('profiles').select('role, org_id, display_name').maybeSingle();
+      const { data } = await supabase.from('profiles').select('role, org_id, display_name').eq('id', user.id).maybeSingle();
       state.role = data?.role || 'viewer';
       state.userOrgId = data?.org_id || null;
       state.displayName = data?.display_name || null;
