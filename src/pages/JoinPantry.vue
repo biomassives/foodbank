@@ -1,52 +1,72 @@
 <template>
-  <q-page class="flex flex-center bg-black text-white">
-    <div class="column q-gutter-md" style="width: 300px">
-
-      <div class="text-h6 text-yellow text-center letter-spacing-2">
-        ENTER INVITE CODE
+  <!-- Use a light background color; bg-grey-2 adds a nice subtle contrast -->
+  <q-page class="flex flex-center bg-grey-2">
+    <div class="column q-gutter-md" style="width: 320px">
+      
+      <!-- Logo or Branding could go here -->
+      <div class="text-h6 text-amber-9 text-center text-weight-bold letter-spacing-2">
+        JOIN THE PANTRY
       </div>
 
       <template v-if="!magicSent">
+        <!-- Invite Code Input -->
+        <!-- Note: We removed the 'dark' prop so text is dark on the light background -->
         <q-input
           v-model="inviteCode"
-          filled dark color="yellow"
-          maxlength="20"
+          filled
+          color="amber-9"
+          label-color="amber-10"
+          bg-color="white"
+          label="Invite Code"
           placeholder="e.g. PONY-BOSS"
-          hint="Enter your invite code"
+          hint="Enter your secret code"
+          maxlength="20"
           @keyup.enter="claimInvite"
           @update:model-value="v => inviteCode = String(v).toUpperCase()"
         />
 
+        <!-- Email Input -->
         <q-input
           v-model="email"
-          filled dark color="yellow"
+          filled
+          color="amber-9"
+          label-color="amber-10"
+          bg-color="white"
           type="email"
+          label="Email Address"
           placeholder="you@example.com"
-          hint="We'll send a sign-in link — no password needed"
+          hint="We'll email you a login link"
+          @keyup.enter="claimInvite"
         />
 
         <q-btn
-          label="JOIN PANTRY"
-          color="yellow"
-          text-color="black"
+          label="Claim Invite"
+          color="amber-9"
+          text-color="white"
+          unelevated
+          size="lg"
+          class="full-width q-mt-md"
           :loading="loading"
           @click="claimInvite"
         />
       </template>
 
+      <!-- Success / Magic Link Sent State -->
       <template v-else>
-        <q-icon name="mark_email_read" size="48px" color="yellow" class="self-center" />
-        <p class="text-center text-yellow text-weight-bold">Check your inbox!</p>
-        <p class="text-center text-grey-4" style="font-size: 0.85rem; line-height: 1.5">
-          A sign-in link was sent to <strong>{{ email }}</strong>.<br>
-          Click it and you'll join the pantry automatically.
-        </p>
-        <q-btn
-          flat dense no-caps
-          label="Use a different email"
-          color="grey-5"
-          @click="magicSent = false"
-        />
+        <div class="column items-center q-pa-lg bg-white rounded-borders shadow-2">
+          <q-icon name="mark_email_read" size="64px" color="amber-9" />
+          <div class="text-h6 q-mt-md text-grey-9">Check your inbox</div>
+          <p class="text-center text-grey-7 q-mt-sm">
+            We sent a magic link to <br><strong>{{ email }}</strong>
+          </p>
+          <q-btn 
+            flat 
+            no-caps 
+            label="Try a different email" 
+            color="primary" 
+            @click="magicSent = false" 
+          />
+        </div>
       </template>
 
     </div>
@@ -61,7 +81,11 @@ import { useRoute } from 'vue-router'
 
 const $q = useQuasar()
 const route = useRoute()
+
 const inviteCode = ref('')
+const email = ref('')
+const loading = ref(false)
+const magicSent = ref(false)
 
 onMounted(() => {
   const code = route.query.code
@@ -69,37 +93,35 @@ onMounted(() => {
     inviteCode.value = code.trim().toUpperCase()
   }
 })
-const email = ref('')
-const loading = ref(false)
-const magicSent = ref(false)
 
 async function claimInvite() {
+  // Validation
   if (inviteCode.value.trim().length < 3) {
-    $q.notify({ type: 'warning', message: 'Please enter your invite code.' })
+    $q.notify({ type: 'warning', message: 'Please enter a valid invite code.' })
     return
   }
-  if (!email.value.trim()) {
-    $q.notify({ type: 'warning', message: 'Please enter your email address.' })
+  if (!email.value.trim() || !email.value.includes('@')) {
+    $q.notify({ type: 'warning', message: 'Please enter a valid email address.' })
     return
   }
 
   loading.value = true
   try {
-    // If already signed in, use the edge function directly
+    // 1. Check if user is already signed in
     const { data: { user } } = await supabase.auth.getUser()
+    
     if (user) {
       const { data, error } = await supabase.functions.invoke('claim-invite', {
         body: { code: inviteCode.value.toUpperCase(), userId: user.id }
       })
       if (error || data?.error) throw new Error(error?.message || data?.error)
+      
       $q.notify({ type: 'positive', message: 'Welcome to the Pantry!' })
       window.location.href = '/'
       return
     }
 
-    // Not signed in: ask the edge function to validate the code and send a
-    // magic link using the service-role admin API. This works even when global
-    // signups are disabled because the admin pre-provisions the account.
+    // 2. Not signed in: Trigger Edge Function for Magic Link
     const { data: fnData, error: fnErr } = await supabase.functions.invoke('claim-invite', {
       body: {
         action: 'send-magic-link',
@@ -108,20 +130,32 @@ async function claimInvite() {
         redirectTo: window.location.origin + '/',
       },
     })
+    
     if (fnErr || fnData?.error) throw new Error(fnErr?.message || fnData?.error)
 
-    // Save pending invite so fetchUserRole can redeem on return (same-browser flow)
+    // Store for reconciliation on return
     localStorage.setItem('pendingInvite', JSON.stringify({
       code: inviteCode.value.toUpperCase(),
       orgId: fnData.orgId,
     }))
 
     magicSent.value = true
-    $q.notify({ type: 'positive', message: 'Magic link sent — check your inbox!' })
+    $q.notify({ icon: 'email', color: 'positive', message: 'Magic link sent!' })
+    
   } catch (err: unknown) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Something went wrong' })
+    console.error('Invite Error:', err)
+    $q.notify({ 
+      type: 'negative', 
+      message: err instanceof Error ? err.message : 'Something went wrong' 
+    })
   } finally {
     loading.value = false
   }
 }
 </script>
+
+<style scoped>
+.letter-spacing-2 {
+  letter-spacing: 2px;
+}
+</style>

@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { toRaw,ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAddressStore } from 'src/store/store';
@@ -115,6 +115,14 @@ const provisionLoading = ref(false);
 
 async function handleModeNext() {
   provisionLoading.value = true;
+
+
+  if (wizardState.mode === 'advanced' && (!wizardState.customUrl || !wizardState.customKey)) {
+    $q.notify({ color: 'negative', message: 'Supabase URL and Key are required for Advanced mode.' });
+    provisionLoading.value = false;
+    return;
+  }
+
   try {
     if (wizardState.mode === 'shared') {
       const orgId = await store.createSharedPantry(wizardState.pantryName);
@@ -160,13 +168,15 @@ async function handleModeNext() {
 }
 
 async function handleFinish() {
+  $q.loading.show({ message: 'Setting up your pantry...' }); 
+  
   try {
-    // Create location if provided
+    // 1. Create location if provided
     if (wizardState.locationName.trim()) {
       const loc: Location = {
         id: crypto.randomUUID(),
         name: wizardState.locationName.trim(),
-        schedule: wizardState.locationSchedule,
+        schedule: toRaw(wizardState.locationSchedule),
         contact: wizardState.locationContact,
         phone: wizardState.locationPhone,
         resources: [],
@@ -176,25 +186,25 @@ async function handleFinish() {
       await store.addLocation(loc);
     }
 
-    // Add contacts if any
-    for (const c of wizardState.contacts) {
-      if (c.first.trim() || c.last.trim()) {
-        await store.addData({
-          id: crypto.randomUUID(),
-          name: { first: c.first.trim(), last: c.last.trim() },
-          phone: c.phone,
-          email: c.email,
-        }, false);
-      }
-    }
+    // 2. Add contacts in parallel
+    const contactPromises = wizardState.contacts
+      .filter(c => c.first?.trim() || c.last?.trim())
+      .map(c => store.addData({
+        id: crypto.randomUUID(),
+        name: { first: c.first.trim(), last: c.last.trim() },
+        phone: c.phone,
+        email: c.email,
+      }, false));
+    
+    await Promise.all(contactPromises);
 
-    // Save pantry inventory if any categories were enabled
+    // 3. Save pantry inventory
     const enabledCategories = wizardState.inventory.filter(c => c.enabled && c.items.length > 0);
     if (enabledCategories.length > 0) {
-      localStorage.setItem('pantryInventory', JSON.stringify(enabledCategories));
+      localStorage.setItem('pantryInventory', JSON.stringify(toRaw(enabledCategories)));
     }
 
-    // Save admin email to profile if provided and in cloud mode
+    // 4. Update Profile for Cloud users
     if (wizardState.adminEmail.trim() && wizardState.mode === 'shared') {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -205,12 +215,38 @@ async function handleFinish() {
       }
     }
 
+    // 5. Finalize and Navigate
     wizardState.completed = true;
-    wizardReset();
-    router.push('/');
     $q.notify({ color: 'positive', icon: 'celebration', message: 'Your pantry is ready!' });
+
+    await router.push('/');
+    wizardReset();
+    
   } catch (e: any) {
-    $q.notify({ color: 'negative', message: e.message });
+    console.error('Wizard Finish Error:', e);
+    $q.notify({ color: 'negative', message: e.message || 'Failed to finish setup' });
+  } finally {
+    $q.loading.hide();
   }
 }
+
 </script>
+<style scoped>
+.wizard-page {
+  background-color: #f5f5f5; /* Light grey to make white stepper pop */
+}
+.wizard-wrap {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.onboard-brand {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+.onboard-brand-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #424242; /* Deep grey for readability */
+}
+</style>
